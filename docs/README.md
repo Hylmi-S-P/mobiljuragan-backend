@@ -60,14 +60,26 @@ docs/
 1. `MANIFEST.json` + `figma-raw/` (visual reference untuk frontend)
 2. `design-tokens.json` (warna, tipografi, spacing - sudah dikonsolidasikan)
 3. `design/DESIGN.md` (arah desain otoritatif)
-4. `context/CONTEXT_DUMP_semut_copilot_vscode_latest.md`
-5. `PLANNING_TECH_STACK_DAN_ROADMAP.md` (tech stack, scope MVP, dan roadmap tim)
-6. `TEAM_WORK_ALLOCATION.md` (pembagian kerja 4 PIC)
-7. `TEAM_POLICY_AI-ASSISTED_DEVELOPMENT.md` (aturan kontribusi AI)
-8. `LOGBOOK_AI_ASSISTED_TEMPLATE.md` (template entry logbook)
-9. `ia/MobilJuragan_IA_dan_User_Flow.docx`
-10. `ia/Penjelasan_Naratif_IA_dan_User_Flow_MobilJuragan.docx`
-11. Folder `ia/IA/` dan `ia/user-flow/`
+4. `design/LOFI_TO_HIFI_DECISIONS.md` (decision log Lo-Fi, status `needed to be validated by team`)
+5. `context/CONTEXT_DUMP_semut_copilot_vscode_latest.md`
+6. `PLANNING_TECH_STACK_DAN_ROADMAP.md` (tech stack, scope MVP, dan roadmap tim)
+7. `TEAM_WORK_ALLOCATION.md` (pembagian kerja 4 PIC)
+8. `TEAM_POLICY_AI-ASSISTED_DEVELOPMENT.md` (aturan kontribusi AI)
+9. `LOGBOOK_AI_ASSISTED_TEMPLATE.md` (template entry logbook)
+10. `ia/MobilJuragan_IA_dan_User_Flow.docx`
+11. `ia/Penjelasan_Naratif_IA_dan_User_Flow_MobilJuragan.docx`
+12. Folder `ia/IA/` dan `ia/user-flow/`
+
+## Status Lo-Fi Wireframe (10/09/26)
+
+| Batch | Layar | Status |
+|---|---|---|
+| Batch 1 (07/09/26) | Beranda, Pilih Kendaraan, Tinjau Pesanan | `needed to be validated by team` |
+| Batch 2 (09/09/26) | Detail Kendaraan, Tanggal & Waktu, Opsi Rental | `needed to be validated by team` |
+| Batch 3 (direncanakan) | Data Pemesan, Verifikasi OTP, Status Booking | belum dijalankan |
+| Batch 4 (direncanakan) | Bantuan, Buat Ticket, Chat Bantuan | belum dijalankan |
+
+Detail lengkap keputusan UX dan alasan dibawa/tidak ke Hi-Fi ada di `docs/design/LOFI_TO_HIFI_DECISIONS.md`. Sampai status berubah menjadi `reviewed-approved`, `design-tokens.json`, `MANIFEST.json` untuk Hi-Fi, dan screenshot Hi-Fi pada `docs/figma-raw/` TIDAK diubah.
 
 ## Catatan
 
