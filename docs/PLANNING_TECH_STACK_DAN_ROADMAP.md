@@ -1,8 +1,7 @@
 # Planning Tech Stack dan Roadmap MobilJuragan
 
-> Dokumen kerja tim untuk menyepakati arah teknis, membagi pekerjaan, dan mencatat proses pengembangan secara jujur.
->
-> **Status dokumen:** planning baseline. Milestone berstatus `planned` tidak boleh ditulis sebagai pekerjaan yang sudah selesai. Ubah menjadi `done` hanya setelah ada evidence yang dapat diperiksa.
+> Dokumen kerja tim untuk menyepakati arah teknis, membagi pekerjaan, dan mencatat proses pengembangan secara jujur.  
+> **Status dokumen:** planning baseline. Setiap Milestone General (M1–M16) merupakan integrasi dari **Personal Milestones** yang dikerjakan oleh masing-masing PIC (Harun, Dehan, Hylmi, Halimah) sebagaimana diatur dalam [`docs/TEAM_WORK_ALLOCATION.md`](docs/TEAM_WORK_ALLOCATION.md).
 
 ---
 
@@ -47,20 +46,21 @@ FAQ → New Ticket → Ticket Chat → Customer Care admin
 
 | Layer | Pilihan | Peran |
 |---|---|---|
-| Customer mobile | Flutter + Dart | Implementasi aplikasi pelanggan |
-| Admin web | Next.js + TypeScript | Implementasi dashboard admin/staf |
-| Backend API | Express.js + TypeScript | REST API dan satu sumber business logic |
-| Database | PostgreSQL | Data relational booking, kendaraan, user, dan ticket |
-| ORM | Prisma | Schema, migration, query, dan seed |
-| API contract | REST JSON + OpenAPI | Kontrak komunikasi antar-client dan backend |
+| Customer mobile | Flutter + Dart | Implementasi aplikasi pelanggan (PIC A: Harun) |
+| Admin web | Next.js 16 + TypeScript | Implementasi dashboard admin/staf (PIC B: Dehan) |
+| Backend API | Express.js + TypeScript (ESM) | REST API dan satu sumber business logic (PIC C: Hylmi) |
+| Database | PostgreSQL 18 | Data relational booking, kendaraan, user, dan ticket |
+| ORM | Prisma 7 | Schema, migration, query, dan seed |
+| API contract | REST JSON + OpenAPI 3.0.3 | Kontrak komunikasi antar-client dan backend |
 | Mobile state | Riverpod | Server state dan booking flow state di Flutter |
 | Mobile routing | go_router | Routing dan guard pada Flutter |
 | Mobile HTTP | Dio | HTTP client, interceptor, dan error handling |
 | Web server state | TanStack Query | Fetching, cache, loading, dan error state di Next.js |
-| Web styling | Tailwind CSS + CSS variables | Implementasi token dari Figma |
+| Web styling | Tailwind CSS 4 | Implementasi token dari Figma |
 | Validation | Zod di API dan dashboard | Validasi input konsisten |
 | Logging | Pino | Structured logging pada backend |
-| Security baseline | Helmet, CORS allowlist, rate limiting, Argon2id | Hardening API dan authentication |
+| Security baseline | Helmet, CORS allowlist, rate limit, bcrypt/HMAC | Hardening API dan authentication |
+| Quality & Delivery | OpenAPI Validator, Vitest, WCAG | Audit integrasi & evidence gate (PIC D: Halimah) |
 
 ### Keputusan database
 
@@ -80,23 +80,23 @@ MongoDB atau Firebase tidak dipilih sebagai database utama karena struktur booki
 
 ```text
 Flutter Customer App ───────┐
-                            ├── REST /api/v1 ── Express API ── Prisma ── PostgreSQL
+                            ├─-─ REST /api/v1 ─-─ Express API ─-─ Prisma ─-─ PostgreSQL
 Next.js Admin Dashboard ────┘                         │
-                                                      └── OTP / WhatsApp provider (later)
+                                                      └─-─ OTP / WhatsApp provider (later)
 ```
 
 ### Struktur repository target
 
 ```text
 apps/
-├── mobile/                 # Flutter customer app
-└── dashboard/              # Next.js admin dashboard
+├── mobile/                 # Flutter customer app (Harun)
+└── dashboard/              # Next.js admin dashboard (Dehan)
 services/
-└── api/                    # Express.js API
+└── api/                    # Express.js API (Hylmi)
 packages/
 ├── api-contract/           # OpenAPI dan response contract
 └── design-tokens/          # Token yang dipakai lintas client
-docs/                       # Figma export, IA, flow, dan planning
+docs/                       # Figma export, IA, flow, logbook, dan planning (Halimah & All)
 ```
 
 `docs/design-tokens.json` dan `docs/MANIFEST.json` menjadi referensi awal. Token boleh ditransformasikan ke CSS/Flutter, tetapi nilai dan aturan desainnya tidak boleh berubah tanpa keputusan team.
@@ -194,138 +194,93 @@ Response error harus konsisten, misalnya:
 
 ---
 
-## 5. Roadmap 16 milestone dalam 14 minggu
+## 5. Roadmap 16 Milestone Terintegrasi dengan Personal Milestone PIC
 
-Format ini memberi team **16 milestone yang dapat dibuktikan** dalam **14 minggu kerja**. Beberapa minggu memiliki dua milestone karena keduanya saling terkait. Durasi aktual boleh bergeser, tetapi urutan dependency sebaiknya dipertahankan.
+> **Koreksi Terhadap Milestone General:**  
+> Milestone di bawah ini tidak lagi bersifat umum dan anonim. Setiap milestone general dipecah menjadi target capaian personal (*Personal Milestones*) milik **Harun (PIC A)**, **Dehan (PIC B)**, **Hylmi (PIC C)**, dan **Halimah (PIC D)**.  
+> Sebuah milestone general dinyatakan `done` hanya jika seluruh personal milestone di dalamnya telah diselesaikan dan diverifikasi.
 
 ### Status yang digunakan
 
-- `baseline`: artefak sudah ada di workspace sebelum implementation roadmap ini.
 - `planned`: belum dikerjakan.
 - `in progress`: sedang dikerjakan, harus memiliki catatan evidence sementara.
-- `done`: selesai dan sudah diverifikasi.
-- `blocked`: terhambat oleh keputusan atau dependency yang belum tersedia.
+- `done`: selesai dan seluruh personal milestone terkait sudah diverifikasi.
+- `blocked`: terhambat oleh dependency yang belum tersedia.
 
-| Minggu | Milestone | Fokus | Output yang harus terlihat | Definition of done / evidence | Status awal |
-|---:|---|---|---|---|---|
-| 1 | M1. Project baseline | Menyatukan problem, scope, Figma, IA, dan flow | Dokumen baseline dan daftar kebutuhan | Team menyetujui scope; link `MANIFEST`, `DESIGN`, IA, dan flow tercatat | `baseline` |
-| 1 | M2. Tech stack decision | Menetapkan Flutter, Next.js, Express, PostgreSQL, Prisma, REST | Keputusan stack dan alasan teknis | Semua anggota memahami pembagian client, API, dan database; keputusan tersimpan di dokumen ini | `planned` |
-| 2 | M3. Repository foundation | Membuat struktur `apps`, `services`, `packages`, dan aturan environment | Repository dapat dijalankan dengan instruksi README | Health check/API placeholder, dashboard placeholder, dan Flutter app dapat di-start sesuai setup team | `planned` |
-| 3 | M4. Database foundation | Menulis Prisma schema, migration, dan seed sembilan kendaraan | Database development berisi schema dan fleet seed resmi | Migration berhasil; seed hanya berisi sembilan kendaraan; tidak ada harga atau customer fiktif tanpa label | `planned` |
-| 4 | M5. API contract dan authentication | OpenAPI, response format, admin auth, mock customer OTP | `openapi.yaml`, auth endpoint, middleware role | Request/response terdokumentasi; auth test lulus; OTP memiliki expiry, attempt limit, dan tidak disimpan plain text | `planned` |
-| 5 | M6. Vehicle dan availability API | Daftar/detail kendaraan dan pengecekan tanggal | Endpoint vehicle + availability | Semua kendaraan berasal dari dataset resmi; loading/empty/error response tersedia; conflict date memiliki test | `planned` |
-| 5 | M7. Flutter application shell | Theme, token, routing, bottom navigation, reusable widgets | Flutter shell dengan `Beranda`, `Pesan`, `Status`, `Bantuan` | App berjalan pada target mobile; tidak ada horizontal overflow; tap target dan label nav sesuai DESIGN.md | `planned` |
-| 6 | M8. Booking domain backend | Create booking, validation, transaction, status awal | Endpoint `POST /bookings` dan query status | Booking valid tersimpan atomically; booking conflict ditolak; tarif tetap nullable; error code konsisten | `planned` |
-| 7 | M9. Customer booking flow | Implementasi screen booking utama di Flutter | Home sampai Order Review terhubung ke API/mock layer | User dapat memilih kendaraan, tanggal, rental type, mengisi form, dan melihat review; state loading/empty/error ada | `planned` |
-| 8 | M10. Prototype checkpoint / UTS | Integrasi Phone Verification dan Booking Status | Demo end-to-end customer booking | Flow dapat didemokan dari Home sampai Status; OTP mock diberi batasan jelas; screenshot/video evidence disimpan | `planned` |
-| 9 | M11. Next.js dashboard shell | Layout dashboard, sidebar, topbar, route protection | Overview, sidebar, dan design token web | Dashboard dapat dijalankan; layout target 1440×900 tidak overlap; role non-admin ditolak | `planned` |
-| 10 | M12. Admin booking operations | Incoming Bookings, Detail, Status Update | Admin dapat melihat dan mengubah booking | Update status + internal note + optional WhatsApp intent tersimpan; status history dibuat; test role dan validation lulus | `planned` |
-| 11 | M13. Fleet operations | Fleet Calendar dan Vehicle Status | Daftar 9 fleet, filter status, availability context | Filter bekerja; data example diberi label; empty/error state dan recovery tersedia | `planned` |
-| 12 | M14. Help dan Customer Care | FAQ, New Ticket, Ticket Chat, admin reply | Ticket lifecycle customer → admin → reply | Customer dapat membuat ticket dan mengirim pesan; admin dapat membalas; failure state memiliki retry | `planned` |
-| 13 | M15. Quality, accessibility, dan security audit | Testing lintas client/API, WCAG, data integrity | Test report dan daftar defect | Test focused lulus; mobile 390×844 dan dashboard 1440×900 dicek; contrast, keyboard/focus, auth, rate limit, dan 9-vehicle gate diaudit | `planned` |
-| 14 | M16. Release candidate dan UAS handoff | Deployment/staging, dokumentasi, demo, case study | Release candidate, README, API docs, handoff, logbook final | Fresh setup dapat diulang; known limitations tertulis; demo berjalan; tidak ada claim fitur yang belum diverifikasi | `planned` |
-
-### Catatan terhadap minggu kuliah
-
-RPS kuliah memiliki 16 pertemuan dengan UTS pada minggu 8 dan UAS pada minggu 16. Roadmap engineering di atas memakai 14 minggu kerja agar bisa menyesuaikan jadwal team. Jika logbook wajib mengikuti kalender 16 minggu:
-
-- Minggu kuliah 1–2 dapat mengacu pada artefak problem framing, prototype, IA, dan user flow yang sudah ada.
-- M1 dan M2 menjadi baseline/penyelarasan, bukan alasan untuk mengklaim coding sudah selesai.
-- M10 dapat diposisikan sebagai checkpoint UTS.
-- M16 dapat diposisikan sebagai persiapan UAS/handoff.
-- Dua minggu tambahan dapat digunakan sebagai buffer untuk revisi dosen, usability test, dan perbaikan defect, bukan untuk membuat progress fiktif.
+| Minggu | Milestone General | Rincian Personal Milestone PIC Penanggung Jawab | Output & Evidence Terverifikasi | Status |
+|:---:|---|---|---|:---:|
+| **1** | **M1. Project baseline** | • **Harun (PM-A.01):** Review alur & IA 9 screen booking mobile.<br>• **Dehan (PM-B.01):** Review alur & IA 7 screen admin web.<br>• **Hylmi (PM-C.01):** Finalisasi model 8 tabel relasional & 9 armada.<br>• **Halimah (PM-D.01):** Audit sinkronisasi token desain & manifest. | Dokumen baseline, IA, flow, manifest visual, dan token desain disetujui tim. | **Done** |
+| **1** | **M2. Tech stack decision** | • **Harun:** Review kecocokan stack Flutter & Riverpod.<br>• **Dehan:** Review kecocokan stack Next.js & Tailwind 4.<br>• **Hylmi (PM-C.02):** Perumusan arsitektur REST API & database.<br>• **Halimah:** Validasi kesepakatan delivery gate bersama. | Dokumen kesepakatan teknis, data model, dan batasan produk tersimpan. | **Done** |
+| **2** | **M3. Repository foundation** | • **Harun (PM-A.02):** Inisialisasi mobile skeleton `apps/mobile`.<br>• **Dehan (PM-B.02):** Inisialisasi web skeleton `apps/dashboard`.<br>• **Hylmi (PM-C.03):** Setup root monorepo & Express API `services/api`.<br>• **Halimah (PM-D.02):** Validasi reproduksi build & typecheck monorepo. | Root monorepo `pnpm dev`, `build`, dan `typecheck` berhasil tanpa error. | **Done** |
+| **3** | **M4. Database foundation** | • **Hylmi (PM-C.04):** Skema Prisma 7, migrasi PostgreSQL, singleton client, dan seed 9 armada resmi Merauke.<br>• **Halimah (PM-D.03):** Audit integritas tabel DB & verifikasi tidak ada harga fiktif. | Migration berhasil dijalankan; seed 9 kendaraan resmi terisi; DB test passing. | **Done** |
+| **4** | **M5. API contract & auth** | • **Hylmi (PM-C.05):** Standard envelope, Zod schema, customer OTP HMAC, admin login bcrypt+JWT, OpenAPI 3.0.3.<br>• **Dehan (PM-B.03):** Setup login admin web guard & session storage.<br>• **Halimah (PM-D.04):** Audit 9 automated test auth & validasi `openapi.yaml`. | 9/9 test backend lolos; OTP aman tanpa plaintext; spec OpenAPI terverifikasi. | **Done** |
+| **5** | **M6. Vehicle & availability API** | • **Hylmi (PM-C.06):** Endpoint `GET /vehicles`, detail, query availability rentang tanggal, conflict test.<br>• **Harun (PM-A.03):** Setup Dio client & model entity armada di Flutter.<br>• **Halimah (PM-D.05):** Pengujian integrasi API ketersediaan & skenario bentrok jadwal. | Endpoint kendaraan aktif; filter bekerja; test deteksi bentrok tanggal lulus. | **In Progress** |
+| **5** | **M7. Flutter application shell** | • **Harun (PM-A.04):** Theme data Inter/brand, routing `go_router`, 4 tab Bottom Nav (*Beranda, Pesan, Status, Bantuan*).<br>• **Halimah (PM-D.06):** Visual QA kesesuaian tema & viewport 390×844 tanpa overflow. | Shell Flutter berjalan mulus di target Android/Web tanpa horizontal overflow. | **In Progress** |
+| **6** | **M8. Booking domain backend** | • **Hylmi (PM-C.07):** Endpoint `POST /bookings` dalam transaksi atomic DB, auto-record status history, query detail booking.<br>• **Halimah:** Validasi aturan bisnis: tarif sewa wajib nullable sampai dikonfirmasi. | Booking tersimpan secara atomic; bentrok jadwal ditolak otomatis oleh DB. | Planned |
+| **7** | **M9. Customer booking flow** | • **Harun (PM-A.05):** Layar Home sampai Order Review terintegrasi state Riverpod & API.<br>• **Halimah (PM-D.07):** E2E testing form pemesanan pelanggan & error recovery. | Pengguna dapat memilih mobil, tanggal sewa, mengisi data, dan review order. | Planned |
+| **8** | **M10. Checkpoint UTS / Prototype** | • **Harun (PM-A.06):** Integrasi Phone Verification OTP & Booking Status timeline.<br>• **Halimah (PM-D.08):** Lead skenario demo UTS, rekap rekaman video/screenshot.<br>• **Hylmi & Dehan:** Support backend & admin review untuk demo. | Demo customer booking end-to-end berjalan lancar untuk penilaian UTS. | Planned |
+| **9** | **M11. Next.js dashboard shell** | • **Dehan (PM-B.04):** Layout dashboard 1440×900, collapsible sidebar, topbar profil, route guard.<br>• **Halimah (PM-D.09):** Visual QA dashboard layout & responsivitas desktop. | Dashboard web berjalan rapi; layout 1440×900 tidak overlap; akses non-admin ditolak. | Planned |
+| **10** | **M12. Admin booking operations** | • **Dehan (PM-B.05):** Tabel Incoming Bookings, filter/pagination, modal detail & update status.<br>• **Hylmi (PM-C.08):** API update status, catatan internal staf, dan pencatatan audit log.<br>• **Halimah (PM-D.10):** Audit verifikasi catatan riwayat status pesanan. | Admin dapat memperbarui status pesanan; history tercatat lengkap dengan aktor staf. | Planned |
+| **11** | **M13. Fleet operations** | • **Dehan (PM-B.06):** Visual Fleet Calendar & dashboard status 9 armada.<br>• **Hylmi (PM-C.09):** API calendar & ketersediaan armada terintegrasi.<br>• **Halimah:** Verifikasi sinkronisasi jadwal fisik dengan status booking. | Kalender operasional menampilkan rentang tanggal sewa 9 mobil secara akurat. | Planned |
+| **12** | **M14. Help & Customer Care** | • **Harun (PM-A.07):** Layar bantuan FAQ, form buat tiket, dan chat bantuan mobile.<br>• **Dehan (PM-B.07):** Workspace tiket admin, split view chat, dan tombol takeover bot.<br>• **Hylmi (PM-C.10):** API tiket, pesan chat, dan state machine handoff AI-ke-manusia.<br>• **Halimah (PM-D.11):** E2E testing alur chat antara customer dan staf admin. | Percakapan tiket dua arah berfungsi; staf admin dapat membalas pesan pelanggan. | Planned |
+| **13** | **M15. Quality, A11y, & Security audit** | • **Halimah (PM-D.12):** Lead audit aksesibilitas WCAG AA (kontras warna, focus keyboard).<br>• **Harun (PM-A.08):** Audit usability mobile (tap target, keyboard avoid, empty state).<br>• **Dehan (PM-B.08):** Audit web accessibility, loading skeleton, dan error boundary.<br>• **Hylmi (PM-C.11):** Backend hardening (rate limiting, security headers Helmet, sanitasi log). | Laporan audit menyeluruh; seluruh defect kategori kritikal dan mayor terselesaikan. | Planned |
+| **14** | **M16. Release candidate & UAS handoff** | • **Halimah (PM-D.13):** Review kelengkapan logbook seluruh PIC & verifikasi checklist release.<br>• **Harun (PM-A.09):** Build APK release customer app.<br>• **Dehan (PM-B.09):** Deploy staging admin dashboard.<br>• **Hylmi (PM-C.12):** Deploy staging backend API & finalisasi runbook setup. | Seluruh sistem live di staging; APK siap diuji; presentasi UAS siap dipaparkan. | Planned |
 
 ---
 
-## 6. Format catatan logbook setiap milestone
+## 6. Format Catatan Logbook Setiap Milestone
 
-Gunakan satu entry per milestone, bukan hanya kalimat “mengerjakan project”.
+Gunakan satu entry per milestone, bukan hanya kalimat singkat. Format mengacu pada [`docs/LOGBOOK_AI_ASSISTED_TEMPLATE.md`](docs/LOGBOOK_AI_ASSISTED_TEMPLATE.md):
 
 ```text
-Tanggal:
-Minggu / Milestone:
-Tujuan sesi:
-Pekerjaan yang benar-benar dilakukan:
-Keputusan teknis/desain:
-Kendala:
-Solusi atau tindak lanjut:
-Output/evidence:
+Tanggal: YYYY-MM-DD
+Minggu / Milestone: M<nomor> / PM-<PIC>.<nomor>
+PIC: Harun / Dehan / Hylmi / Halimah
+Tujuan sesi: ...
+Pekerjaan yang benar-benar dilakukan: ...
+Keputusan teknis/desain: ...
+Kendala: ...
+Solusi atau tindak lanjut: ...
+Output/evidence (commit hash, screenshot path, API response): ...
 Status: planned | in progress | done | blocked
-PIC:
-Reviewer:
+Reviewer: Halimah / Hylmi / Dehan / Harun
 ```
-
-### Contoh entry yang benar
-
-```text
-Minggu 3 / M4. Database foundation
-Tujuan sesi: membuat schema awal dan seed fleet.
-Pekerjaan: menulis Prisma schema untuk Vehicle dan Booking, lalu menjalankan migration.
-Output/evidence: migration log, screenshot database, dan test seed.
-Kendala: belum ada provider database staging.
-Tindak lanjut: memakai PostgreSQL lokal untuk development; provider staging diputuskan sebelum M16.
-Status: done hanya setelah migration dan seed diverifikasi.
-```
-
-### Bukti yang boleh dipakai
-
-- commit hash atau changed file,
-- screenshot UI sebelum/sesudah,
-- hasil test command,
-- API request/response yang direkam tanpa secret,
-- migration dan seed output,
-- link OpenAPI,
-- review checklist,
-- keputusan team yang memiliki tanggal dan PIC.
-
-Jangan menulis `done` hanya karena file dibuat. Milestone selesai jika output dan acceptance check-nya benar-benar diperiksa.
 
 ---
 
-## 7. Pembagian tanggung jawab awal
+## 7. Pembagian Tanggung Jawab Tim (Resmi)
 
-| Area | PIC utama | Kolaborasi |
-|---|---|---|
-| Product scope dan IA | Product/UX | Semua anggota |
-| Flutter customer app | Mobile developer | UX, backend |
-| Next.js dashboard | Web developer | UX, backend |
-| Express API dan auth | Backend developer | Mobile, web |
-| PostgreSQL/Prisma | Backend developer | QA |
-| API contract/OpenAPI | Backend + satu wakil client | Semua developer |
-| Design token dan visual QA | UX/UI | Mobile, web |
-| Testing dan delivery | QA/release owner | Semua anggota |
-
-PIC dapat diganti, tetapi setiap milestone harus memiliki satu owner dan satu reviewer.
+| Area Tanggung Jawab | PIC Utama | Nama Anggota | Anggota Kolaborator / Reviewer |
+|---|---|---|---|
+| Customer Mobile App (Flutter) | **PIC A** | **Harun** | Halimah (QA), Hylmi (API) |
+| Admin Web Dashboard (Next.js) | **PIC B** | **Dehan** | Halimah (QA), Hylmi (API) |
+| Core API, Database & Auth | **PIC C** | **Hylmi** | Halimah (QA), Dehan (Web) |
+| Quality Gate, Integration & Release | **PIC D** | **Halimah** | Hylmi (Backend), Harun (Mobile) |
 
 ---
 
-## 8. Delivery gate team
+## 8. Delivery Gate Team
 
-Sebelum milestone ditutup, cek hal berikut sesuai konteks milestone:
+Sebelum suatu milestone ditutup dan diklaim `done`:
 
-- [ ] Tidak ada data kendaraan di luar sembilan dataset resmi.
+- [ ] Tidak ada data kendaraan di luar sembilan dataset resmi Merauke.
 - [ ] Tidak ada harga, rating, nama pelanggan, statistik, atau waktu respons fiktif tanpa label `Data contoh`.
 - [ ] Tarif tetap memakai copy konfirmasi, bukan angka rekaan.
-- [ ] Mobile tidak overflow pada 390×844.
-- [ ] Dashboard tidak patah pada 1440×900.
-- [ ] Loading, empty, dan error state memiliki sebab serta recovery.
-- [ ] Semua tombol dan route memiliki tujuan nyata atau diberi batasan yang jujur.
-- [ ] Kontras, focus state, label input, dan tap target diperiksa.
-- [ ] Auth dan role diperiksa di backend.
-- [ ] Secret tidak masuk ke repository, screenshot, logbook, atau API example.
-- [ ] Setiap klaim `done` memiliki evidence.
+- [ ] Mobile tidak overflow pada resolusi 390×844.
+- [ ] Dashboard tidak patah pada resolusi 1440×900.
+- [ ] Loading, empty, dan error state memiliki penanganan yang jelas.
+- [ ] Semua tombol dan route memiliki fungsi nyata atau pembatasan yang jujur.
+- [ ] Kontras warna (WCAG), focus state, dan tap target diperiksa.
+- [ ] Autentikasi dan hak akses role diverifikasi ketat di backend.
+- [ ] Secret/kredensial tidak pernah di-commit ke repository.
+- [ ] Seluruh Personal Milestone dari PIC yang terlibat dalam milestone tersebut memiliki bukti konkret (*evidence*).
 
 ---
 
-## 9. Keputusan yang masih terbuka
+## 9. Status Keputusan Tim
 
-Hal berikut belum diputuskan oleh dokumen ini karena membutuhkan persetujuan team atau kondisi deployment:
-
-1. Provider hosting PostgreSQL dan API.
-2. Provider OTP/WhatsApp production.
-3. Strategi upload foto kendaraan final.
-4. Apakah customer authentication production memakai OTP WhatsApp, SMS, atau provider lain.
-5. Pembagian PIC aktual setiap milestone.
-6. Target platform mobile pertama: Android saja atau Android + iOS.
-
-Keputusan terbuka tidak boleh diam-diam dianggap sudah final. Catat keputusan, alasan, tanggal, dan PIC pada logbook atau decision record.
+1. **Provider hosting PostgreSQL dan API:** Diputuskan menggunakan Staging Server Lokal (Laptop Server via systemd/FlyEnv & reverse proxy/Tailscale).
+2. **Provider OTP Customer:** Mode Development & MVP menggunakan hash HMAC SHA-256 tersimpan di database lokal dengan skema attempt limit. Integrasi SMS/WA provider ditunda setelah MVP.
+3. **Strategi upload foto kendaraan:** Menggunakan aset static resmi 9 armada Merauke dari `docs/figma-raw/` dan public static storage.
+4. **Pembagian PIC aktual:** **Final** (PIC A: Harun, PIC B: Dehan, PIC C: Hylmi, PIC D: Halimah).
+5. **Target platform mobile pertama:** Android & Web runner.

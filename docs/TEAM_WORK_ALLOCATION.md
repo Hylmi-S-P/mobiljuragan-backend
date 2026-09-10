@@ -1,219 +1,126 @@
-# Pembagian Kerja Team MobilJuragan
+# Pembagian Kerja Team & Personal Milestone MobilJuragan
 
-> Struktur awal untuk team berisi empat orang. Ganti `PIC A`, `PIC B`, `PIC C`, dan `PIC D` dengan nama atau inisial anggota setelah team menyepakatinya.
->
-> Pembagian ini memisahkan tiga area implementasi utama dan satu area integrasi/quality gate. Semua anggota tetap wajib memahami alur produk dan dapat membantu saat ada dependency.
-
----
-
-## 1. Pembagian role
-
-| Role | Fokus utama | Stack / artefak utama | Output utama |
-|---|---|---|---|
-| PIC A - Mobile Engineer | Customer Mobile App | Flutter, Dart, Riverpod, go_router, Dio | Screen dan flow pelanggan |
-| PIC B - Web Engineer | Admin Dashboard | Next.js, TypeScript, Tailwind CSS, TanStack Query | Screen dan flow admin |
-| PIC C - Backend Engineer | API dan database | Express.js, TypeScript, Prisma, PostgreSQL | REST API, schema, migration, auth |
-| PIC D - Integration, Design QA, dan Release | Integrasi, visual fidelity, testing, dokumentasi | OpenAPI review, design tokens, test, logbook | Evidence, review, release checklist |
-
-### Kenapa pembagian ini dipilih
-
-- Flutter dan Next.js membutuhkan keahlian serta tooling yang berbeda, jadi keduanya punya PIC khusus.
-- Express dan PostgreSQL menjadi dependency bersama, sehingga backend perlu satu owner yang jelas.
-- Integrasi dan review tidak boleh menjadi pekerjaan yang tidak punya pemilik. PIC D menjadi reviewer, tetapi tetap mengambil pekerjaan teknis yang jelas agar bebannya tidak hanya berupa administrasi.
+> Dokumen resmi penugasan anggota tim dan rincian **Personal Milestone** per PIC.  
+> **Prinsip Utama:** Setiap *General Milestone* (M1–M16) pada roadmap merupakan gabungan dari target personal yang harus diselesaikan oleh PIC terkait. Sebuah General Milestone baru dinyatakan tercapai (*Done*) apabila seluruh Personal Milestone dari PIC yang terlibat telah diverifikasi dengan bukti teknis (*evidence*).
 
 ---
 
-## 2. Tanggung jawab tiap PIC
+## 1. Profil Tim & Pembagian Role
 
-### PIC A - Mobile Engineer
-
-Bertanggung jawab atas:
-
-- Flutter project setup.
-- Theme dan mobile design tokens.
-- Bottom navigation: `Beranda`, `Pesan`, `Status`, `Bantuan`.
-- Customer booking flow:
-  - `Screen / Home` (`16:4`)
-  - `Screen / Available Vehicles` (`16:48`)
-  - `Screen / Vehicle Detail` (`16:147`)
-  - `Screen / Date & Time` (`17:70`)
-  - `Screen / Rental Options` (`17:129`)
-  - `Screen / Booker Form` (`17:177`)
-  - `Screen / Order Review` (`18:145`)
-  - `Screen / Phone Verification` (`18:190`)
-  - `Screen / Booking Status` (`18:243`)
-- Help customer screens:
-  - `Screen / Bantuan` (`273:336`)
-  - `Screen / Help - New Ticket` (`228:262`)
-  - `Screen / Help - Ticket Chat` (`228:305`)
-- Mobile loading, empty, error, validation, dan retry state.
-- Mobile test dan pengecekan viewport 390x844.
-
-PIC A tidak boleh membuat business rule availability atau status sendiri di Flutter. Aturan tersebut berasal dari API Express.
-
-### PIC B - Web Engineer
-
-Bertanggung jawab atas:
-
-- Next.js project setup dan route layout.
-- Admin authentication guard di sisi client, dengan authorization final tetap di backend.
-- Sidebar dan topbar dashboard.
-- Screen dashboard:
-  - `Screen / Dashboard Overview` (`19:4`)
-  - `Screen / Incoming Bookings` (`19:59`)
-  - `Screen / Booking Detail` (`19:112`)
-  - `Screen / Booking Status Update` (`20:180`)
-  - `Screen / Fleet Calendar` (`20:20`)
-  - `Screen / Vehicle Status` (`20:142`)
-  - `Screen / Customer Care` (`228:411`)
-- Table state, filter, form validation, dropdown, dan error recovery.
-- Dashboard test dan pengecekan viewport 1440x900.
-
-PIC B tidak boleh hardcode status booking, vehicle availability, atau data customer di komponen production. Data harus berasal dari API atau diberi label `Data contoh`.
-
-### PIC C - Backend Engineer
-
-Bertanggung jawab atas:
-
-- Express app dan route `/api/v1`.
-- Prisma schema, migration, seed, dan PostgreSQL.
-- Seed sembilan kendaraan resmi.
-- Customer OTP mock dan admin authentication.
-- Vehicle listing, detail, dan availability.
-- Booking creation, conflict check, transaction, dan status.
-- Booking status history dan internal note.
-- Support ticket dan ticket message.
-- Role authorization pada endpoint admin.
-- Validation, error format, rate limiting, logging, dan API test.
-- OpenAPI sebagai kontrak bersama client.
-
-PIC C wajib menjaga agar `quoted_amount` atau field tarif yang setara tetap nullable sebelum tarif nyata tersedia. OTP code, password, token, dan secret tidak boleh masuk logbook atau repository.
-
-### PIC D - Integration, Design QA, dan Release
-
-Bertanggung jawab atas:
-
-- Menjaga `docs/design-tokens.json` tetap sinkron dengan implementasi CSS dan Flutter theme.
-- Review penggunaan screenshot Figma dari `docs/MANIFEST.json`.
-- Meninjau kesesuaian UI terhadap `docs/design/DESIGN.md`.
-- Membuat integration test lintas client dan API bersama PIC A/B/C.
-- Memeriksa loading, empty, error, responsive layout, focus, contrast, dan tap target.
-- Menjaga template serta entry logbook AI.
-- Menjaga OpenAPI, README runbook, dan evidence release.
-- Membuat issue/review ketika ada data fiktif, dead button, endpoint tidak sesuai, atau klaim `done` tanpa bukti.
-- Mengambil ownership atas komponen state atau helper yang diperlukan, misalnya shared error state, empty state, atau test fixture, agar role ini memiliki output coding yang terukur.
-
-PIC D bukan sekretaris yang menulis laporan dari cerita orang lain. Ia memeriksa bukti langsung dari kode, test, screenshot, dan API response.
+| Role | Nama Anggota | Fokus Utama | Stack / Tooling Utama | Output Utama |
+|---|---|---|---|---|
+| **PIC A - Mobile Engineer** | **Harun** | Customer Mobile App | Flutter, Dart, Riverpod, go_router, Dio | Screen & user flow pelanggan (390×844) |
+| **PIC B - Web Engineer** | **Dehan** | Admin Web Dashboard | Next.js 16, TypeScript, Tailwind CSS 4, TanStack Query | Screen & workflow staf admin (1440×900) |
+| **PIC C - Backend Engineer** | **Hylmi** | Core API & Database | Express.js, TypeScript (ESM), Prisma 7, PostgreSQL 18 | REST API `/api/v1`, DB schema, auth, business logic |
+| **PIC D - Integration, QA & Release** | **Halimah** | Quality Gate & Delivery | OpenAPI validator, Design Tokens, Vitest, Logbook Audit | Evidence review, WCAG audit, E2E test, release |
 
 ---
 
-## 3. Pola kerja antar-PIC
+## 2. Personal Milestone Track (Jalur Mandiri Tiap Anggota)
 
-```text
-PIC A Flutter ────────┐
-                      ├── API contract: PIC C
-PIC B Next.js ────────┤
-                      └── Review/integration: PIC D
-```
+Berikut adalah daftar capaian mandiri (*Personal Milestones*) yang wajib diselesaikan dan dilaporkan oleh masing-masing PIC:
 
-### Aturan dependency
+### A. Harun (PIC A — Mobile Engineer)
+- [x] **PM-A.01 (M1):** Review Information Architecture & flow mobile (9 screen booking + 3 screen bantuan).
+- [x] **PM-A.02 (M3):** Setup repository `apps/mobile` (Flutter 3.x skeleton, konfigurasi target Android/Web, `flutter analyze` clean).
+- [ ] **PM-A.03 (M6):** Setup HTTP Client Dio, interceptor error standar, dan model entity armada mobil.
+- [ ] **PM-A.04 (M7):** Implementasi Mobile Application Shell: Theme data dari token (`docs/design-tokens.json`), routing `go_router`, dan 4 tab navigasi bawah (*Beranda, Pesan, Status, Bantuan*) tanpa overflow pada viewport 390×844.
+- [ ] **PM-A.05 (M9):** Implementasi alur utama pemesanan (Home $\to$ Available Vehicles $\to$ Vehicle Detail $\to$ Date & Time $\to$ Rental Options $\to$ Booker Form $\to$ Order Review) terhubung dengan state Riverpod.
+- [ ] **PM-A.06 (M10):** Integrasi Phone Verification (input OTP, countdown resend) & Booking Status screen (stepper timeline) untuk persiapan Demo UTS.
+- [ ] **PM-A.07 (M14):** Implementasi modul bantuan mobile: Layar FAQ, form Buat Tiket Baru, dan tampilan percakapan chat tiket.
+- [ ] **PM-A.08 (M15):** Audit mobile usability: Penanganan keyboard avoid, tap target min 44×44 pt, empty state, dan error banner retry.
+- [ ] **PM-A.09 (M16):** Packaging release: Build APK release, pengujian akhir di real device Android, dan finalisasi demo handoff.
 
-1. PIC C membuat endpoint dan OpenAPI contract sebelum PIC A/B mengandalkan response final.
-2. PIC A dan PIC B boleh mulai dengan mock data yang ditandai `Data contoh`, tetapi harus menggantinya saat endpoint siap.
-3. PIC A/B tidak mengubah nama field API secara sepihak. Perubahan harus dicatat sebagai keputusan contract.
-4. PIC D melakukan review setelah feature branch memiliki output yang dapat dijalankan.
-5. Pemilik fitur wajib memperbaiki temuan review. PIC D tidak menjadi satu-satunya orang yang memperbaiki semua masalah.
+### B. Dehan (PIC B — Web Engineer)
+- [x] **PM-B.01 (M1):** Review Information Architecture & alur kerja admin dashboard (7 screen utama + modal flows).
+- [x] **PM-B.02 (M3):** Setup repository `apps/dashboard` (Next.js 16 App Router, TypeScript, Tailwind CSS 4, build clean).
+- [x] **PM-B.03 (M5):** Implementasi Admin Auth Client: Halaman login admin, form handling dengan validasi Zod, penyimpanan session JWT aman, dan route protection client.
+- [ ] **PM-B.04 (M11):** Implementasi Dashboard Shell: Layout responsive target 1440×900, collapsible sidebar navigasi, topbar profil staf, dan integrasi design token web.
+- [ ] **PM-B.05 (M12):** Implementasi Operasional Booking Admin: Tabel Incoming Bookings dengan filter & pagination, modal rincian pesanan, dan modal update status booking + catatan internal staf.
+- [ ] **PM-B.06 (M13):** Implementasi Manajemen Armada Web: Tampilan visual Fleet Calendar (jadwal sewa armada) dan manajemen status 9 armada resmi Merauke.
+- [ ] **PM-B.07 (M14):** Implementasi Workspace Customer Care: Antrean tiket masuk, split view chat pesan, aksi *Ambil Alih Chat* dari bot, dan state komposer terkunci/terbuka.
+- [ ] **PM-B.08 (M15):** Audit web accessibility: Pengecekan keyboard navigation, kontras rasio warna dashboard, loading skeleton, dan error boundary.
+- [ ] **PM-B.09 (M16):** Deployment web dashboard ke staging (Vercel / Staging Server) dan dokumentasi petunjuk operasional admin.
 
----
+### C. Hylmi (PIC C — Backend Engineer)
+- [x] **PM-C.01 (M1):** Perumusan spesifikasi data model relasional (8 entitas) dan penegasan batasan integritas 9 armada resmi.
+- [x] **PM-C.02 (M2):** Penyusunan keputusan arsitektur tech stack, single source of truth REST API, dan roadmap teknis.
+- [x] **PM-C.03 (M3):** Setup workspace backend `services/api` (Express.js ESM, TypeScript, healthcheck endpoint, logging Pino).
+- [x] **PM-C.04 (M4):** Implementasi Database Foundation: Skema Prisma 7, migrasi PostgreSQL 18, singleton db client, dan skrip seed idempoten 9 armada resmi Merauke.
+- [x] **PM-C.05 (M5):** Implementasi API Contract & Auth: Standarisasi format respons (`sendSuccess`/`sendError`), customer OTP auth (HMAC SHA-256), admin login (bcrypt + JWT), role middleware, dan penyusunan `docs/api/openapi.yaml`.
+- [ ] **PM-C.06 (M6):** Implementasi Vehicle & Availability API: Endpoint `GET /api/v1/vehicles`, detail unit armada, logika query ketersediaan tanggal, dan automated test pencegah bentrok jadwal sewa.
+- [ ] **PM-C.07 (M8):** Implementasi Booking Domain Backend: Endpoint `POST /api/v1/bookings` dalam transaksi atomic database, pencatatan otomatis ke `booking_status_histories`, query detail booking, dan tracking status.
+- [ ] **PM-C.08 (M12):** Implementasi Admin Booking API: Endpoint `GET /api/v1/admin/bookings`, `PATCH /api/v1/admin/bookings/:id/status`, pencatatan `audit_logs` staf, dan payload intent WhatsApp konfirmasi.
+- [ ] **PM-C.09 (M13):** Implementasi Fleet Operations API: Endpoint `GET /api/v1/admin/fleet/calendar` dan endpoint pembaruan status fisik kendaraan.
+- [ ] **PM-C.10 (M14):** Implementasi Help & Customer Care API: Endpoint tiket customer, thread pesan chat, admin takeover/return-to-bot sesuai arsitektur handoff.
+- [ ] **PM-C.11 (M15):** Backend Hardening: Implementasi rate limiting, security headers (Helmet), audit query performance, dan sanitasi log.
+- [ ] **PM-C.12 (M16):** Staging deployment backend pada laptop server via systemd / Tailscale dan finalisasi dokumentasi API runbook.
 
-## 4. Pembagian berdasarkan milestone
-
-| Milestone | PIC utama | PIC pendukung | Hasil yang harus diperiksa |
-|---|---|---|---|
-| M1 Project baseline | PIC D | Semua PIC | Scope, Figma, IA, dan flow terpetakan |
-| M2 Tech stack decision | PIC C | Semua PIC | Decision record disetujui team |
-| M3 Repository foundation | PIC A, B, C | PIC D | Tiga app/service dapat dijalankan |
-| M4 Database foundation | PIC C | PIC D | Migration dan seed 9 kendaraan terverifikasi |
-| M5 API contract dan authentication | PIC C | PIC B, D | OpenAPI, auth, role, dan OTP mock diuji |
-| M6 Vehicle dan availability API | PIC C | PIC A, B, D | Vehicle list/detail/availability dan conflict test |
-| M7 Flutter application shell | PIC A | PIC D | Theme, routing, bottom nav, viewport mobile |
-| M8 Booking domain backend | PIC C | PIC A, B, D | Transaction, validation, booking status |
-| M9 Customer booking flow | PIC A | PIC C, D | Home sampai Order Review terintegrasi |
-| M10 Prototype checkpoint / UTS | PIC A | PIC C, D | Phone Verification dan Booking Status dapat didemo |
-| M11 Next.js dashboard shell | PIC B | PIC D | Sidebar, layout, route guard, viewport dashboard |
-| M12 Admin booking operations | PIC B, C | PIC D | Detail, update status, note, status history |
-| M13 Fleet operations | PIC B, C | PIC D | Fleet Calendar dan Vehicle Status |
-| M14 Help dan Customer Care | PIC A, B, C | PIC D | Ticket customer sampai reply admin |
-| M15 Quality, accessibility, dan security audit | PIC D | Semua PIC | Test report dan defect list ditutup/diterangkan |
-| M16 Release candidate dan UAS handoff | PIC D | Semua PIC | Fresh setup, demo, dokumentasi, known limitations |
-
----
-
-## 5. Aturan logbook setiap kontribusi
-
-Setiap anggota membuat entry `.md` menggunakan `docs/LOGBOOK_AI_ASSISTED_TEMPLATE.md`.
-
-Field minimum:
-
-```text
-siapa yang melakukan develop: pic + nama/inisial
-fitur: nama fitur yang benar-benar dikerjakan
-API/endpoint: method dan path yang digunakan
-nama variabel/model/component: identifier case-sensitive
-tanggal: dd/mm/yy
-model AI: nama model/provider yang digunakan, atau none
-status: planned | in progress | done | blocked
-bukti: commit, screenshot, test output, API response, atau artifact
-reviewer: anggota yang memeriksa
-```
-
-Jika satu fitur dikerjakan oleh dua orang, buat entry terpisah untuk kontribusi masing-masing. Jangan membuat satu entry yang menghapus batas tanggung jawab.
-
-Contoh nama entry:
-
-```text
-docs/logbook/2026-09-10_M6_vehicle-api_PIC-C.md
-docs/logbook/2026-09-10_M7_flutter-shell_PIC-A.md
-docs/logbook/2026-09-10_M7_dashboard-shell_PIC-B.md
-```
-
-`model_ai` tidak boleh diisi berdasarkan tebakan. Jika model/provider tidak diketahui, tulis `unknown` sementara dan cari konfirmasi sebelum entry ditutup. Jika AI tidak digunakan, tulis `none`.
+### D. Halimah (PIC D — Integration, QA & Release Owner)
+- [x] **PM-D.01 (M1):** Audit keselarasan IA, alur navigasi, dan integritas token desain (`docs/design-tokens.json` & `docs/MANIFEST.json`).
+- [x] **PM-D.02 (M3):** Verifikasi kebersihan build monorepo (`pnpm build`, `pnpm typecheck`, `pnpm lint`) pada setup awal.
+- [x] **PM-D.03 (M4):** Verifikasi integritas data seed database (memastikan tidak ada harga fiktif atau kendaraan di luar 9 armada resmi).
+- [x] **PM-D.04 (M5):** Review spesifikasi OpenAPI 3.0.3 dan verifikasi hasil eksekusi 9 automated test suite modul autentikasi backend.
+- [ ] **PM-D.05 (M6):** Pengujian integrasi Vehicle API: Verifikasi kesesuaian response payload dengan spesifikasi dan validasi edge case bentrok tanggal.
+- [ ] **PM-D.06 (M7):** Visual QA Mobile Shell: Pengecekan implementasi tema Harun di Flutter terhadap acuan `docs/design/DESIGN.md` (warna, font, padding).
+- [ ] **PM-D.07 (M9):** Integrasi & End-to-End Booking Flow: Pengujian alur pengisian form pemesanan pelanggan, loading indicator, dan penanganan error network.
+- [ ] **PM-D.08 (M10):** Koordinasi Demo UTS: Pembuatan skenario demo pemesanan customer end-to-end, pencatatan bukti video/screenshot, dan verifikasi batas mock OTP.
+- [ ] **PM-D.09 (M11):** Visual QA Dashboard Shell: Pengecekan layout Dehan di Next.js pada resolusi 1440×900 (memastikan tidak ada sidebar patah atau teks terpotong).
+- [ ] **PM-D.10 (M12):** Audit Transaksi Admin: Memverifikasi perubahan status booking oleh admin benar-benar menghasilkan status history dan audit log di backend.
+- [ ] **PM-D.11 (M14):** E2E Testing Customer Care: Validasi pengiriman tiket dari aplikasi Harun dan penerimaan balasan di dashboard Dehan.
+- [ ] **PM-D.12 (M15):** Lead Quality, Accessibility & Security Audit: Audit kontras warna (WCAG AA), navigasi keyboard, responsivitas multi-device, dan rekap daftar defect.
+- [ ] **PM-D.13 (M16):** Release Gatekeeper & Final Handoff: Memeriksa kelengkapan logbook seluruh PIC, menyusun changelog release, dan memimpin persiapan handoff UAS.
 
 ---
 
-## 6. Rotasi reviewer
+## 3. Matriks Milestone General (M1–M16) & Rincian Personal Milestone PIC
 
-Agar reviewer tidak selalu orang yang sama:
+Tabel di bawah menjelaskan bagaimana setiap **Milestone General** dipecah menjadi tanggung jawab spesifik per individu. Milestone General hanya berstatus `Done` jika seluruh Personal Milestone di baris tersebut telah selesai.
 
-| Pemilik | Reviewer utama | Reviewer cadangan |
+| Milestone | Fokus Milestone | Harun (PIC A) | Dehan (PIC B) | Hylmi (PIC C) | Halimah (PIC D) | Status |
+|:---:|---|---|---|---|---|:---:|
+| **M1** | **Project Baseline** | PM-A.01: Review IA mobile | PM-B.01: Review IA admin | PM-C.01: Model data 8 tabel & 9 armada | PM-D.01: Audit token & manifest | **Done** |
+| **M2** | **Tech Stack Decision** | Review stack mobile (Flutter) | Review stack web (Next.js) | PM-C.02: Rumuskan stack & arsitektur | Validasi kesepakatan tim | **Done** |
+| **M3** | **Repository Foundation** | PM-A.02: Setup Flutter shell | PM-B.02: Setup Next.js shell | PM-C.03: Setup Express API & monorepo | PM-D.02: Verifikasi build monorepo | **Done** |
+| **M4** | **Database Foundation** | - | - | PM-C.04: Prisma schema, migrasi & seed 9 armada | PM-D.03: Audit integritas data armada | **Done** |
+| **M5** | **API Contract & Auth** | Review kontrak auth customer | PM-B.03: Setup admin auth guard web | PM-C.05: Endpoint OTP, login admin & OpenAPI | PM-D.04: Review OpenAPI & test suite | **Done** |
+| **M6** | **Vehicle & Availability API** | PM-A.03: Setup Dio & entity mobil | Review format data armada | PM-C.06: Endpoint armada & query availability | PM-D.05: Uji integrasi & conflict check | **In Progress** |
+| **M7** | **Flutter App Shell** | PM-A.04: Build shell, token & 4 tab nav | - | Support mock data jika dibutuhkan | PM-D.06: Visual QA tema & viewport 390×844 | **In Progress** |
+| **M8** | **Booking Domain Backend** | Persiapan payload booking | - | PM-C.07: Endpoint booking atomic & status | Validasi transaction rule | Planned |
+| **M9** | **Customer Booking Flow** | PM-A.05: Screen booking 1 s.d. 7 | - | Support debugging booking API | PM-D.07: E2E booking form & error state | Planned |
+| **M10** | **Checkpoint UTS (Demo)** | PM-A.06: Integrasi OTP & Status screen | - | Monitoring service API demo UTS | PM-D.08: Lead koordinasi demo & evidence UTS | Planned |
+| **M11** | **Next.js Dashboard Shell** | - | PM-B.04: Layout admin 1440×900 & sidebar | - | PM-D.09: Visual QA viewport 1440×900 | Planned |
+| **M12** | **Admin Booking Operations** | - | PM-B.05: Antrean booking & update status | PM-C.08: API admin booking & audit log | PM-D.10: Audit integritas riwayat status | Planned |
+| **M13** | **Fleet Operations** | - | PM-B.06: Fleet calendar & status mobil | PM-C.09: API calendar & kondisi armada | Verifikasi sinkronisasi 9 armada | Planned |
+| **M14** | **Help & Customer Care** | PM-A.07: Screen tiket & chat mobile | PM-B.07: Workspace chat & takeover bot | PM-C.10: API tiket & state machine handoff | PM-D.11: E2E pengujian pesan chat | Planned |
+| **M15** | **Quality, A11y & Security** | PM-A.08: Usability & tap target audit | PM-B.08: Web accessibility audit | PM-C.11: Rate limiting & security headers | PM-D.12: Lead audit WCAG, kontras & defect list | Planned |
+| **M16** | **Release & UAS Handoff** | PM-A.09: Build APK release | PM-B.09: Deploy staging web | PM-C.12: Deploy staging backend | PM-D.13: Final checklist, logbook audit & demo UAS | Planned |
+
+---
+
+## 4. Aturan Logbook & Pelaporan Kontribusi
+
+1. **Satu Entry Per Fitur/Milestone:** Setiap anggota menulis entry terpisah menggunakan template [`docs/LOGBOOK_AI_ASSISTED_TEMPLATE.md`](docs/LOGBOOK_AI_ASSISTED_TEMPLATE.md).
+2. **Format Penamaan File Logbook:**
+   ```text
+   docs/logbook/YYYY-MM-DD_<milestone>_<fitur>_<nama-pic>.md
+   ```
+   Contoh:
+   - `docs/logbook/2026-09-12_M6_vehicle-api_Hylmi.md`
+   - `docs/logbook/2026-09-14_M7_flutter-shell_Harun.md`
+   - `docs/logbook/2026-09-18_M11_dashboard-shell_Dehan.md`
+   - `docs/logbook/2026-09-20_M6_qa-vehicle-conflict_Halimah.md`
+3. **Klaim Done:** Status `done` hanya boleh disematkan pada logbook setelah reviewer yang ditugaskan memeriksa bukti nyata (*commit*, *screenshot*, *output test*, atau *curl response*).
+
+---
+
+## 5. Rotasi Reviewer Tim
+
+Agar proses review berjalan objektif dan adil:
+
+| Pemilik Tugas | Reviewer Utama | Reviewer Cadangan |
 |---|---|---|
-| PIC A | PIC D | PIC C |
-| PIC B | PIC D | PIC A |
-| PIC C | PIC D | PIC B |
-| PIC D | PIC C | PIC A atau PIC B |
-
-Reviewer tidak boleh menyetujui perubahan yang tidak ia periksa. Untuk perubahan database, minimal PIC C dan satu anggota lain harus membaca migration. Untuk perubahan API contract, client yang terdampak harus ikut review.
-
----
-
-## 7. Hal yang tidak boleh dilakukan
-
-- Satu orang menjadi owner Flutter, Next.js, dan backend sekaligus tanpa persetujuan team.
-- PIC D hanya diberi tugas mengetik logbook tanpa output teknis.
-- PIC A/B memakai field API yang belum disepakati.
-- Menggabungkan banyak fitur berbeda ke satu entry logbook agar terlihat selesai.
-- Menulis `done` sebelum test atau evidence tersedia.
-- Menyimpan API key, password, token, PII, atau OTP asli dalam prompt, screenshot, logbook, atau repository.
-- Menggunakan data customer atau harga fiktif seolah-olah data produksi.
-
----
-
-## 8. Cara mulai pembagian kerja
-
-1. Team mengisi nama/inisial untuk `PIC A`, `PIC B`, `PIC C`, dan `PIC D`.
-2. Team memilih reviewer cadangan jika ada anggota yang berhalangan.
-3. PIC C mengonfirmasi kontrak API dan model data awal.
-4. PIC A dan PIC B mengonfirmasi screen yang menjadi tanggung jawab masing-masing.
-5. PIC D membuat folder `docs/logbook/` dan mengatur format nama entry.
-6. Setiap PIC membuat entry logbook pertama dengan status `planned` sebelum mulai mengerjakan milestone.
-7. Setelah satu milestone selesai, PIC utama membuat ringkasan evidence dan team mengubah status hanya setelah review.
+| **Harun (Mobile)** | Halimah (QA) | Hylmi (Backend) |
+| **Dehan (Web)** | Halimah (QA) | Harun (Mobile) |
+| **Hylmi (Backend)** | Halimah (QA) | Dehan (Web) |
+| **Halimah (QA/Release)** | Hylmi (Backend) | Harun / Dehan |
