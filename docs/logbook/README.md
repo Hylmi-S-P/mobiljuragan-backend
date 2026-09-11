@@ -16,8 +16,13 @@ Folder ini berisi entry logbook AI-assisted development. Satu file `.md` mewakil
 YYYY-MM-DD      : tanggal mulai kontribusi (ISO).
 M# atau M##     : milestone dari docs/PLANNING_TECH_STACK_DAN_ROADMAP.md.
 fitur           : nama fitur atau scope singkat (slug-style).
-inisial         : inisial anggota (lihat TEAM_WORK_ALLOCATION.md).
+inisial         : inisial atau nama anggota (lihat TEAM_WORK_ALLOCATION.md).
 ```
+
+Nama anggota di filename boleh ditulis sebagai inisial (mis. `_H`), nama lengkap (mis.
+`_Hylmi`), atau kombinasi keduanya. Yang penting konsisten per PIC dan sesuai rotasi
+reviewer yang tercantum pada `docs/TEAM_WORK_ALLOCATION.md` section 5. Untuk konsistensi
+otomatis di review tim, lihat juga contoh berikut.
 
 Contoh:
 

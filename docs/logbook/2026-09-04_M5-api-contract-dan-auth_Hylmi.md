@@ -3,12 +3,13 @@ tanggal: 04/09/26
 milestone: M5 API Contract dan Authentication
 fitur: Format response standar, Customer OTP, Admin Login, Role Middleware, dan OpenAPI spec
 pic: Hylmi (PIC C - Backend Engineer)
-reviewer: PIC A/B/D
+reviewer: Halimah (PIC D - QA) - reviewer utama per rotasi
 status: done
 model_ai: Antigravity / Gemini 3.8 Flash
 provider_ai: Google
 versi_model: Flash
 cakupan_ai: code, docs
+freeze_catatan: Backend freeze di M5 per pivot tim 10/09/26. M5 adalah milestone backend terakhir yang aktif (single source of truth API + auth). Lihat logbook 2026-09-10_M-freeze-backend-at-M5_Hylmi.md.
 prompt_disimpan: false
 ---
 
@@ -96,6 +97,14 @@ SEMUA 9 PENGUJIAN OTOMATIS AUTH M5 LOLOS 100%!
 - Build monorepo (`pnpm build`): 2 successful.
 - Keamanan: Plaintext OTP tidak disimpan di database; sandi admin memakai hash bcrypt; endpoint staf/admin mencatat record ke `audit_logs`.
 
+### 6.1 Sample response `POST /api/v1/auth/otp/request`
+
+```json
+{"status":"ok","data":{"phoneHash":"<redacted>","expiresIn":300,"attemptLimit":5}}
+```
+
+- Commit hash pendek: `<isi setelah push>`
+
 ## 6. Kontribusi AI pada entry ini
 
 - Model AI membantu menyusun struktur arsitektur modular router `/api/v1` dan middleware.
@@ -105,7 +114,7 @@ SEMUA 9 PENGUJIAN OTOMATIS AUTH M5 LOLOS 100%!
 ## 7. Catatan dan blocker
 
 - Milestone M5 selesai dengan status `done`.
-- Siap melanjutkan ke Milestone M6 (Vehicle & availability API: `GET /api/v1/vehicles` dan detail armada).
+- Per pivot tim 10/09/26, M6+ (Vehicle & availability API: `GET /api/v1/vehicles` dan detail armada) DITUNDA sampai hi-fi flow final disetujui. Selama freeze, PIC C tidak menambah endpoint baru. Lihat logbook 2026-09-10_M-freeze-backend-at-M5_Hylmi.md.
 
 ## 8. Checklist reviewer
 

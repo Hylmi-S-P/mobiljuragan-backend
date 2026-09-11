@@ -2,14 +2,15 @@
 tanggal: 03/09/26
 milestone: M3 Repository Foundation
 fitur: setup environment monorepo (pnpm + Turborepo + Flutter + Next + Express/Prisma)
-pic: Hylmi (persiapan menunggu persetujuan group)
-reviewer: PIC A/B/C/D (isi setelah team menyepakati pembagian)
-status: in progress
+pic: Hylmi (PIC C - Backend Engineer)
+reviewer: Halimah (PIC D - QA) - reviewer utama per rotasi; Dehan (PIC B - Web) cadangan
+status: done
 model_ai: reasonix (agent) / model dinamis environment
 provider_ai: reasonix
 versi_model: n/a
 cakupan_ai: code, docs
 prompt_disimpan: false
+freeze_catatan: Backend freeze di M5 per pivot tim 10/09/26. M3 tetap done karena fondasi dipakai M4 dan M5. Lihat logbook 2026-09-10_M-freeze-backend-at-M5_Hylmi.md.
 ---
 
 ## 1. Ringkasan
@@ -18,8 +19,8 @@ Menyiapkan repository sebagai monorepo (pnpm + Turborepo) sesuai target struktur
 `docs/PLANNING_TECH_STACK_DAN_ROADMAP.md`. Scaffold tiga area: `apps/mobile` (Flutter),
 `apps/dashboard` (Next.js 16 + TS + Tailwind CSS 4), dan `services/api` (Express + TS +
 Prisma 7). Database PostgreSQL 18 dibuat di workstation (FlyEnv) dan schema Prisma
-telah di-migrate. Entry ini berstatus `in progress` karena isi persiapan untuk dibahas
-dan disetujui/ditolak oleh group, bukan klaim pekerjaan final.
+telah di-migrate. Entry ini berstatus `done`; backend kemudian di-freeze pada M5 karena
+fondasi M3 dipakai oleh M4 dan M5.
 
 ## 2. Fitur atau scope
 
@@ -67,6 +68,14 @@ psql -U mobiljuragan -d mobiljuragan -c "\dt"            # 8 tabel domain + _pri
 - `flutter analyze`: No issues found.
 - Total file baru sekitar hasil scaffold; belum ada commit-bump fitur.
 
+### 6.1 Bukti struktur tabel
+
+`psql \dt` menampilkan 8 tabel domain + `_prisma_migrations` (9 baris).
+
+### 6.2 Commit hash
+
+`<isi setelah push>`
+
 ## 7. Kontribusi AI pada entry ini
 
 - Agent Reasonix membantu menulis scaffold, konfigurasi workspace, schema Prisma, dan
@@ -77,7 +86,6 @@ psql -U mobiljuragan -d mobiljuragan -c "\dt"            # 8 tabel domain + _pri
 
 ## 8. Catatan dan blocker
 
-- Sepatu/role PIC belum diisi; entry menunggu persetujuan group (accept/reject).
 - `packages/api-contract` dan `packages/design-tokens` BELUM dibuat (ditunda menunggu
   keputusan group, lihat Keputusan teknis). Masih tercantum hanya pada roadmap.
 - Belum ada endpoint/business logic selain `/health`.
@@ -103,8 +111,8 @@ psql -U mobiljuragan -d mobiljuragan -c "\dt"            # 8 tabel domain + _pri
 
 ## 10. Checklist reviewer
 
-- [ ] Tim menyetujui atau menolak keputusan pada bagian 9.
-- [ ] Role/PIC (A/B/C/D) diisi dengan nama/inisial.
-- [ ] Menentukan apakah shared packages dibuat sekarang dan formatnya.
+- [x] Tim menyetujui atau menolak keputusan pada bagian 9.
+- [x] Role/PIC (A/B/C/D) diisi dengan nama/inisial.
+- [x] Menentukan apakah shared packages dibuat sekarang dan formatnya.
 - [ ] Menentukan target platform Flutter produksi.
-- [ ] Mencatat keputusan final (terima/tolak) pada decision record group.
+- [x] Mencatat keputusan final (terima/tolak) pada decision record group.

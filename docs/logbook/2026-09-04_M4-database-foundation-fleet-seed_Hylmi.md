@@ -3,12 +3,13 @@ tanggal: 04/09/26
 milestone: M4 Database Foundation
 fitur: Seeding 9 armada resmi Merauke dan inisialisasi singleton database client
 pic: Hylmi (PIC C - Backend Engineer)
-reviewer: PIC A/B/D
+reviewer: Halimah (PIC D - QA) - reviewer utama per rotasi
 status: done
 model_ai: Antigravity / Gemini 3.8 Flash
 provider_ai: Google
 versi_model: Flash
 cakupan_ai: code, docs
+freeze_catatan: Backend freeze di M5 per pivot tim 10/09/26. M4 tetap done sebagai fondasi M5 (database singleton + seed dipakai endpoint auth). Lihat logbook 2026-09-10_M-freeze-backend-at-M5_Hylmi.md.
 prompt_disimpan: false
 ---
 
@@ -87,6 +88,8 @@ The seed command has been executed.
 - Typecheck monorepo (`pnpm typecheck`): 2 successful (@mobiljuragan/api, @mobiljuragan/dashboard).
 - Build monorepo (`pnpm build`): 2 successful.
 - Data integrity: tepat 9 kendaraan terdaftar dengan status awal `AVAILABLE` tanpa ada hardcode harga angka.
+- `psql -U mobiljuragan -d mobiljuragan -c "\dt"`: 9 tabel (8 domain + `_prisma_migrations`).
+- Commit hash pendek: `<isi setelah push>`
 
 ## 6. Kontribusi AI pada entry ini
 
@@ -102,6 +105,6 @@ The seed command has been executed.
 ## 8. Checklist reviewer
 
 - [x] Tepat 9 kendaraan resmi yang di-seed (tidak ada armada di luar daftar resmi).
-- [x] Tidak ada harga fiktif atau data rekaan yang melanggar batasan data integrity.
+- [x] Tidak ada harga fiktif atau data rekaan yang melanggar batasan data integrity..
 - [x] Typecheck dan build lolos tanpa error.
 - [x] Singleton `db.ts` siap digunakan untuk endpoint backend berikutnya.

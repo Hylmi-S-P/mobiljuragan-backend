@@ -284,3 +284,10 @@ Sebelum suatu milestone ditutup dan diklaim `done`:
 3. **Strategi upload foto kendaraan:** Menggunakan aset static resmi 9 armada Merauke dari `docs/figma-raw/` dan public static storage.
 4. **Pembagian PIC aktual:** **Final** (PIC A: Harun, PIC B: Dehan, PIC C: Hylmi, PIC D: Halimah).
 5. **Target platform mobile pertama:** Android & Web runner.
+6. **Per 10/09/26 tim melakukan rollback ke lo-fi wireframe untuk mematangkan prototype
+   sebelum lanjut hi-fi.** Backend freeze di M5: M3–M5 tetap dipakai sebagai fondasi, dan
+   M6+ ditunda sampai hi-fi flow final disetujui. Detail dan daftar endpoint tersedia
+   vs belum tersedia dicatat pada
+   `docs/logbook/2026-09-10_M-freeze-backend-at-M5_Hylmi.md`. PIC C tidak menambah
+   endpoint baru selama periode freeze; kontrak `docs/api/openapi.yaml` menjadi acuan
+   revisi jika hi-fi mengubah flow.
