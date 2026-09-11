@@ -97,13 +97,13 @@ SEMUA 9 PENGUJIAN OTOMATIS AUTH M5 LOLOS 100%!
 - Build monorepo (`pnpm build`): 2 successful.
 - Keamanan: Plaintext OTP tidak disimpan di database; sandi admin memakai hash bcrypt; endpoint staf/admin mencatat record ke `audit_logs`.
 
-### 6.1 Sample response `POST /api/v1/auth/otp/request`
+### 5.1 Sample response `POST /api/v1/auth/otp/request`
 
 ```json
 {"status":"ok","data":{"phoneHash":"<redacted>","expiresIn":300,"attemptLimit":5}}
 ```
 
-- Commit hash pendek: `<isi setelah push>`
+- Commit hash pendek: `045ae9b`
 
 ## 6. Kontribusi AI pada entry ini
 

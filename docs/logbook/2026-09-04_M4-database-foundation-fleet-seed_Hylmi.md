@@ -89,7 +89,7 @@ The seed command has been executed.
 - Build monorepo (`pnpm build`): 2 successful.
 - Data integrity: tepat 9 kendaraan terdaftar dengan status awal `AVAILABLE` tanpa ada hardcode harga angka.
 - `psql -U mobiljuragan -d mobiljuragan -c "\dt"`: 9 tabel (8 domain + `_prisma_migrations`).
-- Commit hash pendek: `<isi setelah push>`
+- Commit hash pendek: `045ae9b`
 
 ## 6. Kontribusi AI pada entry ini
 
@@ -105,6 +105,6 @@ The seed command has been executed.
 ## 8. Checklist reviewer
 
 - [x] Tepat 9 kendaraan resmi yang di-seed (tidak ada armada di luar daftar resmi).
-- [x] Tidak ada harga fiktif atau data rekaan yang melanggar batasan data integrity..
+- [x] Tidak ada harga fiktif atau data rekaan yang melanggar batasan data integrity.
 - [x] Typecheck dan build lolos tanpa error.
 - [x] Singleton `db.ts` siap digunakan untuk endpoint backend berikutnya.

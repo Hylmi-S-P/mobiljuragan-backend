@@ -74,7 +74,7 @@ psql -U mobiljuragan -d mobiljuragan -c "\dt"            # 8 tabel domain + _pri
 
 ### 6.2 Commit hash
 
-`<isi setelah push>`
+`045ae9b`
 
 ## 7. Kontribusi AI pada entry ini
 
