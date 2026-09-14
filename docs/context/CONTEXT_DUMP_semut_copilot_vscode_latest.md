@@ -1,6 +1,7 @@
 # Context Dump Lengkap: MobilJuragan MVP, Figma, Prototype, dan Workspace
 
-> Tanggal pembaruan: 31 Aug 2026
+> Tanggal pembaruan: 07 Sep 2026 (pembaruan Lo-Fi Wireframe Minggu ke-3).
+> Riwayat pembaruan: 31 Aug 2026 (baseline) → 07 Sep 2026 (Lo-Fi Wireframe dibuat dan divalidasi di Figma).
 > Status dump: **lengkap berdasarkan bukti yang tersedia dari workspace, file Figma, screenshot, dan riwayat sesi Copilot lokal**.
 > Tujuan: menjadi snapshot mandiri agar agent berikutnya dapat melanjutkan pekerjaan tanpa mengulang pembuatan frame, menghapus desain, atau menebak flow yang sudah ada.
 > Aturan penting: bagian yang diberi label **terverifikasi** berasal dari struktur/node Figma, screenshot, file workspace, atau riwayat sesi. Bagian yang diberi label **catatan/risiko** adalah interpretasi atau hal yang perlu dicek ulang di Figma UI.
@@ -245,6 +246,14 @@ File/folder yang terdeteksi:
 | `dashboard_kasir.svg` | Export SVG yang berkaitan dengan prototype kasir |
 | `Analisis UX dan Perancangan Konsep Aplikasi MobilJuragan .pdf` | Dokumen analisis UX/konsep |
 | `Tugas_1_*.docx` | Dokumen tugas/presentasi riset dan delivery |
+| `P3 - Laws of UX & Wireframing Low-Fidelity.pptx` | Materi kuliah minggu ke-3. |
+| `prompt-tugas-lofi-wireframe.md` | Brief, prompt, dan aturan tugas Lo-Fi. |
+| `lofi_blueprint.md` | Blueprint 3 wireframe + tabel anotasi + integritas data. |
+| `lofi_exports/01_beranda.png` | Bukti visual Screen Lo-Fi Beranda (390 × 844). |
+| `lofi_exports/02_pilih_kendaraan.png` | Bukti visual Screen Lo-Fi Pilih Kendaraan (390 × 844). |
+| `lofi_exports/03_tinjau_pesanan.png` | Bukti visual Screen Lo-Fi Tinjau Pesanan (390 × 844). |
+| `lofi_exports/04_ringkasan_anotasi.png` | Bukti visual ringkasan anotasi (1800 × 1080). |
+| `review ss/` | Folder screenshot review internal, bukan deliverable utama. |
 
 Catatan: riwayat sesi sempat membuat file sementara `find_status_ui.ps1`. File tersebut tidak terlihat pada inventaris terakhir workspace; jangan mengandalkannya sebagai source.
 
@@ -899,7 +908,7 @@ Logika dan alasan per langkah:
 2. `Available Vehicles` menampilkan pilihan armada nyata dan status kendaraan.
 3. `Vehicle Detail` mengurangi risiko salah memilih kendaraan atau plat nomor.
 4. `Date & Time` mengumpulkan tanggal, waktu, durasi, dan kebutuhan rental.
-5. `Rental Options` memisahkan pilihan dengan sopir dan self-drive.
+5. `Rental Options` membedakan rental dengan sopir dan self-drive.
 6. `Booker Form` mengumpulkan nama, nomor WhatsApp, dan kebutuhan kontak yang diperlukan.
 7. `Order Review` memberi checkpoint sebelum request dikirim.
 8. `Phone Verification` memvalidasi kontak secara konseptual melalui OTP.
@@ -1743,7 +1752,7 @@ Folder: `D:/tugas kuliah/semester 3/uiux/minggu ketiga/cbl/`.
 |---|---|
 | `CONTEXT_DUMP_semut_copilot_vscode.md` | Dump konteks yang sudah diperbarui (lampiran ini). |
 | `MobilJuragan_IA_dan_User_Flow.docx` | DOCX pertama berisi ringkasan, IA, primary flow, alternate flow, error flow, dan checklist. Format memakai heading bernomor, callout, dan tabel. |
-| `Penjelasan_Naratif_IA_dan_User_Flow_MobilJuragan.docx` | DOCX pendamping dengan format naratif mengikuti contoh acuan. Setiap fitur memakai kalimat pembuka untuk Primary Flow, Alternate Flow, dan Error Flow, kemudian langkah bernomor. |
+| `Penjelasan_Naratif_IA_dan_User_Flow_MobilJuragan.docx` | DOCX pendamping dengan format naratif mengikuti contoh acuan. Setiap fitur memakai kalimat pembuka untuk Primary Flow, Alternate Flow, dan Error Flow, kemudian daftar langkah bernomor. |
 | `IA/` | Folder berisi diagram Information Architecture. |
 | `user-flow/` | Folder berisi diagram Primary Flow, Alternate Flow, dan Error Flow. |
 | `P2 Information Architecture (IA).pptx.pdf` | Materi kuliah minggu ke-2. |
@@ -1929,3 +1938,100 @@ Tidak ada bukti yang mengkonfirmasi perubahan Figma sejak dump sebelumnya, sehin
 # Lampiran B: Ringkasan paling singkat untuk handoff
 
 MobilJuragan adalah prototype rental mobil Merauke dengan dua page Figma: Mobile App 390 × 844 dan Dashboard 1440 × 900, plus Design System. Mobile mulai dari Home `16:4`, booking path: Available Vehicles `16:48` → Vehicle Detail `16:147` → Date & Time `17:70` → Rental Options `17:129` → Booker Form `17:177` → Order Review `18:145` → Phone Verification `18:190` → Booking Status `18:243`. Dashboard mulai dari Overview `19:4`, menuju Incoming Bookings `19:59` → Booking Detail `19:112` → Booking Status Update `20:180`, serta Fleet Calendar `20:20`, Vehicle Status `20:142`, Customer Care `228:411`. Design system berada di `0:1`, memakai navy `#1E3A5F`, teal `#0E7C7B`, gold `#D4A017`, Inter, spacing 8 px, radius 4/8/12, dan maksimal dua elevation. Dropdown mobile memakai component set `Dropdown / Help Type` `401:324` dengan Closed/Open variant, bukan screen clone. Dropdown dashboard memakai component variant `CHANGE_TO`, tetapi pernah mengalami stretch/overlap/overlong; cek visual sebelum mengubah lagi. Data kendaraan hanya sembilan plat resmi dan tarif tidak boleh direka. Jangan menghapus atau menggandakan frame; baca `DESIGN.md` dan validasi Figma sebelum mutasi.
+
+---
+
+# Lampiran D: Update Tugas Lo-Fi Wireframe Minggu ke-3 — 07/09/26
+
+> Status: **sudah dibangun di Figma, menunggu review dosen dan submission LMS**.
+
+## 0. Ringkasan
+
+Pada 07 Sep 2026, dibangun satu set halaman Figma khusus tugas Lo-Fi Wireframe untuk MobilJuragan MVP. Set ini terpisah dari page high-fidelity `Mobile App`, `Dashboard`, dan `Design System`. Target brief: 3 layar customer mobile 390 × 844 px, monokrom, dengan anotasi Laws of UX.
+
+## 0a. Batch 2 (09/09/26, prompt v2.1)
+
+Setelah peninjauan ulang terhadap §8.4 (user flow booking), §8.7 (user journey), dan §8.10 (pertanyaan usability), Batch 2 lanjutan ditambahkan untuk menutup step 4–6 user flow dan fase 4–6 user journey pelanggan. Page baru dibangun tanpa mengubah 4 page Batch 1.
+
+| Page ID | Nama | Frame | Node sumber hi-fi |
+|---|---|---|---|
+| `721:309` | `Lo-Fi — Detail Kendaraan` | `721:312` (`Screen / Lo-Fi — Detail Kendaraan`, 390 × 844) | `Screen / Vehicle Detail` (`16:147`) |
+| `721:310` | `Lo-Fi — Tanggal & Waktu` | `722:308` (`Screen / Lo-Fi — Tanggal & Waktu`, 390 × 844) | `Screen / Date & Time` (`17:70`) |
+| `721:311` | `Lo-Fi — Opsi Rental` | `723:308` (`Screen / Lo-Fi — Opsi Rental`, 390 × 844) | `Screen / Rental Options` (`17:129`) |
+
+Mulai batch 2, setiap layar baru memakai 5 callout dengan penomoran global 10–24 dan urutan Fitts → Hick → Jakob → Miller + Chunking → Proximity. Ringkasan anotasi di `Ringkasan Anotasi Lo-Fi` (`674:308`) ditambah 15 baris (10–24); baris 1–9 tidak diubah.
+
+### 0b. Analisis alignment dengan workflow dan journey
+
+- Setiap layar Batch 2 menutup satu step di §8.4 (Booking happy path): Detail Kendaraan = step 4, Tanggal & Waktu = step 5, Opsi Rental = step 6.
+- Setiap layar menjawab pikiran/pain point fase 4–6 user journey (§8.7): "Apakah ini mobil yang benar?", "Apakah jadwal saya tersedia?", "Mana yang sesuai kebutuhan dan syarat saya?".
+- Pertanyaan usability §8.10 yang terjawab oleh Batch 2: 4 (perbedaan Driver vs Self Drive) lewat dua kartu Opsi Rental; 1–3 (CTA Pesan Mobil, status ketersediaan, tarif final) tetap dijaga oleh elemen Lo-Fi Batch 1 dan 2.
+- Pertanyaan usability §8.10 yang belum terjawab dan menunggu Batch 3/4: 5 (verifikasi nomor), 6 (stepper), 7 (entri bantuan tunggal), 8 (admin menemukan booking), 9 (dropdown status tidak overlap), 10 (state kosong/error).
+
+### 0c. Koreksi lanjutan
+
+Label `Data contoh` kedua ditambahkan di header bulan kalender `Lo-Fi — Tanggal & Waktu` (node `747:308`) agar jawaban atas pertanyaan §8.10–1 dan §8.10–3 langsung terlihat pada Fase 5 journey. Screenshot `lofi_exports/06_tanggal_waktu.png` diperbarui setelah koreksi tersebut. Blueprint `lofi_blueprint.md` bagian 6.1 dan logbook `2026-09-07_M-ux_lofi-wireframe_Hylmi.md` bagian 11.6 ikut disinkronkan.
+
+### 0d. Pemisahan anotasi Batch 1 dan gabungan
+
+Halaman Figma `Lo-Fi — Anotasi` sekarang menyimpan dua frame ringkasan:
+
+| Frame | Node | Isi |
+|---|---|---|
+| `Ringkasan Anotasi Lo-Fi (Batch 1)` | `748:308` | 9 baris anotasi Batch 1 saja. |
+| `Ringkasan Anotasi Lo-Fi (Batch 1 + Batch 2)` | `674:308` | 24 baris gabungan Batch 1 dan Batch 2. |
+
+Frame gabungan (`674:308`) adalah frame lama yang dinamai ulang. Baris 1–9 tidak dipindahkan atau diedit. Frame Batch 1 (`748:308`) dibuat sebagai salinan visual mandiri sehingga dua kebutuhan dapat dibaca terpisah. Evidence baru disimpan sebagai `lofi_exports/04a_ringkasan_anotasi_batch1.png` dan `lofi_exports/04b_ringkasan_anotasi_batch1_batch2.png`. Page `Lo-Fi — Anotasi` hanya menerima dua frame baru; screen/frame Batch 1 lainnya tidak diubah.
+
+## 1. Halaman Figma baru
+
+| Page ID | Nama | Isi |
+|---|---|---|
+| `641:308` | `Lo-Fi — Beranda` | Frame Beranda + callout 1 sampai 3 |
+| `641:309` | `Lo-Fi — Pilih Kendaraan` | Frame Pilih Kendaraan + callout 4 sampai 6 |
+| `641:310` | `Lo-Fi — Tinjau Pesanan` | Frame Tinjau Pesanan + callout 7 sampai 9 |
+| `641:311` | `Lo-Fi — Anotasi` | Ringkasan anotasi 9 baris |
+
+Active page terakhir: `Lo-Fi — Beranda`.
+
+## 2. Frame dan node utama
+
+- `658:308` — `Screen / Lo-Fi — Beranda`, 390 × 844. App bar `MobilJuragan` / `Merauke`, image placeholder dengan diagonal X, heading, empty state `Belum ada booking aktif`, label `Data contoh`, CTA `Pesan Mobil` full-width 358 × 56 px di y=524, bottom nav 4 tab dengan `Beranda` aktif.
+- `659:308` — `Screen / Lo-Fi — Pilih Kendaraan`, 390 × 844. Back, filter icon, chips `Semua / MPV / SUV / Pickup`, 4 kartu dari dataset resmi, panel `5 kendaraan lainnya`, bottom nav dengan `Pesan` aktif.
+- `660:308` — `Screen / Lo-Fi — Tinjau Pesanan`, 390 × 844. Back, edit icon, 4 card `Kendaraan / Jadwal / Opsi Rental / Data Pemesan`, banner tarif, CTA `Konfirmasi Booking` full-width 358 × 56 px di y=598, link `Kembali ubah data`, bottom nav dengan `Status` aktif.
+- `674:308` — `Ringkasan Anotasi Lo-Fi`, 1800 × 1080. Tabel 9 baris Laws of UX, user-goal per layar, catatan integritas data.
+
+## 3. Laws of UX dan distribusi callout
+
+1. Jakob's Law — bottom nav Beranda.
+2. Fitts's Law — CTA Pesan Mobil.
+3. Law of Proximity — image + heading layanan.
+4. Hick's Law — empat filter chips.
+5. Miller + Chunking — satu kartu per kendaraan.
+6. Law of Proximity — nama + plat.
+7. Miller + Chunking — empat section pada Tinjau Pesanan.
+8. Law of Proximity — pasangan label : nilai.
+9. Fitts's Law — CTA Konfirmasi Booking.
+
+## 4. Aturan yang dipatuhi
+
+- Monokrom `#000`, `#4D4D4D`, `#B3B3B3`, `#E5E5E5`, `#FFFFFF`.
+- Inter 12/14/20.
+- Frame 390 × 844, margin 16 px.
+- CTA full-width di area thumb.
+- Tidak ada angka harga, rating, review, testimoni, atau data customer fiktif tanpa label.
+- Tarif memakai `Tarif dikonfirmasi tim MobilJuragan` dan banner konfirmasi.
+- Sembilan nama + plat mengikuti dataset resmi.
+
+## 5. Evidence
+
+- `lofi_blueprint.md` — blueprint, tabel anotasi, integritas data, dan checklist.
+- `lofi_exports/01_beranda.png`, `02_pilih_kendaraan.png`, `03_tinjau_pesanan.png`, `04_ringkasan_anotasi.png` — screenshot bukti.
+- Logbook: `D:\tugas kuliah\semester 3\grand-project-uiux-mobile-webframework-ai\docs\logbook\2026-09-07_M-ux_lofi-wireframe_Hylmi.md` (status `planned`).
+
+## 6. Catatan teknis dan status berikutnya
+
+- Pola `$fig` awalnya gagal menempel nested children; pola yang berhasil adalah `page.appendChild(frame)` lalu `frame.appendChild(child)` per node.
+- Metadata halaman kosong sampai `setCurrentPageAsync(page)` dipanggil eksplisit saat verifikasi.
+- Halaman anotasi dirapikan menjadi satu root frame `674:308` setelah teks top-level sempat terpisah.
+- Belum dilakukan: upload submission ke LMS, review final di Figma desktop, dan pengubahan status logbook dari `planned` menjadi `done`.
