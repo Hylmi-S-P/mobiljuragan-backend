@@ -2035,3 +2035,241 @@ Active page terakhir: `Lo-Fi — Beranda`.
 - Metadata halaman kosong sampai `setCurrentPageAsync(page)` dipanggil eksplisit saat verifikasi.
 - Halaman anotasi dirapikan menjadi satu root frame `674:308` setelah teks top-level sempat terpisah.
 - Belum dilakukan: upload submission ke LMS, review final di Figma desktop, dan pengubahan status logbook dari `planned` menjadi `done`.
+
+---
+
+# Lampiran E: Update Tugas Style Guide & Component Library Lo-Fi (Minggu ke-5) — 15/09/26
+
+> Status: **sudah dibangun di Figma, node ID terverifikasi langsung via `use_figma`**.
+> Lingkup pekerjaan: page baru `Lo-Fi — Style Guide` + komponen reusable, terpisah dari set hi-fi existing.
+> Sumber materi: `D:\tugas kuliah\semester 3\uiux\minggu kelima\P4 Mobile Design System, Design Tokens & Auto Layout 5.0.pptx.txt` (dan versi PDF sebagai lampiran).
+
+## 0. Ringkasan eksekutif pembaruan
+
+Pada 15 Sep 2026, dibuat satu page Figma baru bernama `Lo-Fi — Style Guide` (`825:47`) untuk memenuhi tugas minggu ke-5 mata kuliah UI UX. Halaman ini berdiri sendiri (tidak mengubah page Mobile App, Dashboard, Design System, maupun page Lo-Fi Batch 1/2). Style Guide memakai Functional 1-Tier Lo-Fi token (grayscale + 1 warna interaktif) sesuai prinsip PPT P4 tentang Lo-Fi vs Hi-Fi, dan komponen utama memakai Auto Layout dengan tap target sesuai standar Material 48 dp / Apple HIG 44 pt.
+
+Total page Figma sekarang: **11 page**.
+
+## 1. Halaman Figma baru
+
+| Page ID | Nama | Tipe | Posisi |
+|---|---|---|---|
+| `825:47` | `Lo-Fi — Style Guide` | Page baru (Style Guide + Component Library) | Append setelah `Lo-Fi — Anotasi` |
+
+Active page terakhir setelah sesi ini: `Lo-Fi — Style Guide`.
+
+## 2. Struktur root frame
+
+- Root `Style Guide — Lo-Fi` (`825:48`), 1440 × 2465, auto-layout VERTICAL, padding 64, item spacing 48.
+- Kontainer root auto-grow (primaryAxisSizingMode AUTO) sehingga setiap section baru yang ditambahkan akan menambah tinggi secara proporsional.
+
+Daftar section (8 kontainer di dalam root, urutan atas ke bawah):
+
+| Node ID | Nama | Tinggi | Tujuan |
+|---|---|---:|---|
+| `825:49` | Title | 39 | `Lo-Fi Style Guide & Component Library` |
+| `825:50` | Lead | 17 | Paragraf pembuka |
+| `826:36` | Section / Color Tokens | 278 | 6 swatch grayscale + interactive |
+| `834:66` | Section / Typography | 521 | 4 sample typography |
+| `834:369` | Section / Components | 507 | Showcase 3 master component |
+| `841:36` | Section / Accessibility Notes | 309 | 5 catatan WCAG & tap target |
+| `841:337` | Section / Spacing Scale | 148 | 6 token spacing 8 px |
+| `841:365` | Section / Implementation Notes | 182 | Catatan hard-coded token & font fallback |
+
+## 3. Color Tokens (Section `826:36`)
+
+Enam swatch monokrom + accent interaktif, memakai pola Functional 1-Tier Lo-Fi (grayscale + 1 warna interaktif):
+
+| Token | Hex | Note | Posisi node |
+|---|---|---|---|
+| `grayscale/white` | `#FFFFFF` | Background | `834:36` |
+| `grayscale/100` | `#F5F5F5` | Card / Input fill | `834:41` |
+| `grayscale/300` | `#CCCCCC` | Border / Placeholder text | `834:46` |
+| `grayscale/900` | `#1A1A1A` | Text primary | `834:51` |
+| `interactive/default` | `#0066FF` | Active / Focus (default) | `834:56` |
+| `interactive/mono` | `#000000` | Active / Focus (mono) | `834:61` |
+
+Catatan: token `interactive/default` dan `interactive/mono` disimpan terpisah agar designer bisa memilih accent monokrom atau accent warna tanpa memecah komponen. Brief asli mengizinkan `#0066FF` atau `#000000`; dipertahankan dua-duanya sesuai jawaban pada sesi klarifikasi.
+
+## 4. Typography Styles (Section `834:66`)
+
+Inter (font utama di project). Type specimen memakai node `834:353`, `834:357`, `834:361`, `834:365`.
+
+| Style | Ukuran | Weight | Spesifikasi | Catatan |
+|---|---:|---|---|---|
+| `Type / Heading / Large` | 24 px | Bold | `Pesan Mobil` | 24 / Bold / line-height 1.3 |
+| `Type / Heading / Medium` | 18 px | Medium | `Pilih Kendaraan` | 18 / Medium / line-height 1.3 |
+| `Type / Body / Regular` | 14 px | Regular | `Pilih tanggal dan waktu sewa.` | 14 / Regular / line-height 1.5 |
+| `Type / Caption` | 12 px | Regular | `Data contoh` | 12 / Regular / line-height 1.4 |
+
+**Caveat font**: Inter di runtime Figma tidak menyediakan style `SemiBold`. Untuk `Heading/Medium` dipakai `Medium` (closest equivalent untuk 18 px). Section `Implementation Notes` menjelaskan trade-off ini ke reviewer.
+
+## 5. Component Library (Section `834:369`)
+
+Tiga master component dibangun dengan Auto Layout (HORIZONTAL/VERTICAL), bukan layer kosong.
+
+### 5.1 `WF Button` (Component Set, `835:43`)
+
+3 variant — `Style=Primary` (`835:37`), `Style=Secondary` (`835:39`), `Style=Disabled` (`835:41`).
+
+Spesifikasi umum:
+
+- Auto-layout HORIZONTAL, `primaryAxisSizingMode: AUTO`, `counterAxisSizingMode: FIXED` (tinggi fixed).
+- Padding horizontal 24, vertikal 14 (koreksi dari 12 agar tombol memenuhi 48 dp).
+- Tinggi tetap 48 px untuk memenuhi Material Design tap target minimum 48 dp dan Apple HIG 44 pt.
+- Lebar mengikuti label (hug content).
+- Radius 8 px.
+- Label `Button` (Inter Medium 14 px).
+
+| Variant | Fill | Stroke | Text | Catatan |
+|---|---|---|---|---|
+| `Style=Primary` | `#1A1A1A` | — | `#FFFFFF` | Visual emphasis tertinggi |
+| `Style=Secondary` | — | `#1A1A1A` (1 px) | `#1A1A1A` | Aksi sekunder, outline |
+| `Style=Disabled` | `#F5F5F5` | `#CCCCCC` (1 px) | `#CCCCCC` | Non-interaktif |
+
+### 5.2 `WF Input Field` (Master Component, `835:45`)
+
+Single master tanpa variant.
+
+- Auto-layout VERTICAL, lebar 320, tinggi auto (≈88).
+- Item spacing 6 antara label dan field.
+- Child: `Label` (`835:46`, Inter Medium 12) + `Field` (`835:47`, 320 × 48).
+- `Field`: border `#CCCCCC` 1 px, corner radius 8, fill `#FFFFFF`, padding 12/12.
+- Placeholder `Placeholder text` (Inter Regular 14, `#CCCCCC`).
+
+### 5.3 `WF Image Placeholder` (Master Component, `835:334`)
+
+- 200 × 140, fill `#F5F5F5`, border `#CCCCCC` 1 px, corner radius 8.
+- Dua vector diagonal membentuk silang (X): `Diagonal TL-BR` (`835:336`), `Diagonal TR-BL` (`835:337`), stroke `#CCCCCC`.
+- Label `Image` di tengah (`835:338`, Inter Regular 12, `#CCCCCC`).
+
+## 6. Catatan Aksesibilitas (Section `841:36`)
+
+5 poin dirangkum ke dalam card bullet monokrom. Daftar poin:
+
+1. Kontras teks mengikuti WCAG 2.1 AA: minimal 4.5:1 untuk teks normal, 3:1 untuk teks besar (>= 18 px).
+2. Tap target minimum 48 × 48 dp (Material Design) atau 44 × 44 pt (Apple HIG). WF Button memakai tinggi 48 px.
+3. Teks primer `grayscale/900 #1A1A1A` pada latar putih — rasio kontras ~17:1 (lolos AAA).
+4. Placeholder `grayscale/300 #CCCCCC` hanya sebagai isyarat visual, bukan nilai default teks.
+5. Interaktif/active state memakai `grayscale/900 #1A1A1A` atau `interactive/default #0066FF` — gunakan satu sumber per layar.
+
+## 7. Spacing Scale (Section `841:337`)
+
+Enam token mengikuti grid 8 px dari materi P4 (`md.sys.spacing/*`):
+
+| Token | px |
+|---|---:|
+| `spacing/xs` | 8 |
+| `spacing/sm` | 16 |
+| `spacing/md` | 24 |
+| `spacing/lg` | 32 |
+| `spacing/xl` | 40 |
+| `spacing/2xl` | 48 |
+
+Visualisasi memakai bar hitam dengan corner radius 2, label `spacing/*` (Medium 12) dan nilai `{n} px` (Regular 12).
+
+## 8. Catatan Implementasi (Section `841:365`)
+
+Card khusus berisi 4 baris catatan jujur untuk reviewer:
+
+1. Token warna disimpan sebagai nilai hex langsung (hard-coded) untuk kelincahan eksplorasi Lo-Fi sesuai prinsip 1-Tier Functional Scale.
+2. Saat transisi ke Hi-Fi, 6 token ini idealnya dipromosikan menjadi Figma Variables Collection `md.sys.color.*` agar menjadi single source of truth.
+3. Naming Inter pakai Regular / Medium / Bold (SemiBold tidak tersedia di Inter). Heading/Medium memakai Medium sebagai padanan terdekat untuk 18 px / 600-semibold.
+4. Auto Layout dipakai konsisten: komponen utama (WF Button, WF Input) auto-layout kontainer hug content + primary/counter sizing eksplisit.
+
+## 9. Status Figma Variables
+
+Pemeriksaan via `use_figma` setelah Style Guide selesai:
+
+| Collection | Variable Count | Catatan |
+|---|---:|---|
+| `Primitives` | 7 | Sudah ada sebelum minggu ke-5 |
+| `Color` | 10 | Sudah ada sebelum minggu ke-5 |
+| `Spacing` | 10 | Sudah ada sebelum minggu ke-5 |
+| `Typography` | 10 | Sudah ada sebelum minggu ke-5 |
+| `Lo-Fi Tokens` (target) | — | Gagal dibuat via script — lihat catatan di bawah |
+
+### 9.1 Kegagalan `figma.createVariableCollection` dan `createVariable`
+
+Selama sesi ini dicoba membuat Variables Collection `Lo-Fi Tokens` agar keenam token Lo-Fi benar-benar menjadi Variables (sesuai prioritas 1 yang diminta). Hasilnya:
+
+- `figma.createVariableCollection("Lo-Fi Tokens")` tidak menambahkan koleksi baru ke `getLocalVariableCollections()`.
+- `figma.createVariable(name, existingCollection, "COLOR")` mengembalikan object, tetapi variable hilang dari hasil verifikasi berikutnya.
+- Frame/text biasa tetap commit normal, sehingga masalahnya spesifik ke variable API untuk user/scope ini.
+
+Kemungkinan penyebab:
+
+- Scope token Figma MCP untuk akun ini tidak memiliki izin tulis pada Variables (`variables:write`).
+- Transaction commit untuk variable tidak persisten di sesi eksekusi tertentu.
+- Batasan file team plan yang melarang variabel baru sampai unlock tertentu.
+
+### 9.2 Mitigasi yang sudah dilakukan
+
+- Style Guide ditulis eksplisit di Section `Catatan Implementasi` agar reviewer tahu token masih hard-coded dan promotion path sudah disiapkan.
+- Tidak ada node lama yang diubah.
+- Style Guide tetap self-contained: setiap node Lo-Fi bisa dipindahkan ke project/file lain tanpa reference ke Variables yang belum dibuat.
+
+### 9.3 Rekomendasi langkah berikutnya
+
+1. Coba buat Variables Collection `Lo-Fi Tokens` lewat UI Figma desktop (variabel yang dibuat via UI biasanya tidak terkena script-scope restriction).
+2. Setelah berhasil, re-bind fill pada 6 swatch (`834:36`, `834:41`, `834:46`, `834:51`, `834:56`, `834:61`), 3 variant `WF Button` (`835:37`, `835:39`, `835:41`), dan field border `WF Input Field` (`835:47`) ke variable yang baru dibuat.
+3. Pertimbangkan membuat Text Styles di Figma untuk 4 style typography di Section `834:66` agar konsisten dengan Foundation Styles yang sudah ada di `0:1`.
+
+## 10. Analisis alignment dengan materi P4
+
+| Topik materi P4 | Status di Style Guide | Catatan |
+|---|---|---|
+| Definisi Design System | Tercakup di Title + Lead | — |
+| Material Design 3 / HIG | Tap target 48 dp dipenuhi pada `WF Button` | — |
+| Design Tokens (3-Tier M3) | Mengikuti Functional 1-Tier Lo-Fi (pengakuan di Catatan Implementasi) | Promosi ke 3-Tier saat Hi-Fi |
+| `md.ref.*` / `md.sys.*` / `md.comp.*` | Naming internal eksplisit di catatan; belum jadi Figma Variables | Lihat §9.3 |
+| Single Source of Truth | Tercapai via file Figma, belum via Variables binding | Lihat §9 |
+| Multi-Theming (Light/Dark) | Di luar lingkup Lo-Fi, akan diangkat saat Hi-Fi | — |
+| Auto Layout 5.0 — Wrap | Tidak dipakai (Lo-Fi masih single baris) | Bisa diaktifkan pada Hi-Fi |
+| Auto Layout 5.0 — Min/Max | Dipakai di `WF Button` (counter fixed 48) | — |
+| Auto Layout 5.0 — Resizing Rules | Dipakai: hug content + counter fixed | WF Button tinggi fixed 48 |
+| Auto Layout 5.0 — Absolute & Negative Spacing | Tidak dipakai (bertentangan dengan ritme 8 px) | — |
+| Touch Target 48 dp / 44 pt | `WF Button` 48 px | WF Input 48 px field, 88 px total |
+| Type Scale (H1 24, Body 14-16, Caption 12) | Dipakai persis | — |
+| Spacing 8 px grid | Section padding 64, item spacing 16/24/32/48 | — |
+| Variants & Properties | `WF Button` 3 variant, `WF Input Field`/`WF Image Placeholder` master tanpa variant | Tambah state (Default/Hover/Pressed) saat Hi-Fi |
+| Style Guide vs Component Library | Keduanya ada dalam satu page | Pemisahan fisik bisa dilakukan saat Hi-Fi |
+| Color Roles | Grayscale + 1 accent interactive | — |
+| Typography Specimen | 4 style row di Section `834:66` | — |
+
+## 11. Catatan teknis sesi Style Guide
+
+- Saat appendChild pada kontainer auto-layout, `primaryAxisSizingMode: AUTO` perlu diset setelah children ditambahkan; kalau di-set bersamaan dengan tinggi eksplisit, konten bisa terpotong. Section pertama (Color Tokens) sempat kelihatan setengah karena tinggi eksplisit 240; diperbaiki dengan menjadikan AUTO.
+- `figma.combineAsVariants([frame1, frame2, frame3], container)` membuat Component Set yang membungkus ke-3 frame sebagai variant dengan property `Style`. Frame parent harus auto-layout HORIZONTAL agar 3 variant tampil berjajar.
+- Inter `SemiBold` tidak valid di runtime; gunakan `Medium` untuk padanan 18 px 600-weight.
+- Variable API (`figma.createVariable*`) tidak commit di sesi ini; lihat §9.
+
+## 12. Bukti visual
+
+Screenshot final root `Style Guide — Lo-Fi` (`825:48`) tersedia via:
+
+- URL Figma MCP short-lived (diambil saat verifikasi, sudah kadaluarsa).
+- Di workspace: dapat diulang via `get_screenshot({ nodeId: "825:48", maxDimension: 1600 })`.
+
+## 13. Status dan langkah berikutnya
+
+Selesai pada sesi ini:
+
+- [x] Page baru `Lo-Fi — Style Guide` dibuat dan terverifikasi.
+- [x] Color Tokens (6 swatch).
+- [x] Typography Styles (4 sample row).
+- [x] Component Library (`WF Button` set + `WF Input Field` + `WF Image Placeholder`).
+- [x] Tap target Material 48 dp dipenuhi di `WF Button`.
+- [x] Spacing Scale 8 px ditambahkan sebagai improvisasi Style Guide.
+- [x] Catatan Aksesibilitas WCAG dan tap target ditambahkan.
+- [x] Catatan Implementasi menjelaskan trade-off hard-coded token + font fallback.
+
+Belum dilakukan:
+
+- [ ] Pembuatan Figma Variables `Lo-Fi Tokens` (lihat §9).
+- [ ] Re-bind fill `WF Button` variants dan `WF Input Field` border ke Variables.
+- [ ] Pembuatan Figma Text Styles untuk 4 typography style (saat ini masih berupa text node biasa, bukan Text Style).
+- [ ] Export screenshot final ke folder `lofi_exports/` di workspace (mis. `lofi_style_guide.png`, `lofi_style_guide_components.png`) untuk lampiran laporan.
+- [ ] Update `lofi_blueprint.md` untuk menyebut Style Guide page baru dan referensi materi P4.
+- [ ] Submission tugas ke LMS dan perubahan status logbook ke `done`.
+
