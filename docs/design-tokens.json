@@ -13,6 +13,23 @@
       "neutral-line":{ "value": "#E2E8F0", "role": "border / divider" },
       "text-main":   { "value": "#0F172A", "role": "primary text", "contrast_on_neutral_bg": 16.91 }
     },
+    "traveloka_trust_blue": {
+      "canvas_bg":        { "value": "#F8FAFC", "role": "pearl slate off-white canvas, clean & glare-free" },
+      "card_surface":     { "value": "#FFFFFF", "role": "crisp white tactile card surface with hairline #E2E8F0" },
+      "primary_blue":     { "value": "#0194F3", "role": "Traveloka Sky Blue: primary CTAs, active indicators, segmented tabs" },
+      "deep_blue_accent": { "value": "#0264C8", "role": "accessible high-contrast text on ice-blue surfaces, borders & emphasis" },
+      "deep_navy":        { "value": "#0F2942", "role": "plate badges, titles, primary typography headings" },
+      "ice_blue_tint":    { "value": "#EBF5FE", "role": "subtle background for badges, chips, protection boxes, calendar range" },
+      "status_green":     { "value": "#15803D", "role": "ready-to-use / live vehicle status" }
+    },
+    "experimental_quiet_luxury": {
+      "canvas_bg":    { "value": "#FAFAF8", "role": "warm alabaster / savanna sand background (soft on eyes in Merauke sun)" },
+      "card_surface": { "value": "#FFFFFF", "role": "floating card surface with 1px hairline border rgba(15,23,42,0.08)" },
+      "obsidian_ink": { "value": "#0B111D", "role": "modern header, typography headings, primary CTA (18.5:1 AAA contrast)" },
+      "austral_teal": { "value": "#006D77", "role": "elevated active tab, status chip, brand positive accent (6.14:1 AA contrast)" },
+      "austral_mist": { "value": "#EBF5F4", "role": "tonal surface for AI chat bubble and subtle active containers" },
+      "notice_amber": { "value": "#FEF3C7", "text_value": "#78350F", "role": "warning notice & demo badge (7.4:1 AAA contrast)" }
+    },
     "accent": {
       "gold": { "value": "#D4A017", "role": "attention only (max 1 occurrence per screen)", "usage": "menunggu konfirmasi / tarif belum final" }
     },

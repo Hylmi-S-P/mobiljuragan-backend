@@ -148,3 +148,16 @@ Semua jawaban di bawah harus "tidak ada pelanggaran":
 1. Agent builder (VS Code + Figma MCP): baca dokumen ini SEBELUM membuat frame. Setiap keputusan visual yang tidak bisa dijelaskan dalam satu baris alasan wajib dibatalkan (R-31).
 2. Agent reviewer: jadikan bagian 8-13 sebagai checklist audit. Setiap temuan harus menyebut frame dan rule yang dilanggar.
 3. Mode antislop: DURING (aturan diterapkan saat membangun), dan AFTER (audit lewat Delivery Gate sebelum dikumpulkan).
+
+## 15. Eksplorasi Sandbox: Quiet Luxury & Utilitarian Clarity (17 September 2026)
+
+Untuk mengatasi kesan generic/sterile default dari palet awal (`#F5F7FA` + `#1E3A5F`), dibangun sandbox eksplorasi khusus di Figma:
+- **Sandbox Lo-Fi (`1058:320`):** 11 Layar monokromatis terstruktur + Papan Anotasi Laws of UX (Fitts, Hick, Jakob, Miller, Proximity).
+- **Sandbox Hi-Fi (`1058:321`):** 11 Layar dengan sistem token baru:
+  - **Warm Alabaster (`#FAFAF8`):** Latar belakang kanvas yang meniru permukaan kertas editorial, lebih hangat dan tahan silau matahari Merauke.
+  - **Obsidian Ink (`#0B111D`):** Header ramping dan tombol aksi utama (CTA) dengan kontras tegas 18.5:1 AAA.
+  - **Austral Deep Teal (`#006D77`):** Aksen positif, status aktif, dan checkmark dengan kontras 6.14:1 AA.
+  - **Austral Mist (`#EBF5F4`):** Permukaan tonal untuk gelembung chat AI Assistant.
+  - **Ikon Navigasi Vektor:** Instance vektor SVG resmi (`Icon/Home`, `Icon/Car`, `Icon/Status`, `Icon/Help`) dari master page `890:2`.
+  - **Data Integritas:** Berakar ketat pada data 9 armada asli dan operasional riil [mobiljuragan.com](https://mobiljuragan.com/) di Merauke, Papua Selatan.
+

@@ -4,30 +4,191 @@
     "name": "MobilJuragan MVP — UI UX Case Study",
     "file_key": "Rxdv5kRYC8NiQpdWJhoIGJ",
     "url": "https://www.figma.com/design/Rxdv5kRYC8NiQpdWJhoIGJ/MobilJuragan-MVP-%E2%80%94-UI-UX-Case-Study",
-    "extraction_date": "2026-09-03",
-    "extraction_method": "Figma MCP screenshot + get_metadata; tokens transcribed from DESIGN.md (authoritative) and confirmed against Design System page 0:1"
+    "extraction_date": "2026-09-17",
+    "extraction_method": "Figma MCP screenshot (scale 2.0) + get_metadata; verified against Hi-Fi page 1006:92 with Anti-Slop enforcement"
   },
   "pages": {
-    "mobile_app":      { "page_id": "4:10", "canvas_size": "390 x 844 per frame" },
-    "dashboard":       { "page_id": "4:11", "canvas_size": "1440 x 900 per frame" },
-    "design_system":   { "page_id": "0:1", "note": "Foundations, components, variants" }
+    "mobile_app_hifi": {
+      "page_id": "1006:92",
+      "name": "Hi-Fi — MobilJuragan (SandBox Antigravity)",
+      "canvas_size": "390 x 844 per frame (exported 780 x 1688 @2x)"
+    },
+    "mobile_app_legacy": {
+      "page_id": "4:10",
+      "canvas_size": "390 x 844 per frame"
+    },
+    "dashboard": {
+      "page_id": "4:11",
+      "canvas_size": "1440 x 900 per frame"
+    },
+    "design_system": {
+      "page_id": "0:1",
+      "note": "Foundations, components, variants"
+    }
   },
   "screens": {
     "mobile_app": [
-      { "node_id": "16:4",    "name": "Screen / Home",                  "screenshot": "docs/figma-raw/mobile/home.png",                  "size": "390x844", "step_in_flow": 1 },
-      { "node_id": "16:48",   "name": "Screen / Available Vehicles",    "screenshot": "docs/figma-raw/mobile/available-vehicles.png",   "size": "390x844", "step_in_flow": 2 },
-      { "node_id": "16:147",  "name": "Screen / Vehicle Detail",         "screenshot": "docs/figma-raw/mobile/vehicle-detail.png",       "size": "390x844", "step_in_flow": 3 },
-      { "node_id": "17:70",   "name": "Screen / Date & Time",            "screenshot": "docs/figma-raw/mobile/date-time.png",            "size": "390x844", "step_in_flow": 4 },
-      { "node_id": "17:129",  "name": "Screen / Rental Options",         "screenshot": "docs/figma-raw/mobile/rental-options.png",       "size": "390x844", "step_in_flow": 5 },
-      { "node_id": "17:177",  "name": "Screen / Booker Form",            "screenshot": "docs/figma-raw/mobile/booker-form.png",          "size": "390x844", "step_in_flow": 6 },
-      { "node_id": "18:145",  "name": "Screen / Order Review",           "screenshot": "docs/figma-raw/mobile/order-review.png",         "size": "390x844", "step_in_flow": 7 },
-      { "node_id": "18:190",  "name": "Screen / Phone Verification",     "screenshot": "docs/figma-raw/mobile/phone-verification.png",   "size": "390x844", "step_in_flow": 8 },
-      { "node_id": "18:243",  "name": "Screen / Booking Status",         "screenshot": "docs/figma-raw/mobile/booking-status.png",       "size": "390x844", "step_in_flow": 9 },
-      { "node_id": "18:303",  "name": "Screen / Empty State",            "screenshot": "docs/figma-raw/mobile/empty-state.png",          "size": "390x844", "step_in_flow": "reference" },
-      { "node_id": "18:342",  "name": "Screen / Error State",            "screenshot": "docs/figma-raw/mobile/error-state.png",          "size": "390x844", "step_in_flow": "reference" },
-      { "node_id": "228:262", "name": "Screen / Help - New Ticket",      "screenshot": "docs/figma-raw/mobile/help-new-ticket.png",     "size": "390x844", "step_in_flow": "help/branch" },
-      { "node_id": "228:305", "name": "Screen / Help - Ticket Chat",     "screenshot": "docs/figma-raw/mobile/help-ticket-chat.png",    "size": "390x844", "step_in_flow": "help/branch" },
-      { "node_id": "273:336", "name": "Screen / Bantuan (FAQ)",          "screenshot": "docs/figma-raw/mobile/bantuan.png",              "size": "390x844", "step_in_flow": "help/entry" }
+      {
+        "node_id": "1080:581",
+        "name": "01 / Hi-Fi : Beranda",
+        "screenshot": "docs/figma-raw/mobile/home.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s01-beranda.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 1,
+        "row": 1
+      },
+      {
+        "node_id": "1012:3",
+        "name": "02 / Hi-Fi : Pilih Kendaraan",
+        "screenshot": "docs/figma-raw/mobile/available-vehicles.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s02-pilih-kendaraan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 2,
+        "row": 1
+      },
+      {
+        "node_id": "1012:4",
+        "name": "03 / Hi-Fi : Detail Kendaraan",
+        "screenshot": "docs/figma-raw/mobile/vehicle-detail.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s03-detail-kendaraan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 3,
+        "row": 1
+      },
+      {
+        "node_id": "1012:5",
+        "name": "04 / Hi-Fi : Tanggal & Waktu",
+        "screenshot": "docs/figma-raw/mobile/date-time.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s04-tanggal-waktu.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 4,
+        "row": 1
+      },
+      {
+        "node_id": "1012:6",
+        "name": "05 / Hi-Fi : Opsi Rental",
+        "screenshot": "docs/figma-raw/mobile/rental-options.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s05-opsi-rental.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 5,
+        "row": 1
+      },
+      {
+        "node_id": "1012:7",
+        "name": "06 / Hi-Fi : Tinjau Pesanan",
+        "screenshot": "docs/figma-raw/mobile/order-review.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s06-tinjau-pesanan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 6,
+        "row": 1
+      },
+      {
+        "node_id": "1045:968",
+        "name": "07 / Hi-Fi : Status Pesanan",
+        "screenshot": "docs/figma-raw/mobile/booking-status.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s07-status-pesanan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 7,
+        "row": 2
+      },
+      {
+        "node_id": "1045:1028",
+        "name": "08 / Hi-Fi : Riwayat Pesanan",
+        "screenshot": "docs/figma-raw/mobile/order-history.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s08-riwayat-pesanan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 8,
+        "row": 2
+      },
+      {
+        "node_id": "1045:1076",
+        "name": "09 / Hi-Fi : Pusat Bantuan",
+        "screenshot": "docs/figma-raw/mobile/bantuan.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s09-pusat-bantuan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 9,
+        "row": 2
+      },
+      {
+        "node_id": "1045:1129",
+        "name": "10 / Hi-Fi : Buat Ticket",
+        "screenshot": "docs/figma-raw/mobile/help-new-ticket.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s10-buat-ticket.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 10,
+        "row": 2
+      },
+      {
+        "node_id": "1045:1167",
+        "name": "11 / Hi-Fi : Chat Bantuan - AI Handoff",
+        "screenshot": "docs/figma-raw/mobile/help-ticket-chat.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s11-chat-bantuan.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 11,
+        "row": 2
+      },
+      {
+        "node_id": "1071:1742",
+        "name": "12 / Hi-Fi : Masuk / Login",
+        "screenshot": "docs/figma-raw/mobile/phone-verification.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s12-login.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 12,
+        "row": 3
+      },
+      {
+        "node_id": "1071:1785",
+        "name": "13 / Hi-Fi : Profil Pengguna",
+        "screenshot": "docs/figma-raw/mobile/user-profile.png",
+        "screenshot_hifi": "docs/figma-raw/hifi-s13-profile.png",
+        "size": "390x844 (780x1688 @2x)",
+        "step_in_flow": 13,
+        "row": 3
+      },
+      {
+        "node_id": "17:177",
+        "name": "Screen / Booker Form (Modal/Sheet)",
+        "screenshot": "docs/figma-raw/mobile/booker-form.png",
+        "size": "181x390",
+        "step_in_flow": "reference"
+      },
+      {
+        "node_id": "18:303",
+        "name": "Screen / Empty State",
+        "screenshot": "docs/figma-raw/mobile/empty-state.png",
+        "size": "390x844",
+        "step_in_flow": "reference"
+      },
+      {
+        "node_id": "18:342",
+        "name": "Screen / Error State",
+        "screenshot": "docs/figma-raw/mobile/error-state.png",
+        "size": "390x844",
+        "step_in_flow": "reference"
+      }
+    ],
+    "journey_maps": [
+      {
+        "node_id": "1012:254",
+        "name": "Journey Map & Laws of UX (Row 1)",
+        "screenshot": "docs/figma-raw/hifi-row1-journeymap.png",
+        "size": "2590x320 (5180x640 @2x)",
+        "row": 1
+      },
+      {
+        "node_id": "1045:1208",
+        "name": "Journey Map & Laws of UX (Row 2)",
+        "screenshot": "docs/figma-raw/hifi-row2-journeymap.png",
+        "size": "2160x320 (4320x640 @2x)",
+        "row": 2
+      },
+      {
+        "node_id": "1071:1859",
+        "name": "Journey Map & Laws of UX (Row 3)",
+        "screenshot": "docs/figma-raw/hifi-row3-journeymap.png",
+        "size": "1320x320 (2640x640 @2x)",
+        "row": 3
+      }
     ],
     "dashboard": [
       { "node_id": "19:4",    "name": "Screen / Dashboard Overview",     "screenshot": "docs/figma-raw/dashboard/01-dashboard-overview.png",   "size": "1440x900", "nav_section": "Overview" },
@@ -53,21 +214,24 @@
     "modal":          { "node_id": "13:72",  "screenshot": "docs/figma-raw/design-system/08-modal.png" }
   },
   "flow_map": {
-    "mobile_booking_flow": [
-      "16:4 Home",
-      "16:48 Available Vehicles",
-      "16:147 Vehicle Detail",
-      "17:70 Date & Time",
-      "17:129 Rental Options",
-      "17:177 Booker Form",
-      "18:145 Order Review",
-      "18:190 Phone Verification",
-      "18:243 Booking Status"
+    "row_1_booking_core_flow": [
+      "1080:581 (01 / Hi-Fi : Beranda)",
+      "1012:3 (02 / Hi-Fi : Pilih Kendaraan)",
+      "1012:4 (03 / Hi-Fi : Detail Kendaraan)",
+      "1012:5 (04 / Hi-Fi : Tanggal & Waktu)",
+      "1012:6 (05 / Hi-Fi : Opsi Rental)",
+      "1012:7 (06 / Hi-Fi : Tinjau Pesanan)"
     ],
-    "mobile_help_branch": [
-      "273:336 Bantuan (FAQ)",
-      "228:262 Help - New Ticket",
-      "228:305 Help - Ticket Chat"
+    "row_2_post_booking_and_support_flow": [
+      "1045:968 (07 / Hi-Fi : Status Pesanan)",
+      "1045:1028 (08 / Hi-Fi : Riwayat Pesanan)",
+      "1045:1076 (09 / Hi-Fi : Pusat Bantuan)",
+      "1045:1129 (10 / Hi-Fi : Buat Ticket)",
+      "1045:1167 (11 / Hi-Fi : Chat Bantuan - AI Handoff)"
+    ],
+    "row_3_auth_and_profile_flow": [
+      "1071:1742 (12 / Hi-Fi : Masuk / Login)",
+      "1071:1785 (13 / Hi-Fi : Profil Pengguna)"
     ],
     "dashboard_navigation": [
       "19:4 Dashboard Overview",
@@ -79,8 +243,8 @@
     "status_references": ["18:303 Empty State", "18:342 Error State", "20:225 Empty State", "20:251 Error State"]
   },
   "extraction_limitations": [
-    "Kode referensi (HTML/JSX) per frame TIDAK bisa diekstrak: tool get_design_context butuh layer yang sedang dipilih di Figma desktop pengguna. Dev perlu coding manual dari screenshot + tokens + DESIGN.md.",
-    "get_metadata sempat memotong Dashboard page dari top-level listing saat pertama dipanggil; diselesaikan dengan direct call nodeId 4:11.",
-    "Daftar node id di CONTEXT_DUMP_semut_copilot_vscode.md sudah outdated untuk Dashboard (5 screen tambahan yaitu Fleet Calendar, Vehicle Status, Booking Status Update, Empty State, Error State, Customer Care tidak ada di sana)."
+    "Semua screenshot Hi-Fi mobile diekstrak pada skala 2.0x (780 x 1688 px) dari halaman resmi Hi-Fi 1006:92 untuk kualitas tinggi tanpa artefak blur.",
+    "Layar 01 (Beranda) menggunakan node 1080:581 yang telah disempurnakan proporsinya dan disetujui (masterpiece layout).",
+    "Komponen dashboard dan design system diekstrak dari halaman fondasi awal (4:11 dan 0:1) sebagai rujukan teknis tim."
   ]
 }

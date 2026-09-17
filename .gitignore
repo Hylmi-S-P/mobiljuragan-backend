@@ -127,6 +127,7 @@ secrets/
 scratch/
 agent_tmp/
 reasonix_tmp/
+/figma_*.png
 
 # =====================================================
 # File yang TETAP di-commit:

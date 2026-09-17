@@ -5,14 +5,15 @@ web framework, dan AI MobilJuragan. **Termasuk hasil ekstraksi prototype
 Figma** untuk menjadi acuan implementasi frontend tanpa harus membuka
 Figma saat coding.
 
-## Status ekstraksi Figma (3 Sep 2026)
+## Status ekstraksi Figma (17 Sep 2026 - Hi-Fi Approved)
 
 | Folder | Konten |
 |---|---|
-| `figma-raw/mobile/`        | 14 screenshot screen mobile (390x844) |
-| `figma-raw/dashboard/`   | 9 screenshot screen dashboard (1440x900) |
+| `figma-raw/mobile/`        | 13 screenshot screen mobile Hi-Fi (780x1688 @2x) + 3 reference/modal states |
+| `figma-raw/`               | 13 screenshot screen Hi-Fi kanonik + 3 Journey Map baris 1-3 |
+| `figma-raw/dashboard/`     | 9 screenshot screen dashboard (1440x900) |
 | `figma-raw/design-system/` | 9 screenshot komponen (Foundations, Button, Input, Badge, Status Chip, Vehicle Card, Booking Card, Stepper, Modal) |
-| `MANIFEST.json`            | Peta lengkap: node id → path screenshot + flow map |
+| `MANIFEST.json`            | Peta lengkap: node id Hi-Fi → path screenshot + flow map 13 layar |
 | `design-tokens.json`       | Color, typography, spacing, radius, elevation, data integrity |
 | `PLANNING_TECH_STACK_DAN_ROADMAP.md` | Keputusan tech stack, scope MVP, 16 milestone dalam 14 minggu, dan format logbook |
 | `TEAM_WORK_ALLOCATION.md`           | Pembagian 4 PIC, tanggung jawab, dan rotasi reviewer |
@@ -20,7 +21,7 @@ Figma saat coding.
 | `LOGBOOK_AI_ASSISTED_TEMPLATE.md`   | Template entry logbook per fitur/milestone dengan field AI |
 | `logbook/`                          | Folder entry logbook (entry `YYYY-MM-DD_<milestone>_<fitur>_<inisial>.md`) |
 
-**Total:** 32 PNG dimensi asli + 2 file indeks (MANIFEST + tokens).
+**Total:** 48+ PNG resolusi tinggi + file indeks lengkap (`MANIFEST.json` + `design-tokens.json`).
 
 **Limitasi:**
 - `get_design_context` Figma MCP butuh layer yang sedang dipilih di Figma
@@ -39,6 +40,7 @@ docs/
 ├── design-tokens.json           # Tokens (warna, tipografi, spacing, dll)
 ├── PLANNING_TECH_STACK_DAN_ROADMAP.md  # Tech stack, MVP scope, dan roadmap tim
 ├── TECH_PLANNING_AI_CHATBOT_HANDOFF_EDGE_CASES.md  # Perencanaan arsitektur & edge cases AI chat handoff
+├── TECH_PLANNING_CUSTOMER_PROFILE_ARCHITECTURE.md  # Desain arsitektur profil user pelanggan, customerCode, verifikasi SIM/KTP, & REST API
 ├── TEAM_WORK_ALLOCATION.md            # Pembagian kerja 4 PIC dan rotasi reviewer
 ├── TEAM_POLICY_AI-ASSISTED_DEVELOPMENT.md  # Aturan kontribusi AI untuk tim
 ├── LOGBOOK_AI_ASSISTED_TEMPLATE.md    # Template entry logbook (wajib dipakai team)
@@ -70,16 +72,17 @@ docs/
 11. `ia/Penjelasan_Naratif_IA_dan_User_Flow_MobilJuragan.docx`
 12. Folder `ia/IA/` dan `ia/user-flow/`
 
-## Status Lo-Fi Wireframe (10/09/26)
+## Status Lo-Fi Wireframe & Hi-Fi Implementation (17/09/26)
 
-| Batch | Layar | Status |
-|---|---|---|
-| Batch 1 (07/09/26) | Beranda, Pilih Kendaraan, Tinjau Pesanan | `needed to be validated by team` |
-| Batch 2 (09/09/26) | Detail Kendaraan, Tanggal & Waktu, Opsi Rental | `needed to be validated by team` |
-| Batch 3 (direncanakan) | Data Pemesan, Verifikasi OTP, Status Booking | belum dijalankan |
-| Batch 4 (direncanakan) | Bantuan, Buat Ticket, Chat Bantuan | belum dijalankan |
+| Batch / Baris | Layar | Status Lo-Fi | Status Hi-Fi |
+|---|---|---|---|
+| Batch 1 | Beranda (1080:581), Pilih Kendaraan, Tinjau Pesanan | `reviewed-approved` | `hi-fi-applied` (Page `1006:92` Row 1) |
+| Batch 2 | Detail Kendaraan, Tanggal & Waktu, Opsi Rental | `reviewed-approved` | `hi-fi-applied` (Page `1006:92` Row 1) |
+| Batch 3 | Status Pesanan, Riwayat Pesanan | `reviewed-approved` | `hi-fi-applied` (Page `1006:92` Row 2) |
+| Batch 4 | Pusat Bantuan, Buat Ticket, Chat AI Handoff | `reviewed-approved` | `hi-fi-applied` (Page `1006:92` Row 2) |
+| Row 3 | Masuk / Login, Profil Pengguna (SIM/KTP) | `reviewed-approved` | `hi-fi-applied` (Page `1006:92` Row 3) |
 
-Detail lengkap keputusan UX dan alasan dibawa/tidak ke Hi-Fi ada di `docs/design/LOFI_TO_HIFI_DECISIONS.md`. Sampai status berubah menjadi `reviewed-approved`, `design-tokens.json`, `MANIFEST.json` untuk Hi-Fi, dan screenshot Hi-Fi pada `docs/figma-raw/` TIDAK diubah.
+Detail lengkap keputusan UX dan dokumentasi arsitektur ada di `docs/design/LOFI_TO_HIFI_DECISIONS.md`. Seluruh screenshot Hi-Fi pada `docs/figma-raw/` dan `docs/figma-raw/mobile/` beserta `MANIFEST.json` telah diperbarui dengan resolusi tinggi (2.0x scale, 780x1688 px) sesuai versi kanonik yang disetujui.
 
 ## Catatan
 

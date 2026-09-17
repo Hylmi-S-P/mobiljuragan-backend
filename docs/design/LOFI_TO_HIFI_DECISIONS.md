@@ -1,9 +1,9 @@
 # Lo-Fi → Hi-Fi Decision Log — MobilJuragan MVP
 
-> **Status keseluruhan:** `needed to be validated by team`
-> Tanggal dimulainya: 07/09/26 (Batch 1) dan 09/09/26 (Batch 2).
+> **Status keseluruhan:** `hi-fi-applied` (Seluruh 13 Layar Hi-Fi dan 3 Journey Map diimplementasikan & disetujui pada Page `1006:92`)
+> Tanggal pembaruan: 17/09/26 (Finalisasi Screen 01 Beranda, Row 3 Auth/Profile, dan sinkronisasi docs/figma-raw).
 > Penulis: Hylmi.
-> Tujuan: mendokumentasikan keputusan UX/UI dari Lo-Fi Wireframe, membedakan apa yang siap dibawa ke Hi-Fi dengan apa yang masih menunggu review tim.
+> Tujuan: mendokumentasikan keputusan UX/UI dari Lo-Fi Wireframe hingga implementasi kanonik High-Fidelity di Figma dan artefak screenshot dokumentasi.
 
 ---
 
@@ -43,16 +43,22 @@ Ringkasan anotasi (`Lo-Fi — Anotasi`, node `655:358`) berisi 9 baris tabel den
 Ringkasan anotasi diperluas dengan 15 baris tambahan (10–24). Halaman anotasi sekarang menyimpan dua frame terpisah:
 
 - `Ringkasan Anotasi Lo-Fi (Batch 1)` — node `748:308`, 9 baris.
-- `Ringkasan Anotasi Lo-Fi (Batch 1 + Batch 2)` — node `674:308`, 24 baris.
+### 1.3 Batch 3a (16/09/26)
 
-### 1.3 Status pengerjaan
+2 wireframe customer-facing di frame 390 × 844 monokrom dengan masing-masing 5 callout Laws of UX pada page mandiri terpisah:
 
-| Batch | Scope | Status Lo-Fi | Status Hi-Fi |
+- Status Pesanan (`Lo-Fi — Status Pesanan`, node `1041:570`).
+- Riwayat Pesanan (`Lo-Fi — Riwayat Pesanan`, node `1041:653`).
+
+### 1.4 Status pengerjaan
+ 
+| Batch / Row | Scope | Status Lo-Fi | Status Hi-Fi |
 |---|---|---|---|
-| Batch 1 | Beranda, Pilih Kendaraan, Tinjau Pesanan | needed to be validated by team | belum diterapkan |
-| Batch 2 | Detail Kendaraan, Tanggal & Waktu, Opsi Rental | needed to be validated by team | belum diterapkan |
-| Batch 3 (direncanakan) | Data Pemesan, Verifikasi OTP, Status Booking | belum dijalankan | belum diterapkan |
-| Batch 4 (direncanakan) | Bantuan, Buat Ticket, Chat Bantuan | belum dijalankan | belum diterapkan |
+| Batch 1 | Beranda (1080:581), Pilih Kendaraan, Tinjau Pesanan | reviewed-approved | hi-fi-applied (`1006:92` baris 1: node `1080:581`, `1012:3`, `1012:7`) |
+| Batch 2 | Detail Kendaraan, Tanggal & Waktu, Opsi Rental | reviewed-approved | hi-fi-applied (`1006:92` baris 1: node `1012:4`, `1012:5`, `1012:6`) |
+| Batch 3 | Status Pesanan, Riwayat Pesanan | reviewed-approved | hi-fi-applied (`1006:92` baris 2: node `1045:968`, `1045:1028`) |
+| Batch 4 | Pusat Bantuan, Buat Ticket, Chat Bantuan (AI Handoff) | reviewed-approved | hi-fi-applied (`1006:92` baris 2: node `1045:1076`, `1045:1129`, `1045:1167`) |
+| Row 3 (17/09/26) | Masuk / Login, Profil Pengguna (SIM/KTP) | reviewed-approved | hi-fi-applied (`1006:92` baris 3: node `1071:1742`, `1071:1785`) |
 
 ---
 
@@ -105,7 +111,47 @@ Setiap layar Hi-Fi yang sudah memiliki Lo-Fi akan menerima 5 callout sesuai urut
 - Miller: judul + 2 baris keterangan singkat per opsi.
 - Proximity: judul dan deskripsi dalam satu kartu; jarak antar kartu lebih besar dari jarak isi di dalam kartu.
 
-### 2.6 Ringkasan anotasi
+### 2.6 Status Pesanan (Fase 9 journey "Bagaimana status pesanan saya?")
+
+- Hick: Pembatasan aksi layar hanya 1 CTA utama tanpa tautan sekunder yang membingungkan.
+- Miller: Pemecahan informasi menjadi kartu Ringkasan Booking dan kartu Stepper Progres.
+- Jakob: Pola linimasa tahapan status vertikal (4 fase) dan bottom nav 4 tab yang familiar.
+- Proximity: Kedekatan status chip 'Menunggu Konfirmasi' tepat di bawah judul status booking.
+- Fitts: Tombol Hubungi Bantuan full-width 358 × 56 px pada ergonomic thumb zone di bagian bawah layar.
+
+### 2.7 Riwayat Pesanan (Daftar booking aktif dan lampau)
+
+- Hick: Filter segmented control 2 tab (`Aktif` vs `Selesai`) menyederhanakan pemilahan data.
+- Miller: Pemisahan kartu Pesanan Berjalan dengan kartu riwayat selesai dalam chunk visual mandiri.
+- Proximity: Pengelompokan status badge, referensi order, nama armada, dan plat dalam satu bingkai kartu transaksi.
+- Jakob: Layout kartu riwayat transaksi dan panel representasi empty state yang lazim pada aplikasi mobile.
+- Fitts: Tombol Pesan Mobil Baru full-width 358 × 56 px di area thumb zone.
+
+### 2.8 Pusat Bantuan (Layanan FAQ, pelaporan kendala, & tiket support)
+
+- Hick: Input pencarian prediktif di bagian atas memangkas waktu keputusan pencarian tanpa harus memilah puluhan artikel manual.
+- Miller: Chunking informasi kendala ke dalam 3 rumpun kategori utama (Booking, Pembayaran, Armada) untuk menjaga batas beban kognitif.
+- Jakob: Pola accordion FAQ standar industri aplikasi transportasi dan tiket aktif dengan status proses yang umum dipahami.
+- Proximity: Kedekatan badge 'Dalam Proses', nomor ID tiket (#TCK-1042), judul kendala, dan balasan CS dalam satu kartu kesatuan.
+- Fitts: Tombol aksi '+ Buat Ticket Bantuan Baru' full-width 358 × 50 px di area thumb zone untuk kemudahan akses cepat saat pengguna membutuhkan pertolongan.
+
+### 2.9 Chat Bantuan (Ticket Chat & penanganan komunikasi kendala armada via AI Handoff)
+
+- Jakob: Pola antarmuka percakapan pesan instan standar (konteks tiket di atas, navigasi kembali, dan identitas penanganan jelas) memudahkan pengguna langsung berinteraksi tanpa belajar ulang.
+- Proximity: Balon pesan, nama pengirim, status centang, dan waktu dikelompokkan secara rapat dalam satu kluster visual; spasi vertikal antarpesan membedakan giliran bicara secara intuitif.
+- Miller: Chunking transisi AI Chatbot ke Admin Manusia dipisahkan ke dalam segmen visual jelas (respon bot awal, divider transisi sistem, dan balasan staf operasional yang mengambil alih tiket) sesuai arsitektur handoff.
+- Hick: Komposer balasan difokuskan pada satu aksi utama (bidang input teks dan satu tombol kirim cepat) tanpa tombol samping yang membingungkan.
+- Fitts: Area input komposer selebar layar dan tombol kirim 56 × 44 px ditempatkan di zona jangkauan ibu jari (thumb zone) bagian bawah.
+
+### 2.10 Buat Ticket Bantuan (Formulir pengajuan kendala sebelum masuk ke chat)
+
+- Jakob: Konvensi formulir pengaduan helpdesk standar (Judul, Kategori Dropdown/Chips, Nomor Booking Terkait, dan Detail Masalah) sehingga pengguna langsung paham alur pengisian.
+- Hick: Penyederhanaan opsi jenis bantuan menjadi 3 kategori terstandarisasi (`Pertanyaan`, `Keluhan`, `Lainnya`) memangkas keraguan pengambilan keputusan.
+- Proximity: Kedekatan rapat label di atas setiap bidang isian dan helper text tepat di bawahnya; jeda antar-field diberi jarak 20 px untuk menegaskan batas antardata.
+- Miller: Chunking formulir menjadi 4 field esensial plus notice box alur AI Assistant untuk menjaga beban kognitif di bawah 7 item saat pengguna menghadapi kendala di lapangan.
+- Fitts: Tombol submit 'Kirim Ticket & Buka Chat →' selebar 358 × 52 px diletakkan di thumb zone bawah dengan kontras penuh.
+
+### 2.11 Ringkasan anotasi
 
 - Frame `Ringkasan Anotasi Lo-Fi (Batch 1 + Batch 2)` (`674:308`) dipakai untuk dokumentasi utama.
 - Frame `Ringkasan Anotasi Lo-Fi (Batch 1)` (`748:308`) dipakai untuk review Batch 1 saja.
@@ -182,3 +228,65 @@ Dokumen yang akan mengikuti Lo-Fi saat status diubah tim:
 | Tanggal | Perubahan | Penulis |
 |---|---|---|
 | 10/09/26 | Pembuatan awal dokumen. Status semua keputusan Lo-Fi = `needed to be validated by team`. | Hylmi |
+| 16/09/26 | Implementasi Hi-Fi Batch 3 (Status Pesanan, Riwayat) & Batch 4 (Pusat Bantuan, Buat Ticket, Chat AI Handoff) ke canvas utama `1006:92` baris 2. Status diubah menjadi `hi-fi-applied`. | Hylmi |
+| 17/09/26 | Redesign Screen 01 (Beranda, `1080:581`) disetujui (Masterpiece executive layout: hero card proporsional, eliminasi tombol ganda, visual hierarchy bersih). Implementasi Row 3 (Screen 12 Login & Screen 13 Profile SIM/KTP) serta ekspor penuh 2x screenshot ke `docs/figma-raw/` dan `docs/figma-raw/mobile/`. | Hylmi |
+
+---
+
+## 9. Implementasi Hi-Fi Batch 3 & Batch 4 (Page `1006:92`)
+
+Pada tanggal 16/09/26, seluruh 5 alur layar pasca-pemesanan dan penanganan bantuan pelanggan resmi diimplementasikan ke dalam format High-Fidelity pada Figma page `Hi-Fi — MobilJuragan (SandBox Antigravity)` (node ID `1006:92`) pada baris kedua (y: 1350) lengkap dengan Section Header (y: 1260) dan Journey Map baris kedua (y: 2240).
+
+### 9.1 Inventaris Node Hi-Fi Baris 2
+
+| No | Nama Screen Hi-Fi | Node ID | Posisi (x, y) | Dimensi | Karakteristik Visual Utama |
+|---|---|---|---|---|---|
+| 07 | `07 / Hi-Fi : Status Pesanan` | `1045:968` | x: 0, y: 1350 | 390 × 844 px | Stepper 4 tahap `#0e7c7b`/`#1d4ed8`, armada Avanza Putih `PS1692B`, badge `Menunggu Konfirmasi` `#fef3c7`, bottom nav tab Status aktif. |
+| 08 | `08 / Hi-Fi : Riwayat Pesanan` | `1045:1028` | x: 440, y: 1350 | 390 × 844 px | Segmented control `Aktif (1)` vs `Selesai (0)`, empty state card dengan icon riwayat selesai, banner booking baru. |
+| 09 | `09 / Hi-Fi : Pusat Bantuan` | `1045:1076` | x: 880, y: 1350 | 390 × 844 px | Search box, 3 chip kategori (`Booking` aktif `#0e7c7b`), FAQ accordion, card tiket aktif `#TCK-1042` (`Dalam Proses`), bottom nav tab Bantuan aktif. |
+| 10 | `10 / Hi-Fi : Buat Ticket` | `1045:1129` | x: 1320, y: 1350 | 390 × 844 px | Form input terstruktur: judul, chip `Keluhan` aktif, referensi `#BK-5521`, textarea detail, AI disclosure box `#e6f4f1`, CTA submit 342 × 52 px `#1e3a5f`. |
+| 11 | `11 / Hi-Fi : Chat Bantuan - AI Handoff` | `1045:1167` | x: 1760, y: 1350 | 390 × 844 px | Sticky header ticket, stream chat transparan: bubble customer (`#e6f4f1`) → AI Bot reply (`#ffffff`) → System Event Divider (`#0e7c7b`) → Staf CS Manusia (`#0e7c7b` border) → customer akui, input composer fixed. |
+| JM | `Journey Map & Laws of UX (Row 2)` | `1045:1208` | x: 0, y: 2240 | 2160 × 320 px | 5 kartu fase hukum UX (Feedback Loop, Jakob/Miller, Hick/Search, Expectation Setting, Human Fallback & Fail-soft) + Box Data Integrity. |
+
+### 9.2 Arsitektur AI Chatbot to Human Handoff (Screen 11)
+
+Berdasarkan `docs/TECH_PLANNING_AI_CHATBOT_HANDOFF_EDGE_CASES.md`:
+1. **Transparansi Peran**: Pengguna selalu diberi tahu siapa yang berbicara (label robot `🤖 AI Assistant MobilJuragan` vs avatar staf `CS MobilJuragan (Staf Merauke)`).
+2. **System Event Divider**: Transisi kepemilikan percakapan ditandai garis penanda eksplisit (`── AI mengalihkan ke Admin (Alasan: Penjemputan Lapangan) • 08:46 WIT ──`) sehingga pengguna tidak terjebak kebingungan apakah masih berbicara dengan bot.
+3. **Fail-Soft & SLA**: Tiket `#TCK-1042` tertaut langsung ke data booking `#BK-5521` untuk menjamin kesinambungan konteks tanpa meminta pelanggan mengulang keluhan.
+
+---
+
+## 10. Redesign Kanonik Screen 01 Beranda (`1080:581`)
+
+Pada tanggal 17/09/26, layar Beranda direkonstruksi total menjadi tata letak proporsional yang elegan dan profesional sesuai arahan user review:
+
+### 10.1 Perubahan Desain Utama
+1. **Single Primary CTA**: Menghilangkan tombol mini "Sewa" ganda di kartu reservasi yang membingungkan alur kognitif. Layar kini hanya memiliki satu CTA primer di bagian bawah (`Pesan Mobil Sekarang →`, 350 × 52 px) dengan microcopy jaminan ("Tanpa biaya tersembunyi • Konfirmasi instan via WhatsApp").
+2. **Kartu Hero Armada Terpadu (350 × 248 px, r:16)**:
+   - Header kartu: Badge `TERPOPULER DI MERAUKE` (Teal `#0E7C7B`) dan Plat nomor `PA 1692 B` (Navy pill `#1E3A5F`).
+   - Judul armada: `Toyota New Avanza 1.3 G` dengan spesifikasi ringkas (7 Kursi • Manual • 2023).
+   - Render foto armada beresolusi tajam ($260 \times 105$ px, radius 10 px) dari referensi resmi.
+   - 3 Opsi pill sewa (`Lepas Kunci` aktif teal, `Dengan Sopir`, `Antar Bandara`) yang intuitif dan terbebas dari distorsi visual.
+3. **Penyederhanaan Komponen**:
+   - Menghilangkan kapsul search melayang yang membebani ruang vertikal.
+   - Menghilangkan bayangan oval sintetis abu-abu di bawah roda mobil.
+   - Kartu Status Reservasi ($350 \times 80$ px) dibuat rapi dengan status jujur ("Belum ada rental berjalan") dan icon avatar MJ.
+   - Kartu Jaminan Layanan ($350 \times 64$ px) dengan tanda centang `✓` dan info pengantaran gratis ke Bandara Mopah Merauke.
+4. **Audit Anti-Slop**: 0 em dashes (`—`), 0 teks terpotong/overflow, kontras WCAG AA/AAA terpenuhi, tata letak seimbang dan proporsional.
+
+---
+
+## 11. Implementasi Hi-Fi Row 3: Auth, Identitas, & Profil Pelanggan
+
+Row 3 ditempatkan pada ordinat $y = 2750$ px pada halaman `1006:92` dengan Section Header ($y = 2660$) dan Journey Map Row 3 ($y = 3650$).
+
+### 11.1 Inventaris Node Hi-Fi Baris 3
+
+| No | Nama Screen Hi-Fi | Node ID | Posisi (x, y) | Dimensi | Karakteristik Visual Utama |
+|---|---|---|---|---|---|
+| 12 | `12 / Hi-Fi : Masuk / Login` | `1071:1742` | x: 0, y: 2750 | 390 × 844 px | Input nomor HP Indonesia (`+62`), tombol kirim OTP WhatsApp, ilustrasi keamanan data KYC, reassurance microcopy. |
+| 13 | `13 / Hi-Fi : Profil Pengguna` | `1071:1785` | x: 440, y: 2750 | 390 × 844 px | Kode pelanggan unik `customerCode`, status badge verifikasi SIM A & KTP (`Terverifikasi`), menu riwayat transaksi, dan kontak darurat. |
+| JM | `Journey Map & Laws of UX (Row 3)` | `1071:1859` | x: 0, y: 3650 | 1320 × 320 px | 3 fase hukum UX (Hick's Law pada OTP, Jakob's Law pada profil & verifikasi identitas, Fitts's Law pada CTA aksi profil). |
+
+
