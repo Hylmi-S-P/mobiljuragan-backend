@@ -39,3 +39,18 @@ Contoh:
 - Memasukkan data customer, harga, atau rating fiktif tanpa label `Data contoh`.
 - Menggunakan em dash pada teks publik.
 - Klaim `done` sebelum reviewer menandatangani checklist.
+
+---
+
+## Daftar Entri Logbook Terverifikasi
+
+| Tanggal | Berkas Logbook | Milestone & Cakupan Fitur | PIC | Status |
+|---|---|---|:---:|:---:|
+| 03/09/26 | [`2026-09-03_M3-repository-foundation_Hylmi.md`](2026-09-03_M3-repository-foundation_Hylmi.md) | M3: Repository foundation, monorepo Express API | Hylmi | `done` |
+| 04/09/26 | [`2026-09-04_M4-database-foundation-fleet-seed_Hylmi.md`](2026-09-04_M4-database-foundation-fleet-seed_Hylmi.md) | M4: Database foundation, Prisma 7, seed 9 armada | Hylmi | `done` |
+| 04/09/26 | [`2026-09-04_M5-api-contract-dan-auth_Hylmi.md`](2026-09-04_M5-api-contract-dan-auth_Hylmi.md) | M5: API contract, Customer OTP HMAC, Admin JWT, 9 test | Hylmi | `done` |
+| 07/09/26 | [`2026-09-07_M-ux_lofi-wireframe_Hylmi.md`](2026-09-07_M-ux_lofi-wireframe_Hylmi.md) | M-UX: Lo-Fi wireframe 6 layar + anotasi Laws of UX | Hylmi | `done` |
+| 10/09/26 | [`2026-09-10_M-freeze-backend-at-M5_Hylmi.md`](2026-09-10_M-freeze-backend-at-M5_Hylmi.md) | M-Freeze: Usulan pivot tim & freeze backend di M5 | Hylmi | `done` |
+| 16/09/26 | [`2026-09-16_M-ux_hifi-batch3-batch4-ai-handoff_Hylmi.md`](2026-09-16_M-ux_hifi-batch3-batch4-ai-handoff_Hylmi.md) | M-UX: Hi-Fi Layar 07–11, AI Handoff, Journey Map Row 2 | Hylmi | `done` |
+| 17/09/26 | [`2026-09-17_M-ux_hifi-auth-profile-ai-architecture_Hylmi.md`](2026-09-17_M-ux_hifi-auth-profile-ai-architecture_Hylmi.md) | M-UX: Hi-Fi Row 3 (12 & 13), Redesign 01c, Arsitektur Profil & RFC AI | Hylmi | `done` |
+
