@@ -82,33 +82,19 @@ class VehicleCardItem extends StatelessWidget {
                     width: 110,
                     height: 68,
                     color: AppColors.surfaceLight,
-                    child: vehicle.imageUrl.startsWith('assets/')
-                        ? Image.asset(
-                            vehicle.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.directions_car,
-                                  color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                  size: 32,
-                                ),
-                              );
-                            },
-                          )
-                        : Image.network(
-                            vehicle.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.directions_car,
-                                  color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                  size: 32,
-                                ),
-                              );
-                            },
+                    child: Image.asset(
+                      vehicle.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            Icons.directions_car,
+                            color: AppColors.textSecondary.withValues(alpha: 0.5),
+                            size: 32,
                           ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],

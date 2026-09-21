@@ -218,38 +218,19 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 130,
               width: double.infinity,
               color: AppColors.surfaceLight,
-              child: () {
-                final imgPath = vehicle.heroImageUrl ?? vehicle.imageUrl;
-                if (imgPath.startsWith('assets/')) {
-                  return Image.asset(
-                    imgPath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.directions_car,
-                          color: AppColors.textSecondary,
-                          size: 48,
-                        ),
-                      );
-                    },
+              child: Image.asset(
+                vehicle.heroImageUrl ?? vehicle.imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.directions_car,
+                      color: AppColors.textSecondary,
+                      size: 48,
+                    ),
                   );
-                } else {
-                  return Image.network(
-                    imgPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.directions_car,
-                          color: AppColors.textSecondary,
-                          size: 48,
-                        ),
-                      );
-                    },
-                  );
-                }
-              }(),
+                },
+              ),
             ),
           ),
           const SizedBox(height: 14),

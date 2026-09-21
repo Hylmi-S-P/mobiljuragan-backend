@@ -122,38 +122,19 @@ class VehicleDetailScreen extends StatelessWidget {
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: () {
-                final imgPath = vehicle.detailImageUrl ?? vehicle.imageUrl;
-                if (imgPath.startsWith('assets/')) {
-                  return Image.asset(
-                    imgPath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.directions_car,
-                          color: AppColors.textSecondary,
-                          size: 64,
-                        ),
-                      );
-                    },
+              child: Image.asset(
+                vehicle.detailImageUrl ?? vehicle.imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.directions_car,
+                      color: AppColors.textSecondary,
+                      size: 64,
+                    ),
                   );
-                } else {
-                  return Image.network(
-                    imgPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.directions_car,
-                          color: AppColors.textSecondary,
-                          size: 64,
-                        ),
-                      );
-                    },
-                  );
-                }
-              }(),
+                },
+              ),
             ),
           ),
           Positioned(
