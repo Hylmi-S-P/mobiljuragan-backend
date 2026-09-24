@@ -258,7 +258,119 @@ Digunakan pada aplikasi Admin Web Dashboard Next.js (Dehan).
 
 ---
 
-## 6. Daftar Kode Error Umum
+## 6. Pemesanan Sewa Mobil (`/bookings`)
+
+Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
+
+### A. Buat Pemesanan Baru (Transaksi Atomik)
+- **Method:** `POST`
+- **Endpoint:** `/api/v1/bookings`
+- **Request Body:**
+  ```json
+  {
+    "vehicleId": "avanza-g-putih-ps1692b",
+    "startDateTime": "2026-11-01T08:00:00Z",
+    "endDateTime": "2026-11-03T18:00:00Z",
+    "rentalType": "WITHOUT_DRIVER",
+    "pickupLocation": "Bandara Mopah Merauke",
+    "customerRequest": "Unit bersih dan AC dingin",
+    "numberGuests": 4
+  }
+  ```
+  *(Catatan: `vehicleId` dapat berupa UUID database atau `externalId` armada).*
+- **Contoh Respons (HTTP 201 Created):**
+  ```json
+  {
+    "status": "ok",
+    "data": {
+      "id": "beb23c70-71d3-4a05-8f3b-acc7ea7d3bd7",
+      "bookingCode": "MJ-20261101-ABCD",
+      "customerId": "1826a286-2c48-4027-91fd-da3ad9a7ad61",
+      "vehicleId": "a323fe40-aae5-4b7b-87de-fe6ab58946f7",
+      "startDateTime": "2026-11-01T08:00:00.000Z",
+      "endDateTime": "2026-11-03T18:00:00.000Z",
+      "rentalType": "WITHOUT_DRIVER",
+      "pickupLocation": "Bandara Mopah Merauke",
+      "customerRequest": "Unit bersih dan AC dingin",
+      "numberGuests": 4,
+      "tariffStatus": "PENDING_TEAM_CONFIRMATION",
+      "quotedAmount": null,
+      "status": "CREATED",
+      "vehicle": {
+        "id": "a323fe40-aae5-4b7b-87de-fe6ab58946f7",
+        "externalId": "avanza-g-putih-ps1692b",
+        "name": "AVANZA G PUTIH",
+        "licensePlate": "PS1692B",
+        "category": "MPV",
+        "seatingCapacity": 7,
+        "transmission": "MANUAL"
+      }
+    }
+  }
+  ```
+
+### B. Daftar Pesanan Customer
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/bookings`
+- **Fungsi:** Mengambil daftar seluruh riwayat booking milik customer yang sedang login (untuk tab *Status / Pesanan* di mobile).
+- **Contoh Respons:**
+  ```json
+  {
+    "status": "ok",
+    "data": [
+      {
+        "id": "beb23c70-71d3-4a05-8f3b-acc7ea7d3bd7",
+        "bookingCode": "MJ-20261101-ABCD",
+        "status": "CREATED",
+        "tariffStatus": "PENDING_TEAM_CONFIRMATION",
+        "quotedAmount": null,
+        "startDateTime": "2026-11-01T08:00:00.000Z",
+        "endDateTime": "2026-11-03T18:00:00.000Z",
+        "vehicle": { ... }
+      }
+    ]
+  }
+  ```
+
+### C. Detail Pesanan Tertentu
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/bookings/:id`
+- **Keterangan:** `:id` bisa berupa UUID booking atau `bookingCode` (misal: `MJ-20261101-ABCD`).
+- **Contoh Respons:** Menampilkan data lengkap pesanan, spesifikasi mobil, data pemesan, dan riwayat status.
+
+### D. Lacak Status & Timeline Pesanan (Stepper View)
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/bookings/:id/status`
+- **Fungsi:** Menyediakan status terkini dan timeline lengkap (`statusHistory`) yang cocok dipasangkan langsung ke komponen stepper status di aplikasi mobile.
+- **Contoh Respons:**
+  ```json
+  {
+    "status": "ok",
+    "data": {
+      "id": "beb23c70-71d3-4a05-8f3b-acc7ea7d3bd7",
+      "bookingCode": "MJ-20261101-ABCD",
+      "status": "CREATED",
+      "tariffStatus": "PENDING_TEAM_CONFIRMATION",
+      "quotedAmount": null,
+      "startDateTime": "2026-11-01T08:00:00.000Z",
+      "endDateTime": "2026-11-03T18:00:00.000Z",
+      "statusHistory": [
+        {
+          "id": "f512...",
+          "fromStatus": null,
+          "toStatus": "CREATED",
+          "actor": "CUSTOMER",
+          "note": "Pemesanan sewa dibuat oleh pelanggan. Menunggu konfirmasi tarif dan armada oleh tim.",
+          "changedAt": "2026-11-01T08:05:00.000Z"
+        }
+      ]
+    }
+  }
+  ```
+
+---
+
+## 7. Daftar Kode Error Umum
 
 | HTTP Code | Error Code | Keterangan |
 |---|---|---|
@@ -270,4 +382,7 @@ Digunakan pada aplikasi Admin Web Dashboard Next.js (Dehan).
 | 401 | `INVALID_CREDENTIALS` | Password admin atau nomor telepon admin salah. |
 | 403 | `FORBIDDEN` | Pengguna tidak memiliki hak akses (role tidak mencukupi). |
 | 404 | `VEHICLE_NOT_FOUND` | Armada mobil dengan ID tersebut tidak ada di sistem. |
+| 404 | `BOOKING_NOT_FOUND` | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan. |
+| 409 | `BOOKING_VEHICLE_UNAVAILABLE` | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
 | 500 | `INTERNAL_SERVER_ERROR` | Kesalahan tidak terduga pada server database. |
+

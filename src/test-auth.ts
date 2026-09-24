@@ -126,7 +126,123 @@ async function runTests() {
     const resDetailNotFound = await fetch(`${baseUrl}/vehicles/id-tidak-ada-9999`);
     console.log('14. Get Vehicle Detail Not Found (harus 404):', resDetailNotFound.status === 404 ? 'PASSED' : 'FAILED');
 
-    console.log('\nSemua 14 pengujian otomatis lolos.\n');
+    // 15. Create Booking Atomik (POST /bookings)
+    const resCreateBooking = await fetch(`${baseUrl}/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        vehicleId: 'avanza-g-putih-ps1692b',
+        startDateTime: '2026-11-01T08:00:00Z',
+        endDateTime: '2026-11-03T18:00:00Z',
+        rentalType: 'WITHOUT_DRIVER',
+        pickupLocation: 'Bandara Mopah Merauke',
+        customerRequest: 'Unit bersih dan AC dingin',
+        numberGuests: 4,
+      }),
+    });
+    const dataCreateBooking = (await resCreateBooking.json()) as any;
+    const createdBooking = dataCreateBooking.data;
+    console.log(
+      '15. Create Booking Atomik (harus 201 & tarif null):',
+      resCreateBooking.status === 201 &&
+        createdBooking?.bookingCode &&
+        createdBooking?.quotedAmount === null &&
+        createdBooking?.status === 'CREATED'
+        ? `PASSED (${createdBooking.bookingCode})`
+        : 'FAILED',
+      dataCreateBooking
+    );
+
+    // 16. Get Booking Detail by ID (GET /bookings/:id)
+    const resBookingDetail = await fetch(`${baseUrl}/bookings/${createdBooking?.id}`, {
+      headers: { Authorization: `Bearer ${customerToken}` },
+    });
+    const dataBookingDetail = (await resBookingDetail.json()) as any;
+    console.log(
+      '16. Get Booking Detail (harus 200 & ada relasi vehicle):',
+      resBookingDetail.status === 200 && dataBookingDetail.data?.vehicle?.name === 'AVANZA G PUTIH'
+        ? 'PASSED'
+        : 'FAILED'
+    );
+
+    // 17. Get Booking Status & Timeline (GET /bookings/:id/status)
+    const resBookingStatus = await fetch(`${baseUrl}/bookings/${createdBooking?.bookingCode}/status`, {
+      headers: { Authorization: `Bearer ${customerToken}` },
+    });
+    const dataBookingStatus = (await resBookingStatus.json()) as any;
+    console.log(
+      '17. Get Booking Status & Timeline (harus 200 & statusHistory terisi):',
+      resBookingStatus.status === 200 &&
+        dataBookingStatus.data?.status === 'CREATED' &&
+        Array.isArray(dataBookingStatus.data?.statusHistory) &&
+        dataBookingStatus.data?.statusHistory.length > 0
+        ? 'PASSED'
+        : 'FAILED'
+    );
+
+    // 18. List Customer Bookings (GET /bookings)
+    const resListBookings = await fetch(`${baseUrl}/bookings`, {
+      headers: { Authorization: `Bearer ${customerToken}` },
+    });
+    const dataListBookings = (await resListBookings.json()) as any;
+    console.log(
+      '18. List Customer Bookings (harus 200 & array):',
+      resListBookings.status === 200 &&
+        Array.isArray(dataListBookings.data) &&
+        dataListBookings.data.some((b: any) => b.id === createdBooking?.id)
+        ? `PASSED (${dataListBookings.data.length} pesanan)`
+        : 'FAILED'
+    );
+
+    // 19. Booking Conflict / Availability Protection (set status CONFIRMED, then try to book overlapping)
+    const { db: testDb } = await import('./db.js');
+    await testDb.booking.update({
+      where: { id: createdBooking.id },
+      data: { status: 'CONFIRMED' },
+    });
+
+    const resConflictBooking = await fetch(`${baseUrl}/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        vehicleId: 'avanza-g-putih-ps1692b',
+        startDateTime: '2026-11-02T10:00:00Z',
+        endDateTime: '2026-11-04T12:00:00Z',
+        rentalType: 'WITH_DRIVER',
+      }),
+    });
+    const dataConflict = (await resConflictBooking.json()) as any;
+    console.log(
+      '19. Booking Conflict Protection (harus 409 BOOKING_VEHICLE_UNAVAILABLE):',
+      resConflictBooking.status === 409 && dataConflict.error?.code === 'BOOKING_VEHICLE_UNAVAILABLE'
+        ? 'PASSED'
+        : 'FAILED'
+    );
+
+    // 20. Booking Unauthorized (Tanpa Token)
+    const resUnauthBooking = await fetch(`${baseUrl}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vehicleId: 'avanza-g-putih-ps1692b',
+        startDateTime: '2026-12-01T08:00:00Z',
+        endDateTime: '2026-12-02T18:00:00Z',
+        rentalType: 'WITHOUT_DRIVER',
+      }),
+    });
+    console.log('20. Booking Unauthorized Tanpa Token (harus 401):', resUnauthBooking.status === 401 ? 'PASSED' : 'FAILED');
+
+    // Clean up created test booking agar DB tetap bersih
+    await testDb.bookingStatusHistory.deleteMany({ where: { bookingId: createdBooking.id } });
+    await testDb.booking.delete({ where: { id: createdBooking.id } });
+
+    console.log('\nSemua 20 pengujian otomatis lolos.\n');
   } catch (error) {
     console.error('Error saat testing:', error);
   } finally {
