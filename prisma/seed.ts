@@ -4,12 +4,8 @@ import { db } from '../src/db.js';
 import { OperationalStatus, UserRole } from '../src/generated/prisma/client.js';
 
 /**
- * 9 Kendaraan Resmi CV. Mobil Juragan Express Transport (Merauke)
- * Sumber data: Spesifikasi armada resmi CV. Mobil Juragan Express Transport
- * 
- * ATURAN MUTLAK (Hard Gate):
- *  - Tarif berupa angka TIDAK BOLEH di-hardcode.
- *  - Tidak ada data fiktif (rating, review, testimoni, atau nama pelanggan palsu).
+ * 9 Kendaraan Resmi CV. Mobil Juragan Express Transport (Merauke).
+ * Catatan: Tarif sewa dikonfirmasi langsung oleh tim operasional (tidak di-hardcode).
  */
 const OFFICIAL_FLEET = [
   {
@@ -123,7 +119,7 @@ const OFFICIAL_FLEET = [
 ];
 
 async function main() {
-  console.log('🚗 Memulai seeding 9 armada resmi MobilJuragan...');
+  console.log('Memulai seeding 9 armada resmi MobilJuragan...');
 
   for (const vehicle of OFFICIAL_FLEET) {
     const record = await db.vehicle.upsert({
@@ -140,13 +136,13 @@ async function main() {
       },
       create: vehicle,
     });
-    console.log(`  ✓ Tersimpan: ${record.name} (${record.licensePlate})`);
+    console.log(`  - Tersimpan: ${record.name} (${record.licensePlate})`);
   }
 
   const count = await db.vehicle.count();
-  console.log(`\n✅ Seeding armada selesai! Total kendaraan di database: ${count}`);
+  console.log(`\nSeeding armada selesai. Total kendaraan di database: ${count}`);
 
-  console.log('\n👤 Memulai seeding user staf/admin...');
+  console.log('\nMemulai seeding akun staf/admin...');
   const adminPasswordHash = await bcrypt.hash('Admin123!', 10);
   const admin = await db.user.upsert({
     where: { phoneNumber: '081234567890' },
@@ -164,7 +160,7 @@ async function main() {
       isActive: true,
     },
   });
-  console.log(`  ✓ Tersimpan admin: ${admin.fullName} (${admin.phoneNumber})`);
+  console.log(`  - Tersimpan admin: ${admin.fullName} (${admin.phoneNumber})`);
 
   const staffPasswordHash = await bcrypt.hash('Staf123!', 10);
   const staff = await db.user.upsert({
@@ -183,12 +179,12 @@ async function main() {
       isActive: true,
     },
   });
-  console.log(`  ✓ Tersimpan staf: ${staff.fullName} (${staff.phoneNumber})`);
+  console.log(`  - Tersimpan staf: ${staff.fullName} (${staff.phoneNumber})`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Terjadi kesalahan saat seeding:', e);
+    console.error('Terjadi kesalahan saat seeding:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -1,6 +1,6 @@
 # MobilJuragan Backend API
 
-Layanan REST API terpusat (*single source of truth*) untuk platform digital rental mobil **CV. Mobil Juragan Express Transport** di Merauke, Papua Selatan. Layanan ini mengelola seluruh logika bisnis, transaksi pemesanan armada, manajemen inventaris kendaraan, dan autentikasi pengguna.
+Layanan REST API untuk sistem operasional dan pemesanan rental mobil **CV. Mobil Juragan Express Transport** di Merauke, Papua Selatan. Layanan ini mengelola transaksi pemesanan armada, manajemen data kendaraan, dan autentikasi pengguna.
 
 ---
 

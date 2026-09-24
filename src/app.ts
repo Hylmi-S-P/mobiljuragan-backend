@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 /**
- * Health/liveness check — tidak membutuhkan DB agar bisa dipakai di monitoring & staging.
+ * Health check untuk monitoring tanpa dependensi database.
  */
 app.get('/health', (_req: Request, res: Response) => {
   res.json({

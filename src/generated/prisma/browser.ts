@@ -39,7 +39,7 @@ export type Booking = Prisma.BookingModel
 export type BookingStatusHistory = Prisma.BookingStatusHistoryModel
 /**
  * Model OtpVerification
- * OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan (roadmap §3).
+ * OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan demi keamanan.
  */
 export type OtpVerification = Prisma.OtpVerificationModel
 /**

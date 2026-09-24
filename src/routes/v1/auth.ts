@@ -41,7 +41,7 @@ authRouter.post('/otp/request', validateBody(otpRequestSchema), async (req: Requ
   const { phoneNumber: rawPhone, fullName, purpose } = req.body;
   const phoneNumber = normalizePhoneNumber(rawPhone);
 
-  // 1. Cari atau buat customer
+  // Cari atau buat customer
   let user = await db.user.findUnique({
     where: { phoneNumber },
   });
@@ -61,12 +61,12 @@ authRouter.post('/otp/request', validateBody(otpRequestSchema), async (req: Requ
     });
   }
 
-  // 2. Generate 6 digit OTP & hash
+  // Generate OTP 6 digit
   const plainOtp = generateOtp();
   const hashed = hashOtp(plainOtp);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
 
-  // 3. Simpan ke tabel otp_verifications (hanya hash!)
+  // Simpan hash OTP
   await db.otpVerification.create({
     data: {
       userId: user.id,

@@ -2,7 +2,7 @@
   "name": "mobiljuragan-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "MobilJuragan REST API — Layanan Backend & Business Logic Rental Mobil Merauke",
+  "description": "MobilJuragan REST API - Layanan Backend & Logika Rental Mobil Merauke",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {

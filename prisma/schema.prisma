@@ -1,11 +1,6 @@
-// ============================================================================
-// MobilJuragan · Prisma Schema
-// Provider: PostgreSQL
-//
-// Karakteristik & Aturan Integritas Data:
-//  - `quoted_amount` dibuat nullable: tarif resmi dikonfirmasi langsung oleh tim.
-//  - `vehicle_id` merujuk pada 9 unit armada resmi CV. Mobil Juragan Express Transport.
-// ============================================================================
+// MobilJuragan Prisma Schema (PostgreSQL)
+// - quoted_amount nullable: tarif sewa dikonfirmasi oleh tim/admin
+// - vehicle_id merujuk pada 9 unit armada resmi MobilJuragan
 
 generator client {
   provider = "prisma-client"
@@ -112,7 +107,7 @@ model Vehicle {
   brand             String?
   model             String?
   seatingCapacity   Int
-  transmission      String? // AUTOMATIC | MANUAL — isi final mengikuti dataset
+  transmission      String? // AUTOMATIC | MANUAL
   category          String? // MENANGANI isi referensi fleet (towncar/pickup/man)
   imageUrl          String?
   operationalStatus OperationalStatus @default(AVAILABLE)

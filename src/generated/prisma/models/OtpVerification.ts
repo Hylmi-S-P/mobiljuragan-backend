@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model OtpVerification
- * OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan (roadmap §3).
+ * OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan demi keamanan.
  */
 export type OtpVerificationModel = runtime.Types.Result.DefaultSelection<Prisma.$OtpVerificationPayload>
 

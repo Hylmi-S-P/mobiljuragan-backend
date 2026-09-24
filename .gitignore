@@ -21,6 +21,3 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
-
-# Local documentation & backup
-docs/

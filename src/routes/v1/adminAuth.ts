@@ -51,7 +51,7 @@ adminAuthRouter.post('/login', validateBody(loginSchema), async (req: Request, r
     return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
   }
 
-  // Rekam ke AuditLog (roadmap §3 & §4)
+  // Rekam riwayat login ke AuditLog
   await db.auditLog.create({
     data: {
       actorId: user.id,
