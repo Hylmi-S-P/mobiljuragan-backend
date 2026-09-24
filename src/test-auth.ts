@@ -305,7 +305,62 @@ async function runTests() {
     await testDb.bookingStatusHistory.deleteMany({ where: { bookingId: createdBooking.id } });
     await testDb.booking.delete({ where: { id: createdBooking.id } });
 
-    console.log('\nSemua 24 pengujian otomatis lolos.\n');
+    // 25. Admin Fleet Calendar (GET /admin/fleet/calendar)
+    const resFleetCal = await fetch(`${baseUrl}/admin/fleet/calendar`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const dataFleetCal = (await resFleetCal.json()) as any;
+    console.log(
+      '25. Admin Fleet Calendar (harus 200 & 9 armada):',
+      resFleetCal.status === 200 &&
+        Array.isArray(dataFleetCal.data?.fleet) &&
+        dataFleetCal.data?.fleet.length >= 9
+        ? `PASSED (${dataFleetCal.data?.fleet.length} armada terpantau)`
+        : 'FAILED'
+    );
+
+    // 26. Admin Update Status Fisik Armada (PATCH /admin/vehicles/:id/status)
+    const resUpdateVehStatus = await fetch(`${baseUrl}/admin/vehicles/avanza-g-putih-ps1692b/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        status: 'MAINTENANCE',
+        note: 'Servis berkala dan penggantian oli mesin rutin.',
+      }),
+    });
+    const dataUpdateVeh = (await resUpdateVehStatus.json()) as any;
+    console.log(
+      '26. Admin Update Status Fisik Armada (harus 200 & status MAINTENANCE):',
+      resUpdateVehStatus.status === 200 && dataUpdateVeh.data?.operationalStatus === 'MAINTENANCE'
+        ? 'PASSED'
+        : 'FAILED'
+    );
+
+    // 27. Verifikasi Audit Log Status Kendaraan & Revert ke AVAILABLE
+    const vehAudit = await testDb.auditLog.findFirst({
+      where: {
+        action: 'UPDATE_VEHICLE_STATUS',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    console.log(
+      '27. Verifikasi Audit Log Status Kendaraan (harus tercatat UPDATE_VEHICLE_STATUS):',
+      vehAudit !== null && (vehAudit?.metadata as any)?.toStatus === 'MAINTENANCE' ? 'PASSED' : 'FAILED'
+    );
+
+    // Kembalikan status kendaraan ke AVAILABLE & bersihkan audit log uji
+    await testDb.vehicle.update({
+      where: { externalId: 'avanza-g-putih-ps1692b' },
+      data: { operationalStatus: 'AVAILABLE' },
+    });
+    if (vehAudit) {
+      await testDb.auditLog.delete({ where: { id: vehAudit.id } });
+    }
+
+    console.log('\nSemua 27 pengujian otomatis lolos.\n');
   } catch (error) {
     console.error('Error saat testing:', error);
   } finally {

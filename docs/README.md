@@ -445,7 +445,101 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 
 ---
 
-## 8. Daftar Kode Error Umum
+## 8. Manajemen Armada & Kalender Admin (`/admin/fleet` & `/admin/vehicles`)
+
+Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>` (role `ADMIN` atau `STAFF`).
+
+### A. Kalender Jadwal Sewa Armada
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/fleet/calendar`
+- **Fungsi:** Mengambil matriks jadwal pemesanan sewa 9 armada resmi Merauke untuk tampilan visual timeline / kalender di Web Dashboard.
+- **Query Parameter (Opsional):**
+  - `startDate` (ISO 8601 string): Awal rentang tanggal (default: hari ini pukul 00:00:00).
+  - `endDate` (ISO 8601 string): Akhir rentang tanggal (default: 30 hari dari `startDate`).
+  - `category` (string): Filter kategori kendaraan (`MPV`, `SUV`, `PICKUP`, `COMMERCIAL`).
+- **Contoh Request:**
+  ```http
+  GET /api/v1/admin/fleet/calendar?startDate=2026-11-01T00:00:00Z&endDate=2026-11-30T23:59:59Z
+  ```
+- **Contoh Respons (HTTP 200 OK):**
+  ```json
+  {
+    "status": "ok",
+    "data": {
+      "timeRange": {
+        "startDate": "2026-11-01T00:00:00.000Z",
+        "endDate": "2026-11-30T23:59:59.000Z"
+      },
+      "totalVehicles": 9,
+      "fleet": [
+        {
+          "id": "7a304f5e-9988-4665-ba4c-cc0b5220c812",
+          "externalId": "avanza-g-putih-ps1692b",
+          "name": "AVANZA G PUTIH",
+          "licensePlate": "PS1692B",
+          "brand": "Toyota",
+          "model": "Avanza G",
+          "category": "MPV",
+          "seatingCapacity": 7,
+          "transmission": "MANUAL",
+          "operationalStatus": "AVAILABLE",
+          "activeBookingsCount": 1,
+          "schedules": [
+            {
+              "bookingId": "beb23c70-71d3-4a05-8f3b-acc7ea7d3bd7",
+              "bookingCode": "MJ-20261101-ABCD",
+              "customerName": "Budi Santoso",
+              "customerPhone": "081234567888",
+              "rentalType": "WITHOUT_DRIVER",
+              "status": "CONFIRMED",
+              "startDateTime": "2026-11-01T08:00:00.000Z",
+              "endDateTime": "2026-11-03T18:00:00.000Z",
+              "tariffStatus": "CONFIRMED",
+              "quotedAmount": 850000
+            }
+          ]
+        }
+      ]
+    }
+  }
+  ```
+
+### B. Update Status Operasional Armada
+- **Method:** `PATCH`
+- **Endpoint:** `/api/v1/admin/vehicles/:id/status`
+- **Keterangan:** `:id` bisa berupa UUID database atau `externalId` mobil (contoh: `avanza-g-putih-ps1692b`).
+- **Request Body:**
+  ```json
+  {
+    "status": "MAINTENANCE",
+    "note": "Perawatan berkala ganti oli dan servis rem di bengkel resmi."
+  }
+  ```
+  *(Pilihan nilai `status`: `AVAILABLE`, `BOOKED`, `MAINTENANCE`, `UNAVAILABLE`).*
+- **Contoh Respons (HTTP 200 OK):**
+  ```json
+  {
+    "status": "ok",
+    "data": {
+      "id": "7a304f5e-9988-4665-ba4c-cc0b5220c812",
+      "externalId": "avanza-g-putih-ps1692b",
+      "name": "AVANZA G PUTIH",
+      "licensePlate": "PS1692B",
+      "brand": "Toyota",
+      "model": "Avanza G",
+      "category": "MPV",
+      "operationalStatus": "MAINTENANCE",
+      "updatedAt": "2026-09-25T00:10:00.000Z"
+    }
+  }
+  ```
+- **Fitur Otomatis Backend:**
+  - Status armada langsung diperbarui di basis data.
+  - Otomatis mencatat audit log aktivitas staf ke tabel `audit_logs` dengan aksi `UPDATE_VEHICLE_STATUS`, memuat data status lama (`fromStatus`), status baru (`toStatus`), dan catatan (`note`).
+
+---
+
+## 9. Daftar Kode Error Umum
 
 | HTTP Code | Error Code | Keterangan |
 |---|---|---|
@@ -460,6 +554,8 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 | 404 | `BOOKING_NOT_FOUND` | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan. |
 | 409 | `BOOKING_VEHICLE_UNAVAILABLE` | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
 | 409 | `BOOKING_CONFLICT` | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
+| 500 | `FETCH_FLEET_CALENDAR_ERROR` | Terjadi kesalahan saat memuat kalender jadwal armada. |
+| 500 | `UPDATE_VEHICLE_STATUS_ERROR` | Terjadi kesalahan saat mengubah status armada. |
 | 500 | `INTERNAL_SERVER_ERROR` | Kesalahan tidak terduga pada server database. |
 
 
