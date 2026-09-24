@@ -1,0 +1,240 @@
+// ============================================================================
+// MobilJuragan · Prisma Schema
+// Provider: PostgreSQL
+//
+// Karakteristik & Aturan Integritas Data:
+//  - `quoted_amount` dibuat nullable: tarif resmi dikonfirmasi langsung oleh tim.
+//  - `vehicle_id` merujuk pada 9 unit armada resmi CV. Mobil Juragan Express Transport.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7: connection handling dipindah ke prisma.config.ts (adapter @prisma/adapter-pg).
+// Blok datasource di sini hanya menegaskan provider untuk editor/typegen.
+datasource db {
+  provider = "postgresql"
+}
+
+/// Relasi antarmodel database:
+/// User ▸ Booking ▸ (Vehicle, BookingStatusHistory)
+/// User ▸ SupportTicket ▸ TicketMessage
+/// User ▸ OtpVerification
+/// AdminAction ▸ AuditLog
+
+enum UserRole {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+enum BookingStatus {
+  CREATED // booking diterima sistem, belum dikonfirmasi
+  PENDING_CONFIRMATION // menunggu konfirmasi admin
+  CONFIRMED // admin konfirmasi armada & tarif
+  REJECTED
+  CANCELLED
+  IN_PROGRESS // penyewaan berjalan
+  COMPLETED
+}
+
+enum BookingStatusActor {
+  CUSTOMER
+  STAFF
+  ADMIN
+  SYSTEM
+}
+
+enum RentalType {
+  // kategori sewa; detail jenis final menyusul konfirmasi team/tarif
+  WITH_DRIVER
+  WITHOUT_DRIVER
+}
+
+enum OperationalStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+enum TariffStatus {
+  CONFIRMED
+  PENDING_TEAM_CONFIRMATION
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL
+  PAYMENT_CONFIRMATION
+  VEHICLE_ISSUE
+  CANCELLATION
+  COMPLAINT
+  OTHER
+}
+
+model User {
+  id            String    @id @default(uuid())
+  fullName      String
+  phoneNumber   String    @unique
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Optional credential khusus rol staff/admin (backend auth, bukan OTP customer).
+  passwordHash  String?
+  isActive      Boolean   @default(true)
+
+  bookings      Booking[]
+  tickets       SupportTicket[]
+  sentMessages  TicketMessage[]
+  otpVerifications OtpVerification[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Vehicle {
+  id                String            @id @default(uuid())
+  // Key referensi ke 9 armada resmi
+  externalId        String            @unique
+  name              String
+  licensePlate      String
+  brand             String?
+  model             String?
+  seatingCapacity   Int
+  transmission      String? // AUTOMATIC | MANUAL — isi final mengikuti dataset
+  category          String? // MENANGANI isi referensi fleet (towncar/pickup/man)
+  imageUrl          String?
+  operationalStatus OperationalStatus @default(AVAILABLE)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  bookings          Booking[]
+
+  @@index([operationalStatus])
+  @@index([externalId])
+  @@map("vehicles")
+}
+
+model Booking {
+  id                  String             @id @default(uuid())
+  bookingCode         String             @unique
+  customerId          String
+  customer            User               @relation(fields: [customerId], references: [id])
+  vehicleId           String
+  vehicle             Vehicle            @relation(fields: [vehicleId], references: [id])
+
+  startDateTime       DateTime
+  endDateTime         DateTime
+  rentalType          RentalType
+  pickupLocation      String?
+  customerRequest     String?
+  numberGuests        Int?
+
+  tariffStatus        TariffStatus       @default(PENDING_TEAM_CONFIRMATION)
+  // Boleh null sampai tarif dikonfirmasi tim MobilJuragan.
+  quotedAmount        Decimal?           @db.Decimal(12, 2)
+
+  status              BookingStatus      @default(CREATED)
+  statusHistory       BookingStatusHistory[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([startDateTime, endDateTime])
+  @@map("bookings")
+}
+
+/// Riwayat tiap perubahan status booking (business rule minimum #5).
+model BookingStatusHistory {
+  id         String           @id @default(uuid())
+  bookingId  String
+  booking    Booking          @relation(fields: [bookingId], references: [id])
+  fromStatus BookingStatus?
+  toStatus   BookingStatus
+  actor      BookingStatusActor
+  actorUserId String?         // staff/admin/customer id saat ini
+  note       String?          // catatan internal
+  changedAt  DateTime         @default(now())
+
+  @@index([bookingId])
+  @@map("booking_status_history")
+}
+
+/// OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan demi keamanan.
+model OtpVerification {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  phoneNumber   String    // nomor tujuan
+  otpHash       String    // hanya hash (Argon2id saat backend auth diterapkan)
+  purpose       String    // mis. "CUSTOMER_LOGIN" | "BOOKING_CONFIRM"
+  expiresAt     DateTime
+  attemptCount  Int       @default(0)
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, phoneNumber])
+  @@index([expiresAt])
+  @@map("otp_verifications")
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  ticketNumber String        @unique
+  customerId  String
+  customer    User           @relation(fields: [customerId], references: [id])
+  title       String
+  category    TicketCategory
+  description String
+  status      TicketStatus   @default(OPEN)
+  messages    TicketMessage[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id          String        @id @default(uuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId    String
+  sender      User          @relation(fields: [senderId], references: [id])
+  body        String
+  isCustomer  Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
+  sentAt      DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_messages")
+}
+
+/// Audit trail aktivitas penting admin (untuk staff/admin role).
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String   // mis. "BOOKING_STATUS_CHANGED", "ADMIN_LOGIN"
+  entityType String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
