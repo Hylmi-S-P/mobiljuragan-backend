@@ -238,11 +238,74 @@ async function runTests() {
     });
     console.log('20. Booking Unauthorized Tanpa Token (harus 401):', resUnauthBooking.status === 401 ? 'PASSED' : 'FAILED');
 
-    // Clean up created test booking agar DB tetap bersih
+    // 21. Customer Akses Admin Bookings (harus 403 FORBIDDEN)
+    const resCustomerAdminBooking = await fetch(`${baseUrl}/admin/bookings`, {
+      headers: { Authorization: `Bearer ${customerToken}` },
+    });
+    console.log('21. Customer Akses Admin Bookings (harus 403 FORBIDDEN):', resCustomerAdminBooking.status === 403 ? 'PASSED' : 'FAILED');
+
+    // 22. Admin List Bookings dengan Pagination & Search (harus 200)
+    const resAdminListBookings = await fetch(`${baseUrl}/admin/bookings?search=${createdBooking.bookingCode}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const dataAdminList = (await resAdminListBookings.json()) as any;
+    console.log(
+      '22. Admin List Bookings dengan Pagination (harus 200 & data ada):',
+      resAdminListBookings.status === 200 &&
+        Array.isArray(dataAdminList.data?.items) &&
+        dataAdminList.data?.pagination?.totalItems >= 1
+        ? 'PASSED'
+        : 'FAILED'
+    );
+
+    // 23. Admin Update Status Booking & Konfirmasi Tarif (PATCH /admin/bookings/:id/status)
+    const resAdminUpdateStatus = await fetch(`${baseUrl}/admin/bookings/${createdBooking.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        status: 'CONFIRMED',
+        quotedAmount: 850000,
+        note: 'Tarif sewa dikonfirmasi staf operasional MobilJuragan.',
+      }),
+    });
+    const dataAdminUpdate = (await resAdminUpdateStatus.json()) as any;
+    const isStatusOk =
+      resAdminUpdateStatus.status === 200 &&
+      dataAdminUpdate.data?.status === 'CONFIRMED' &&
+      dataAdminUpdate.data?.tariffStatus === 'CONFIRMED' &&
+      dataAdminUpdate.data?.whatsappIntent?.url?.includes('whatsapp.com');
+    console.log(
+      '23. Admin Update Status & WhatsApp Intent (harus 200 & link WA valid):',
+      isStatusOk ? `PASSED (${dataAdminUpdate.data?.whatsappIntent?.url?.slice(0, 45)}...)` : 'FAILED'
+    );
+
+    // 24. Verifikasi Audit Log & Status History di Database
+    const auditRecord = await testDb.auditLog.findFirst({
+      where: {
+        entityId: createdBooking.id,
+        action: 'UPDATE_BOOKING_STATUS',
+      },
+    });
+    const historyRecord = await testDb.bookingStatusHistory.findFirst({
+      where: {
+        bookingId: createdBooking.id,
+        toStatus: 'CONFIRMED',
+      },
+    });
+    console.log(
+      '24. Verifikasi Audit Log Staf & Status History (harus tercatat):',
+      auditRecord !== null && historyRecord?.actor === 'ADMIN' ? 'PASSED' : 'FAILED'
+    );
+
+    // Clean up created test booking & audit log agar DB tetap bersih
+    await testDb.auditLog.deleteMany({ where: { entityId: createdBooking.id } });
     await testDb.bookingStatusHistory.deleteMany({ where: { bookingId: createdBooking.id } });
     await testDb.booking.delete({ where: { id: createdBooking.id } });
 
-    console.log('\nSemua 20 pengujian otomatis lolos.\n');
+    console.log('\nSemua 24 pengujian otomatis lolos.\n');
   } catch (error) {
     console.error('Error saat testing:', error);
   } finally {

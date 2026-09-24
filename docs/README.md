@@ -370,7 +370,82 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
 
 ---
 
-## 7. Daftar Kode Error Umum
+## 7. Operasional Booking Admin (`/admin/bookings`)
+
+Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>` (role `ADMIN` atau `STAFF`).
+
+### A. Antrean Booking Masuk (Tabel & Pagination)
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/bookings`
+- **Query Parameter (Opsional):**
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10, max: 100)
+  - `status` (`CREATED`, `PENDING_CONFIRMATION`, `CONFIRMED`, `REJECTED`, `CANCELLED`, `IN_PROGRESS`, `COMPLETED`)
+  - `search` (string: pencarian kode booking, nama pemesan, nomor HP, nama mobil, atau plat nomor)
+- **Contoh Request:**
+  ```http
+  GET /api/v1/admin/bookings?page=1&limit=10&status=CREATED
+  ```
+- **Contoh Respons:**
+  ```json
+  {
+    "status": "ok",
+    "data": {
+      "items": [
+        {
+          "id": "8381b9a9-ff22-40cd-a525-c9d042d1c07c",
+          "bookingCode": "MJ-20261101-ABCD",
+          "status": "CREATED",
+          "tariffStatus": "PENDING_TEAM_CONFIRMATION",
+          "quotedAmount": null,
+          "startDateTime": "2026-11-01T08:00:00.000Z",
+          "endDateTime": "2026-11-03T18:00:00.000Z",
+          "customer": {
+            "id": "1826a286...",
+            "fullName": "Budi Santoso",
+            "phoneNumber": "081234567888"
+          },
+          "vehicle": {
+            "name": "AVANZA G PUTIH",
+            "licensePlate": "PS1692B"
+          }
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "totalItems": 1,
+        "totalPages": 1
+      }
+    }
+  }
+  ```
+
+### B. Detail Booking & Payload WhatsApp
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/bookings/:id`
+- **Keterangan:** Mengembalikan data detail pemesanan, riwayat status, serta properti `whatsappIntent` berupa teks pesan dan URL `https://api.whatsapp.com/send` yang siap diklik staf admin untuk menghubungi customer.
+
+### C. Update Status Pesanan & Konfirmasi Tarif
+- **Method:** `PATCH`
+- **Endpoint:** `/api/v1/admin/bookings/:id/status`
+- **Request Body:**
+  ```json
+  {
+    "status": "CONFIRMED",
+    "quotedAmount": 850000,
+    "note": "Tarif sewa dikonfirmasi staf operasional MobilJuragan."
+  }
+  ```
+- **Fitur Otomatis Backend:**
+  - Status sewa diperbarui ke `CONFIRMED` dan `tariffStatus` menjadi `CONFIRMED`.
+  - Otomatis mencatat riwayat perubahan ke tabel `booking_status_histories`.
+  - Otomatis mencatat audit log aktivitas staf admin ke tabel `audit_logs`.
+  - Mengembalikan `whatsappIntent` konfirmasi untuk dikirimkan langsung ke pelanggan via WA.
+
+---
+
+## 8. Daftar Kode Error Umum
 
 | HTTP Code | Error Code | Keterangan |
 |---|---|---|
@@ -384,5 +459,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
 | 404 | `VEHICLE_NOT_FOUND` | Armada mobil dengan ID tersebut tidak ada di sistem. |
 | 404 | `BOOKING_NOT_FOUND` | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan. |
 | 409 | `BOOKING_VEHICLE_UNAVAILABLE` | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
+| 409 | `BOOKING_CONFLICT` | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
 | 500 | `INTERNAL_SERVER_ERROR` | Kesalahan tidak terduga pada server database. |
+
 
