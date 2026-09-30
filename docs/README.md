@@ -173,36 +173,16 @@ Digunakan pada aplikasi Customer Mobile Flutter (Harun).
   }
   ```
 
-### C. Profil Customer yang Sedang Login
-- **Method:** `GET`
-- **Endpoint:** `/api/v1/auth/me`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Contoh Respons:**
-  ```json
-  {
-    "status": "ok",
-    "data": {
-      "id": "1826a286-2c48-4027-91fd-da3ad9a7ad61",
-      "phoneNumber": "081234567888",
-      "fullName": "Budi Santoso",
-      "role": "CUSTOMER"
-    }
-  }
-  ```
+### C. Profil Customer dan Logout (belum tersedia)
 
-### D. Logout Customer
-- **Method:** `POST`
-- **Endpoint:** `/api/v1/auth/logout`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Contoh Respons:**
-  ```json
-  {
-    "status": "ok",
-    "data": {
-      "message": "Berhasil logout."
-    }
-  }
-  ```
+Dua endpoint berikut masih direncanakan dan **belum ada di kode**, jadi belum bisa dipanggil:
+
+- `GET /api/v1/auth/me` untuk profil pelanggan yang sedang masuk.
+- `POST /api/v1/auth/logout` untuk mengakhiri sesi pelanggan.
+
+Keduanya tercatat pada bagian `x-roadmap` di `docs(discontinueid)/api/openapi.yaml` supaya tidak
+dianggap tersedia. Sampai dibangun, sisi aplikasi cukup membuang token tersimpan saat pengguna
+keluar, dan memakai data profil yang didapat dari respons verifikasi OTP.
 
 ---
 
@@ -539,7 +519,84 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 
 ---
 
-## 9. Daftar Kode Error Umum
+## 9. Roster Supir (`/admin/drivers`)
+
+Menopang layar Manajemen Supir, modal tambah dan hapus supir, serta pemilihan supir di Detail
+Pemesanan pada dashboard. Daftar lengkap aturan penolakannya ada di
+`docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md` pada root workspace, di luar repo ini, dan
+seluruh butirnya diuji lewat E2E di `.verify/e2e/api-e2e.ts` pada root workspace, di luar repo ini.
+
+### A. Daftar Roster Supir
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/drivers`
+- **Query Parameter (Opsional):** `readiness` (`SIAGA`, `LIBUR`, `SEDANG_TUGAS`), `routeScope`
+  (`DALAM_KOTA`, `LUAR_KOTA`), `search` (nama, `externalId`, atau nomor kontak), dan
+  `includeInactive` (isi `true` untuk ikut menampilkan supir nonaktif).
+- Setiap supir memuat `activeAssignment` berisi pesanan yang sedang mengikatnya atau `null`,
+  dan `isLocked` yang menandakan kesiapannya terkunci karena sedang bertugas.
+
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "id": "0f3c1f7a-1c2b-4a5d-9e6f-7a8b9c0d1e2f",
+      "externalId": "markus-gebze",
+      "fullName": "Markus Gebze",
+      "phoneNumber": null,
+      "licenseNumber": null,
+      "routeScope": "DALAM_KOTA",
+      "readiness": "SIAGA",
+      "isActive": true,
+      "activeAssignment": null,
+      "isLocked": false
+    }
+  ]
+}
+```
+
+Nomor kontak dan nomor SIM sengaja bernilai `null` selama datanya belum diverifikasi tim.
+
+### B. Tambah Supir
+- **Method:** `POST` · **Endpoint:** `/api/v1/admin/drivers`
+- **Request Body:** `fullName` (wajib, 3 sampai 80 karakter), `routeScope` (wajib),
+  `phoneNumber` dan `licenseNumber` (opsional, boleh `null`).
+- Status awal selalu `SIAGA`. Nama atau nomor kontak yang sudah dipakai supir aktif ditolak
+  dengan `409 DRIVER_DUPLICATE`.
+
+### C. Ubah Data Supir
+- **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/drivers/:id`
+- Body sama seperti penambahan, tetapi seluruh field opsional. Kesiapan tidak diubah di sini.
+
+### D. Sakelar Kesiapan
+- **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/drivers/:id/readiness`
+- **Request Body:** `readiness` bernilai `SIAGA` atau `LIBUR`, ditambah `note` opsional.
+- Nilai `SEDANG_TUGAS` ditolak `400 DRIVER_READINESS_MANUAL_INVALID`, karena status itu hanya
+  lahir dari penugasan pesanan. Supir yang sedang bertugas ditolak `409 DRIVER_ON_DUTY`.
+- Bila statusnya sama dengan sebelumnya, respons memuat `unchanged: true`.
+
+### E. Nonaktifkan Supir
+- **Method:** `DELETE` · **Endpoint:** `/api/v1/admin/drivers/:id`
+- Penonaktifan bersifat lunak: `isActive` menjadi `false` supaya jejak audit tetap utuh, dan
+  supir itu hilang dari daftar default.
+- Ditolak `409 DRIVER_ASSIGNED` bila supir masih terikat pesanan yang belum selesai.
+
+### F. Penugasan Supir ke Pesanan
+- **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/bookings/:id/driver`
+- **Request Body:** `driverId` (uuid atau `externalId` seperti `markus-gebze`) dan `note` opsional.
+- Hanya berlaku untuk pesanan bertipe `WITH_DRIVER`. Dalam satu transaksi: supir diikat ke
+  pesanan, kesiapannya menjadi `SEDANG_TUGAS`, riwayat status dan audit log ditulis.
+- Pesanan bertipe `WITH_DRIVER` tidak bisa dikonfirmasi sebelum supirnya dipilih, dan ditolak
+  `409 DRIVER_REQUIRED`.
+- Saat pesanan selesai, dibatalkan, atau ditolak, supirnya otomatis kembali `SIAGA`.
+
+**Definisi terikat:** sebuah pesanan mengikat supir sejak penugasan, bukan sejak konfirmasi.
+Karena itu pemeriksaan bentrok jadwal dan penolakan penonaktifan ikut menghitung pesanan yang
+masih menunggu konfirmasi.
+
+---
+
+## 10. Daftar Kode Error Umum
 
 | HTTP Code | Error Code | Keterangan |
 |---|---|---|
@@ -554,6 +611,17 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 | 404 | `BOOKING_NOT_FOUND` | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan. |
 | 409 | `BOOKING_VEHICLE_UNAVAILABLE` | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
 | 409 | `BOOKING_CONFLICT` | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
+| 400 | `DRIVER_READINESS_MANUAL_INVALID` | Status `SEDANG_TUGAS` dipaksa lewat sakelar kesiapan. |
+| 404 | `DRIVER_NOT_FOUND` | Supir dengan uuid atau `externalId` tersebut tidak ada di roster. |
+| 409 | `DRIVER_DUPLICATE` | Nama atau nomor kontak supir sudah dipakai supir aktif lain. |
+| 409 | `DRIVER_INACTIVE` | Supir sudah nonaktif sehingga tidak bisa diubah atau ditugaskan. |
+| 409 | `DRIVER_NOT_AVAILABLE` | Supir berstatus `LIBUR` sehingga belum bisa ditugaskan. |
+| 409 | `DRIVER_ALREADY_ASSIGNED` | Supir sudah terikat pesanan lain pada rentang tanggal yang bertabrakan. |
+| 409 | `DRIVER_ON_DUTY` | Kesiapan supir yang sedang bertugas tidak bisa diubah. |
+| 409 | `DRIVER_ASSIGNED` | Supir masih terikat pesanan yang belum selesai. |
+| 409 | `DRIVER_REQUIRED` | Pesanan memakai supir tetapi supirnya belum dipilih saat konfirmasi. |
+| 409 | `BOOKING_NOT_WITH_DRIVER` | Pesanan bertipe lepas kunci tidak memakai supir. |
+| 409 | `BOOKING_NOT_ASSIGNABLE` | Pesanan sudah selesai, dibatalkan, atau ditolak. |
 | 500 | `FETCH_FLEET_CALENDAR_ERROR` | Terjadi kesalahan saat memuat kalender jadwal armada. |
 | 500 | `UPDATE_VEHICLE_STATUS_ERROR` | Terjadi kesalahan saat mengubah status armada. |
 | 500 | `INTERNAL_SERVER_ERROR` | Kesalahan tidak terduga pada server database. |

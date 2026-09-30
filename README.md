@@ -57,7 +57,6 @@ mobiljuragan-backend/
 │   ├── server.ts            # Entrypoint utama server HTTP (port default: 4000)
 │   ├── db.ts                # Inisialisasi singleton Prisma Client & adapter DB
 │   ├── logger.ts            # Konfigurasi structured logger Pino
-│   ├── test-auth.ts         # Test suite otomatis (27 test cases end-to-end)
 │   ├── middleware/
 │   │   ├── auth.ts          # Middleware validasi JWT & otorisasi role pengguna
 │   │   ├── errorHandler.ts  # Global error handler dengan format respons konsisten
@@ -70,13 +69,18 @@ mobiljuragan-backend/
 │   │   ├── bookings.ts      # Endpoint pemesanan sewa & pelacakan status pelanggan
 │   │   ├── adminBookings.ts # Endpoint antrean sewa & konfirmasi tarif admin
 │   │   ├── adminFleet.ts    # Endpoint kalender timeline armada admin
-│   │   └── adminVehicles.ts # Endpoint update status fisik armada & audit log
+│   │   ├── adminVehicles.ts # Endpoint update status fisik armada & audit log
+│   │   └── adminDrivers.ts  # Endpoint roster supir, kesiapan, & penugasan
 │   └── utils/
 │       ├── auth.ts          # Helper token JWT, hashing OTP SHA-256, & verifikasi
 │       └── response.ts      # Standard response envelope (status ok & error)
 ├── prisma.config.ts         # Konfigurasi koneksi migrasi Prisma 7
 └── tsconfig.json            # Konfigurasi compiler TypeScript (NodeNext)
 ```
+
+Suite E2E beserta konfigurasi typecheck-nya sengaja diletakkan **di luar repo ini**, yaitu di
+`.verify/e2e/` pada root workspace, supaya berkas uji dan laporan hasilnya tidak ikut
+ter-commit maupun ter-push. Perintah `npm test` tetap bisa dijalankan dari folder ini.
 
 ---
 
@@ -158,11 +162,16 @@ Setelah proses seeding selesai, database akan memiliki:
    - **Staf Operasional:** No. HP `081234567891` | Password: `Staff123!`
 
 ### Langkah 7: Jalankan Pengujian Otomatis
-Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi booking, hingga antrean operasional admin:
+Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi booking, antrean operasional admin, sampai modul supir:
 ```bash
 npm test
 ```
-*(Harus menampilkan 27/27 test case lolos tanpa error).*
+*(Harus menampilkan 52/52 pemeriksaan lolos. Skrip suite ini berada di `.verify/e2e/api-e2e.ts` pada root workspace, di luar repo, dan berjalan lewat HTTP sungguhan di port 4999. Ia ikut menguji jalur gagal seperti 401, 403, dan 409, lalu menulis laporan ke `.verify/e2e/report.md` dan `.verify/e2e/last-run.json`. Kalau ada satu saja pemeriksaan yang gagal, perintahnya keluar dengan kode bukan nol sehingga bisa dipakai di alur otomatis.)*
+
+Typecheck khusus berkas uji dijalankan terpisah karena `tsconfig.json` sengaja hanya mengompilasi `src/`:
+```bash
+npm run typecheck:e2e
+```
 
 ### Langkah 8: Jalankan Server Development
 ```bash
@@ -191,8 +200,6 @@ npm run prisma:studio
 | **Katalog** | `GET` | `/api/v1/vehicles/:id` | Publik | Detail satu armada (via UUID atau externalId) |
 | **Auth Customer** | `POST` | `/api/v1/auth/otp/request` | Publik | Permintaan kode verifikasi OTP |
 | **Auth Customer** | `POST` | `/api/v1/auth/otp/verify` | Publik | Verifikasi OTP & terbitkan token JWT |
-| **Auth Customer** | `GET` | `/api/v1/auth/me` | Customer | Profil customer login |
-| **Auth Customer** | `POST` | `/api/v1/auth/logout` | Customer | Logout sesi customer |
 | **Auth Admin** | `POST` | `/api/v1/admin/auth/login` | Publik | Login staf/admin via no. HP & password |
 | **Auth Admin** | `GET` | `/api/v1/admin/auth/me` | Admin/Staff | Profil staf/admin login |
 | **Booking Customer**| `POST` | `/api/v1/bookings` | Customer | Buat booking sewa (transaksi atomik Prisma) |
@@ -202,8 +209,19 @@ npm run prisma:studio
 | **Operasional Admin**| `GET` | `/api/v1/admin/bookings` | Admin/Staff | Antrean pesanan masuk, filter & paginasi |
 | **Operasional Admin**| `GET` | `/api/v1/admin/bookings/:id` | Admin/Staff | Detail booking admin & link intent WhatsApp |
 | **Operasional Admin**| `PATCH`| `/api/v1/admin/bookings/:id/status`| Admin/Staff | Konfirmasi tarif & update status booking |
+| **Operasional Admin**| `PATCH`| `/api/v1/admin/bookings/:id/driver`| Admin/Staff | Tugaskan supir ke pesanan dengan supir |
 | **Armada Admin** | `GET` | `/api/v1/admin/fleet/calendar` | Admin/Staff | Matriks kalender timeline 9 armada |
 | **Armada Admin** | `PATCH`| `/api/v1/admin/vehicles/:id/status`| Admin/Staff | Update status fisik armada & audit log |
+| **Supir Admin** | `GET` | `/api/v1/admin/drivers` | Admin/Staff | Roster supir beserta penugasan aktifnya |
+| **Supir Admin** | `POST` | `/api/v1/admin/drivers` | Admin/Staff | Tambah supir baru ke roster |
+| **Supir Admin** | `GET` | `/api/v1/admin/drivers/:id` | Admin/Staff | Detail satu supir |
+| **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id` | Admin/Staff | Ubah data supir |
+| **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id/readiness` | Admin/Staff | Sakelar kesiapan SIAGA atau LIBUR |
+| **Supir Admin** | `DELETE`| `/api/v1/admin/drivers/:id` | Admin/Staff | Nonaktifkan supir dari roster |
+
+**Catatan:** `GET /api/v1/auth/me` dan `POST /api/v1/auth/logout` belum ada di kode, sehingga tidak
+dicantumkan di tabel ini. Keduanya tercatat sebagai rencana pada `x-roadmap` di
+`docs(discontinueid)/api/openapi.yaml`.
 
 ---
 

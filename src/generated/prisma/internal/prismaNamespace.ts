@@ -399,6 +399,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Vehicle: 'Vehicle',
+  Driver: 'Driver',
   Booking: 'Booking',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -569,6 +570,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.VehicleCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.VehicleCountAggregateOutputType> | number
+        }
+      }
+    }
+    Driver: {
+      payload: Prisma.$DriverPayload<ExtArgs>
+      fields: Prisma.DriverFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DriverFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DriverFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        findFirst: {
+          args: Prisma.DriverFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DriverFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        findMany: {
+          args: Prisma.DriverFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>[]
+        }
+        create: {
+          args: Prisma.DriverCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        createMany: {
+          args: Prisma.DriverCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DriverCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>[]
+        }
+        delete: {
+          args: Prisma.DriverDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        update: {
+          args: Prisma.DriverUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        deleteMany: {
+          args: Prisma.DriverDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DriverUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DriverUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>[]
+        }
+        upsert: {
+          args: Prisma.DriverUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverPayload>
+        }
+        aggregate: {
+          args: Prisma.DriverAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDriver>
+        }
+        groupBy: {
+          args: Prisma.DriverGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DriverCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverCountAggregateOutputType> | number
         }
       }
     }
@@ -1088,11 +1163,28 @@ export const VehicleScalarFieldEnum = {
 export type VehicleScalarFieldEnum = (typeof VehicleScalarFieldEnum)[keyof typeof VehicleScalarFieldEnum]
 
 
+export const DriverScalarFieldEnum = {
+  id: 'id',
+  externalId: 'externalId',
+  fullName: 'fullName',
+  phoneNumber: 'phoneNumber',
+  licenseNumber: 'licenseNumber',
+  routeScope: 'routeScope',
+  readiness: 'readiness',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriverScalarFieldEnum = (typeof DriverScalarFieldEnum)[keyof typeof DriverScalarFieldEnum]
+
+
 export const BookingScalarFieldEnum = {
   id: 'id',
   bookingCode: 'bookingCode',
   customerId: 'customerId',
   vehicleId: 'vehicleId',
+  driverId: 'driverId',
   startDateTime: 'startDateTime',
   endDateTime: 'endDateTime',
   rentalType: 'rentalType',
@@ -1299,6 +1391,34 @@ export type EnumOperationalStatusFieldRefInput<$PrismaModel> = FieldRefInputType
  * Reference to a field of type 'OperationalStatus[]'
  */
 export type ListEnumOperationalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OperationalStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverRoute'
+ */
+export type EnumDriverRouteFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverRoute'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverRoute[]'
+ */
+export type ListEnumDriverRouteFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverRoute[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverReadiness'
+ */
+export type EnumDriverReadinessFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverReadiness'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverReadiness[]'
+ */
+export type ListEnumDriverReadinessFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverReadiness[]'>
     
 
 
@@ -1580,6 +1700,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   vehicle?: Prisma.VehicleOmit
+  driver?: Prisma.DriverOmit
   booking?: Prisma.BookingOmit
   bookingStatusHistory?: Prisma.BookingStatusHistoryOmit
   otpVerification?: Prisma.OtpVerificationOmit

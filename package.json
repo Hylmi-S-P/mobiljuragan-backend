@@ -10,12 +10,14 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:e2e": "tsc -p ../.verify/e2e/tsconfig.json --noEmit",
     "clean": "rimraf dist",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
-    "test": "tsx src/test-auth.ts"
+    "test": "tsx ../.verify/e2e/api-e2e.ts",
+    "test:e2e": "tsx ../.verify/e2e/api-e2e.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

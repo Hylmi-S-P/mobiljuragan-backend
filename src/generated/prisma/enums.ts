@@ -67,6 +67,23 @@ export const TariffStatus = {
 export type TariffStatus = (typeof TariffStatus)[keyof typeof TariffStatus]
 
 
+export const DriverRoute = {
+  DALAM_KOTA: 'DALAM_KOTA',
+  LUAR_KOTA: 'LUAR_KOTA'
+} as const
+
+export type DriverRoute = (typeof DriverRoute)[keyof typeof DriverRoute]
+
+
+export const DriverReadiness = {
+  SIAGA: 'SIAGA',
+  LIBUR: 'LIBUR',
+  SEDANG_TUGAS: 'SEDANG_TUGAS'
+} as const
+
+export type DriverReadiness = (typeof DriverReadiness)[keyof typeof DriverReadiness]
+
+
 export const TicketStatus = {
   OPEN: 'OPEN',
   IN_PROGRESS: 'IN_PROGRESS',

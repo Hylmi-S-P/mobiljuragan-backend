@@ -10,6 +10,7 @@
  */
 export type * from './models/User.js'
 export type * from './models/Vehicle.js'
+export type * from './models/Driver.js'
 export type * from './models/Booking.js'
 export type * from './models/BookingStatusHistory.js'
 export type * from './models/OtpVerification.js'

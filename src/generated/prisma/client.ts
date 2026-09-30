@@ -52,6 +52,14 @@ export type User = Prisma.UserModel
  */
 export type Vehicle = Prisma.VehicleModel
 /**
+ * Model Driver
+ * Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
+ * modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
+ * Rencana dan daftar cara gagalnya ada di docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md
+ * pada root workspace, di luar repo ini.
+ */
+export type Driver = Prisma.DriverModel
+/**
  * Model Booking
  * 
  */

@@ -1,7 +1,24 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { db } from '../src/db.js';
-import { OperationalStatus, UserRole } from '../src/generated/prisma/client.js';
+import {
+  DriverReadiness,
+  DriverRoute,
+  OperationalStatus,
+  UserRole,
+} from '../src/generated/prisma/client.js';
+
+/**
+ * Roster supir resmi. Nomor kontak dan nomor SIM sengaja dikosongkan karena datanya
+ * belum diverifikasi, dan status kesiapan dimulai dari SIAGA supaya tidak ada
+ * penugasan yang dikarang di seed.
+ */
+const DRIVER_ROSTER = [
+  { externalId: 'markus-gebze', fullName: 'Markus Gebze', routeScope: DriverRoute.DALAM_KOTA },
+  { externalId: 'yohanes-mahuze', fullName: 'Yohanes Mahuze', routeScope: DriverRoute.LUAR_KOTA },
+  { externalId: 'agustinus-balagaise', fullName: 'Agustinus Balagaise', routeScope: DriverRoute.DALAM_KOTA },
+  { externalId: 'bartho-kaize', fullName: 'Bartho Kaize', routeScope: DriverRoute.LUAR_KOTA },
+];
 
 /**
  * 9 Kendaraan Resmi CV. Mobil Juragan Express Transport (Merauke).
@@ -141,6 +158,29 @@ async function main() {
 
   const count = await db.vehicle.count();
   console.log(`\nSeeding armada selesai. Total kendaraan di database: ${count}`);
+
+  console.log('\nMemulai seeding roster supir...');
+  for (const driver of DRIVER_ROSTER) {
+    const record = await db.driver.upsert({
+      where: { externalId: driver.externalId },
+      update: {
+        fullName: driver.fullName,
+        routeScope: driver.routeScope,
+      },
+      create: {
+        externalId: driver.externalId,
+        fullName: driver.fullName,
+        routeScope: driver.routeScope,
+        readiness: DriverReadiness.SIAGA,
+        phoneNumber: null,
+        licenseNumber: null,
+      },
+    });
+    console.log(`  - Tersimpan supir: ${record.fullName} (${record.routeScope})`);
+  }
+
+  const driverCount = await db.driver.count();
+  console.log(`Seeding supir selesai. Total supir di database: ${driverCount}`);
 
   console.log('\nMemulai seeding akun staf/admin...');
   const adminPasswordHash = await bcrypt.hash('Admin123!', 10);

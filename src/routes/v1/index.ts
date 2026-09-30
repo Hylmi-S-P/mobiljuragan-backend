@@ -6,6 +6,7 @@ import { bookingRouter } from './bookings.js';
 import { adminBookingRouter } from './adminBookings.js';
 import { adminFleetRouter } from './adminFleet.js';
 import { adminVehicleRouter } from './adminVehicles.js';
+import { adminDriverRouter } from './adminDrivers.js';
 
 export const v1Router: Router = Router();
 
@@ -23,6 +24,9 @@ v1Router.use('/admin/fleet', adminFleetRouter);
 
 // Admin Vehicle Management: /api/v1/admin/vehicles/*
 v1Router.use('/admin/vehicles', adminVehicleRouter);
+
+// Admin Driver Roster: /api/v1/admin/drivers/*
+v1Router.use('/admin/drivers', adminDriverRouter);
 
 // Vehicle Catalog & Availability: /api/v1/vehicles/*
 v1Router.use('/vehicles', vehicleRouter);

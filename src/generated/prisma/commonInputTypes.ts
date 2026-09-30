@@ -184,6 +184,40 @@ export type EnumOperationalStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumOperationalStatusFilter<$PrismaModel>
 }
 
+export type EnumDriverRouteFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel> | $Enums.DriverRoute
+}
+
+export type EnumDriverReadinessFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverReadiness | Prisma.EnumDriverReadinessFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel> | $Enums.DriverReadiness
+}
+
+export type EnumDriverRouteWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverRouteWithAggregatesFilter<$PrismaModel> | $Enums.DriverRoute
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel>
+}
+
+export type EnumDriverReadinessWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverReadiness | Prisma.EnumDriverReadinessFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverReadinessWithAggregatesFilter<$PrismaModel> | $Enums.DriverReadiness
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel>
+}
+
 export type EnumRentalTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.RentalType | Prisma.EnumRentalTypeFieldRefInput<$PrismaModel>
   in?: $Enums.RentalType[] | Prisma.ListEnumRentalTypeFieldRefInput<$PrismaModel>
@@ -614,6 +648,40 @@ export type NestedEnumOperationalStatusWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumOperationalStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumOperationalStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumDriverRouteFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel> | $Enums.DriverRoute
+}
+
+export type NestedEnumDriverReadinessFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverReadiness | Prisma.EnumDriverReadinessFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel> | $Enums.DriverReadiness
+}
+
+export type NestedEnumDriverRouteWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverRoute[] | Prisma.ListEnumDriverRouteFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverRouteWithAggregatesFilter<$PrismaModel> | $Enums.DriverRoute
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverRouteFilter<$PrismaModel>
+}
+
+export type NestedEnumDriverReadinessWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverReadiness | Prisma.EnumDriverReadinessFieldRefInput<$PrismaModel>
+  in?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DriverReadiness[] | Prisma.ListEnumDriverReadinessFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDriverReadinessWithAggregatesFilter<$PrismaModel> | $Enums.DriverReadiness
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel>
 }
 
 export type NestedEnumRentalTypeFilter<$PrismaModel = never> = {

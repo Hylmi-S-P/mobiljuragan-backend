@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Vehicle: 'Vehicle',
+  Driver: 'Driver',
   Booking: 'Booking',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
@@ -110,11 +111,28 @@ export const VehicleScalarFieldEnum = {
 export type VehicleScalarFieldEnum = (typeof VehicleScalarFieldEnum)[keyof typeof VehicleScalarFieldEnum]
 
 
+export const DriverScalarFieldEnum = {
+  id: 'id',
+  externalId: 'externalId',
+  fullName: 'fullName',
+  phoneNumber: 'phoneNumber',
+  licenseNumber: 'licenseNumber',
+  routeScope: 'routeScope',
+  readiness: 'readiness',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriverScalarFieldEnum = (typeof DriverScalarFieldEnum)[keyof typeof DriverScalarFieldEnum]
+
+
 export const BookingScalarFieldEnum = {
   id: 'id',
   bookingCode: 'bookingCode',
   customerId: 'customerId',
   vehicleId: 'vehicleId',
+  driverId: 'driverId',
   startDateTime: 'startDateTime',
   endDateTime: 'endDateTime',
   rentalType: 'rentalType',

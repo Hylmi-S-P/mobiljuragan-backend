@@ -60,6 +60,17 @@ enum TariffStatus {
   PENDING_TEAM_CONFIRMATION
 }
 
+enum DriverRoute {
+  DALAM_KOTA
+  LUAR_KOTA
+}
+
+enum DriverReadiness {
+  SIAGA
+  LIBUR
+  SEDANG_TUGAS
+}
+
 enum TicketStatus {
   OPEN
   IN_PROGRESS
@@ -121,6 +132,30 @@ model Vehicle {
   @@map("vehicles")
 }
 
+/// Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
+/// modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
+/// Rencana dan daftar cara gagalnya ada di docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md
+/// pada root workspace, di luar repo ini.
+model Driver {
+  id            String          @id @default(uuid())
+  /// Slug stabil untuk klien, misalnya markus-gebze.
+  externalId    String          @unique
+  fullName      String
+  phoneNumber   String?
+  licenseNumber String?
+  routeScope    DriverRoute     @default(DALAM_KOTA)
+  readiness     DriverReadiness @default(SIAGA)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  bookings      Booking[]
+
+  @@index([readiness])
+  @@index([isActive])
+  @@map("drivers")
+}
+
 model Booking {
   id                  String             @id @default(uuid())
   bookingCode         String             @unique
@@ -128,6 +163,9 @@ model Booking {
   customer            User               @relation(fields: [customerId], references: [id])
   vehicleId           String
   vehicle             Vehicle            @relation(fields: [vehicleId], references: [id])
+  /// Supir hanya wajib untuk rentalType WITH_DRIVER, dan diisi saat konfirmasi.
+  driverId            String?
+  driver              Driver?            @relation(fields: [driverId], references: [id])
 
   startDateTime       DateTime
   endDateTime         DateTime
@@ -147,6 +185,7 @@ model Booking {
 
   @@index([customerId])
   @@index([vehicleId])
+  @@index([driverId])
   @@index([status])
   @@index([startDateTime, endDateTime])
   @@map("bookings")
