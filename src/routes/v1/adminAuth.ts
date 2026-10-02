@@ -30,59 +30,65 @@ function normalizePhoneNumber(raw: string): string {
  * Login untuk staf dan admin MobilJuragan.
  */
 adminAuthRouter.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
-  const { phoneNumber: rawPhone, password } = req.body;
-  const phoneNumber = normalizePhoneNumber(rawPhone);
+  try {
+    const { phoneNumber: rawPhone, password } = req.body;
+    const phoneNumber = normalizePhoneNumber(rawPhone);
 
-  const user = await db.user.findUnique({
-    where: { phoneNumber },
-  });
+    const user = await db.user.findUnique({
+      where: { phoneNumber },
+    });
 
-  // Validasi user, status aktif, dan role
-  if (!user || !user.isActive || (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)) {
-    return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
-  }
+    // Validasi user, status aktif, dan role
+    if (!user || !user.isActive || (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)) {
+      return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
+    }
 
-  if (!user.passwordHash) {
-    return sendError(res, 'INVALID_CREDENTIALS', 'Akun belum memiliki password terdaftar.', 401);
-  }
+    if (!user.passwordHash) {
+      return sendError(res, 'INVALID_CREDENTIALS', 'Akun belum memiliki password terdaftar.', 401);
+    }
 
-  const isPasswordMatch = await verifyPassword(password, user.passwordHash);
-  if (!isPasswordMatch) {
-    return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
-  }
+    const isPasswordMatch = await verifyPassword(password, user.passwordHash);
+    if (!isPasswordMatch) {
+      return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
+    }
 
-  // Rekam riwayat login ke AuditLog
-  await db.auditLog.create({
-    data: {
-      actorId: user.id,
-      action: 'ADMIN_LOGIN',
-      entityType: 'User',
-      entityId: user.id,
-      metadata: {
-        ip: req.ip || req.socket.remoteAddress,
-        userAgent: req.headers['user-agent'],
-        loginAt: new Date().toISOString(),
+    // Rekam riwayat login ke AuditLog
+    await db.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: 'ADMIN_LOGIN',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: {
+          ip: req.ip || req.socket.remoteAddress,
+          userAgent: req.headers['user-agent'],
+          loginAt: new Date().toISOString(),
+        },
       },
-    },
-  });
+    });
 
-  const token = signAuthToken({
-    userId: user.id,
-    phoneNumber: user.phoneNumber,
-    role: user.role,
-  });
-
-  logger.info({ userId: user.id, role: user.role }, `[ADMIN LOGIN] ${user.role} ${user.fullName} berhasil login.`);
-
-  return sendSuccess(res, {
-    token,
-    user: {
-      id: user.id,
-      fullName: user.fullName,
+    const token = signAuthToken({
+      userId: user.id,
       phoneNumber: user.phoneNumber,
       role: user.role,
-    },
-  }, 200);
+    });
+
+    logger.info({ userId: user.id, role: user.role }, `[ADMIN LOGIN] ${user.role} ${user.fullName} berhasil login.`);
+
+    return sendSuccess(res, {
+      token,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+      },
+    }, 200);
+  } catch (error) {
+    // Express 4 tidak menampung promise yang ditolak dari handler async,
+    // jadi kegagalan database di sini harus dibalas sendiri sebagai 500.
+    return sendError(res, 'ADMIN_LOGIN_ERROR', 'Gagal memproses login. Coba lagi nanti.', 500);
+  }
 });
 
 /**

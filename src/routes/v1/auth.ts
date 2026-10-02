@@ -38,56 +38,62 @@ const otpVerifySchema = z.object({
  * Meminta kode OTP untuk login/registrasi customer.
  */
 authRouter.post('/otp/request', validateBody(otpRequestSchema), async (req: Request, res: Response) => {
-  const { phoneNumber: rawPhone, fullName, purpose } = req.body;
-  const phoneNumber = normalizePhoneNumber(rawPhone);
+  try {
+    const { phoneNumber: rawPhone, fullName, purpose } = req.body;
+    const phoneNumber = normalizePhoneNumber(rawPhone);
 
-  // Cari atau buat customer
-  let user = await db.user.findUnique({
-    where: { phoneNumber },
-  });
+    // Cari atau buat customer
+    let user = await db.user.findUnique({
+      where: { phoneNumber },
+    });
 
-  if (!user) {
-    user = await db.user.create({
+    if (!user) {
+      user = await db.user.create({
+        data: {
+          phoneNumber,
+          fullName: fullName || 'Pelanggan MobilJuragan',
+          role: UserRole.CUSTOMER,
+        },
+      });
+    } else if (fullName && user.fullName !== fullName) {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: { fullName },
+      });
+    }
+
+    // Generate OTP 6 digit
+    const plainOtp = generateOtp();
+    const hashed = hashOtp(plainOtp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
+
+    // Simpan hash OTP
+    await db.otpVerification.create({
       data: {
+        userId: user.id,
         phoneNumber,
-        fullName: fullName || 'Pelanggan MobilJuragan',
-        role: UserRole.CUSTOMER,
+        otpHash: hashed,
+        purpose,
+        expiresAt,
       },
     });
-  } else if (fullName && user.fullName !== fullName) {
-    user = await db.user.update({
-      where: { id: user.id },
-      data: { fullName },
-    });
-  }
 
-  // Generate OTP 6 digit
-  const plainOtp = generateOtp();
-  const hashed = hashOtp(plainOtp);
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
+    logger.info({ phoneNumber, purpose }, `[OTP REQUEST] Kode OTP dibuat untuk ${phoneNumber}`);
 
-  // Simpan hash OTP
-  await db.otpVerification.create({
-    data: {
-      userId: user.id,
+    // Pada mode dev, sertakan mockOtp agar mempermudah testing tim & frontend
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    return sendSuccess(res, {
+      message: 'Kode verifikasi OTP telah dikirim.',
       phoneNumber,
-      otpHash: hashed,
-      purpose,
-      expiresAt,
-    },
-  });
-
-  logger.info({ phoneNumber, purpose }, `[OTP REQUEST] Kode OTP dibuat untuk ${phoneNumber}`);
-
-  // Pada mode dev, sertakan mockOtp agar mempermudah testing tim & frontend
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  return sendSuccess(res, {
-    message: 'Kode verifikasi OTP telah dikirim.',
-    phoneNumber,
-    expiresInSeconds: 300,
-    ...(isDev ? { devMockOtp: plainOtp } : {}),
-  }, 200);
+      expiresInSeconds: 300,
+      ...(isDev ? { devMockOtp: plainOtp } : {}),
+    }, 200);
+  } catch (error) {
+    // Express 4 tidak menampung promise yang ditolak dari handler async,
+    // jadi kegagalan database di sini harus dibalas sendiri sebagai 500.
+    return sendError(res, 'OTP_REQUEST_ERROR', 'Gagal memproses permintaan OTP. Coba lagi nanti.', 500);
+  }
 });
 
 /**
@@ -95,80 +101,86 @@ authRouter.post('/otp/request', validateBody(otpRequestSchema), async (req: Requ
  * Memverifikasi kode OTP customer.
  */
 authRouter.post('/otp/verify', validateBody(otpVerifySchema), async (req: Request, res: Response) => {
-  const { phoneNumber: rawPhone, otp, purpose } = req.body;
-  const phoneNumber = normalizePhoneNumber(rawPhone);
+  try {
+    const { phoneNumber: rawPhone, otp, purpose } = req.body;
+    const phoneNumber = normalizePhoneNumber(rawPhone);
 
-  // Cari OTP verification aktif terakhir
-  const latestOtp = await db.otpVerification.findFirst({
-    where: {
-      phoneNumber,
-      purpose,
-      consumedAt: null,
-    },
-    orderBy: { createdAt: 'desc' },
-    include: { user: true },
-  });
+    // Cari OTP verification aktif terakhir
+    const latestOtp = await db.otpVerification.findFirst({
+      where: {
+        phoneNumber,
+        purpose,
+        consumedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { user: true },
+    });
 
-  if (!latestOtp) {
-    return sendError(res, 'OTP_NOT_FOUND', 'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.', 400);
-  }
+    if (!latestOtp) {
+      return sendError(res, 'OTP_NOT_FOUND', 'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.', 400);
+    }
 
-  // Cek batas percobaan
-  if (latestOtp.attemptCount >= 5) {
-    return sendError(
-      res,
-      'OTP_TOO_MANY_ATTEMPTS',
-      'Terlalu banyak percobaan yang salah. Permintaan dibatalkan demi keamanan. Silakan minta kode baru.',
-      429
-    );
-  }
+    // Cek batas percobaan
+    if (latestOtp.attemptCount >= 5) {
+      return sendError(
+        res,
+        'OTP_TOO_MANY_ATTEMPTS',
+        'Terlalu banyak percobaan yang salah. Permintaan dibatalkan demi keamanan. Silakan minta kode baru.',
+        429
+      );
+    }
 
-  // Cek kedaluwarsa
-  if (latestOtp.expiresAt < new Date()) {
-    return sendError(res, 'OTP_EXPIRED', 'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.', 400);
-  }
+    // Cek kedaluwarsa
+    if (latestOtp.expiresAt < new Date()) {
+      return sendError(res, 'OTP_EXPIRED', 'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.', 400);
+    }
 
-  // Update attempt count
-  await db.otpVerification.update({
-    where: { id: latestOtp.id },
-    data: { attemptCount: { increment: 1 } },
-  });
+    // Update attempt count
+    await db.otpVerification.update({
+      where: { id: latestOtp.id },
+      data: { attemptCount: { increment: 1 } },
+    });
 
-  // Verifikasi kecocokan hash
-  const isValid = verifyOtpHash(otp, latestOtp.otpHash);
-  if (!isValid) {
-    const remainingAttempts = 4 - latestOtp.attemptCount;
-    return sendError(
-      res,
-      'OTP_INVALID',
-      `Kode OTP yang Anda masukkan salah. Sisa kesempatan: ${Math.max(0, remainingAttempts)} kali.`,
-      400,
-      { remainingAttempts: Math.max(0, remainingAttempts) }
-    );
-  }
+    // Verifikasi kecocokan hash
+    const isValid = verifyOtpHash(otp, latestOtp.otpHash);
+    if (!isValid) {
+      const remainingAttempts = 4 - latestOtp.attemptCount;
+      return sendError(
+        res,
+        'OTP_INVALID',
+        `Kode OTP yang Anda masukkan salah. Sisa kesempatan: ${Math.max(0, remainingAttempts)} kali.`,
+        400,
+        { remainingAttempts: Math.max(0, remainingAttempts) }
+      );
+    }
 
-  // Tandai consumed
-  await db.otpVerification.update({
-    where: { id: latestOtp.id },
-    data: { consumedAt: new Date() },
-  });
+    // Tandai consumed
+    await db.otpVerification.update({
+      where: { id: latestOtp.id },
+      data: { consumedAt: new Date() },
+    });
 
-  // Terbitkan token autentikasi
-  const token = signAuthToken({
-    userId: latestOtp.user.id,
-    phoneNumber: latestOtp.user.phoneNumber,
-    role: latestOtp.user.role,
-  });
-
-  logger.info({ userId: latestOtp.user.id, phoneNumber }, `[OTP VERIFY] Customer ${phoneNumber} berhasil login.`);
-
-  return sendSuccess(res, {
-    token,
-    user: {
-      id: latestOtp.user.id,
-      fullName: latestOtp.user.fullName,
+    // Terbitkan token autentikasi
+    const token = signAuthToken({
+      userId: latestOtp.user.id,
       phoneNumber: latestOtp.user.phoneNumber,
       role: latestOtp.user.role,
-    },
-  }, 200);
+    });
+
+    logger.info({ userId: latestOtp.user.id, phoneNumber }, `[OTP VERIFY] Customer ${phoneNumber} berhasil login.`);
+
+    return sendSuccess(res, {
+      token,
+      user: {
+        id: latestOtp.user.id,
+        fullName: latestOtp.user.fullName,
+        phoneNumber: latestOtp.user.phoneNumber,
+        role: latestOtp.user.role,
+      },
+    }, 200);
+  } catch (error) {
+    // Express 4 tidak menampung promise yang ditolak dari handler async,
+    // jadi kegagalan database di sini harus dibalas sendiri sebagai 500.
+    return sendError(res, 'OTP_VERIFY_ERROR', 'Gagal memverifikasi kode OTP. Coba lagi nanti.', 500);
+  }
 });
