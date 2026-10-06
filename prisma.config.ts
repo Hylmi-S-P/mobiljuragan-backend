@@ -7,7 +7,7 @@
 
 import 'dotenv/config';
 import { defineConfig, env } from 'prisma/config';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -15,15 +15,12 @@ export default defineConfig({
     path: 'prisma/migrations',
     seed: 'tsx prisma/seed.ts',
   },
-  // migrate dev / db push memakai koneksi langsung dari URL ini (dari prisma.config →
-  // engine pakai direct URL). Query runtime memakai adapter ('migrate.adapter').
+  // migrate dev / db push memakai koneksi langsung dari URL ini.
   datasource: {
     url: env('DATABASE_URL'),
   },
   migrate: {
     adapter: () =>
-      new PrismaPg({
-        connectionString: env('DATABASE_URL'),
-      }),
+      new PrismaMariaDb(env('DATABASE_URL').replace(/^mysql:\/\//, 'mariadb://')),
   },
 });

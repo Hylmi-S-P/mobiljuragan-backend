@@ -23,7 +23,7 @@ Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered archi
                   └────────────┬────────────┘
                                │ Prisma 7 ORM
                   ┌────────────┴────────────┐
-                  │   PostgreSQL Database   │
+                  │    MariaDB Database     │
                   │   (8 Model Relasional)  │
                   └─────────────────────────┘
 ```
@@ -31,12 +31,13 @@ Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered archi
 ### Karakteristik & Tech Stack:
 - **Runtime & Bahasa**: Node.js ($\ge$ 20) + TypeScript (ESM).
 - **Web Framework**: Express.js 4.
-- **Basis Data & ORM**: PostgreSQL + Prisma 7 ORM dengan driver adapter `@prisma/adapter-pg`.
+- **Basis Data & ORM**: MariaDB/MySQL + Prisma 7 ORM dengan driver adapter `@prisma/adapter-mariadb`.
 - **Validasi Data**: Zod schema validation pada setiap request payload.
 - **Autentikasi**:
   - **Pelanggan**: Verifikasi nomor ponsel berbasis OTP (One-Time Password) dengan hashing SHA-256 dan pembatasan percobaan (*rate-limiting*).
   - **Admin / Staf**: JSON Web Token (JWT) berbasis peran (*Role-Based Access Control*) dan enkripsi kata sandi Bcrypt.
 - **Logging**: Pino structured logger untuk pelacakan transaksi server.
+- **SQL Backup**: `database.sql` berisi struktur tabel dan data awal resmi.
 
 ---
 
@@ -88,11 +89,11 @@ ter-commit maupun ter-push. Perintah `npm test` tetap bisa dijalankan dari folde
 
 - **Node.js**: Versi $\ge$ 20.x LTS
 - **npm**: Versi $\ge$ 10.x
-- **PostgreSQL**: Versi 16 atau 18 aktif di port 5432 (bisa via FlyEnv, Docker, Laragon, atau layanan PostgreSQL lokal).
+- **MariaDB / MySQL**: Aktif di port 3306 (misalnya via FlyEnv, XAMPP, atau instalasi MariaDB lokal).
 
 ---
 
-## 4. Panduan Menjalankan & Inisialisasi Database
+## 4. Panduan Menjalankan & Inisialisasi Database (MariaDB)
 
 Ikuti langkah-langkah berikut secara berurutan untuk menyiapkan database dan menjalankan server:
 
@@ -113,9 +114,9 @@ Salin template konfigurasi `.env.example` ke file `.env`:
   cp .env.example .env
   ```
 
-Buka file `.env` dan pastikan konfigurasi `DATABASE_URL` sesuai dengan instance PostgreSQL lokal Anda:
+Buka file `.env` dan pastikan konfigurasi `DATABASE_URL` sesuai dengan instance MariaDB lokal Anda:
 ```env
-DATABASE_URL="postgresql://mobiljuragan:mobiljuragan@localhost:5432/mobiljuragan?schema=public"
+DATABASE_URL="mysql://root:root@localhost:3306/mobiljuragan"
 PORT=4000
 APP_VERSION=dev
 LOG_LEVEL=info
@@ -123,14 +124,17 @@ JWT_SECRET="mobiljuragan-dev-jwt-secret-key"
 OTP_SALT="mobiljuragan-dev-otp-salt-key"
 SESSION_SECRET="CHANGE_ME_random_long_string"
 ```
-*(Catatan: Jika memakai user bawaan `postgres`, sesuaikan menjadi `postgresql://postgres:password_anda@localhost:5432/mobiljuragan?schema=public`)*.
 
-### Langkah 3: Menyiapkan PostgreSQL Lokal
-Pastikan service database PostgreSQL telah berjalan:
-- Jika menggunakan **FlyEnv** atau aplikasi sejenis: pastikan modul PostgreSQL berstatus *Running* di port `5432`.
-- Jika database `mobiljuragan` belum dibuat secara manual, Anda bisa membuatnya lewat terminal atau GUI DB (DBeaver / pgAdmin):
+### Langkah 3: Menyiapkan MariaDB Lokal
+Pastikan service database MariaDB telah berjalan:
+- Jika menggunakan **FlyEnv**: pastikan modul MariaDB berstatus *Running* di port `3306`.
+- Buat basis data `mobiljuragan` jika belum ada:
   ```sql
-  CREATE DATABASE mobiljuragan;
+  CREATE DATABASE IF NOT EXISTS mobiljuragan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  ```
+- Atau impor langsung struktur tabel beserta data awal dari file `database.sql`:
+  ```bash
+  mariadb -u root -proot mobiljuragan < database.sql
   ```
 
 ### Langkah 4: Generate Prisma Client

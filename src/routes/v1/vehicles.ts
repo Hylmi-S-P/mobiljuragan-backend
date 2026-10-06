@@ -85,7 +85,6 @@ vehicleRouter.get('/', validateQuery(vehicleQuerySchema), async (req: Request, r
     if (category) {
       whereClause.category = {
         equals: category,
-        mode: 'insensitive',
       };
     }
 
@@ -93,7 +92,6 @@ vehicleRouter.get('/', validateQuery(vehicleQuerySchema), async (req: Request, r
     if (transmission) {
       whereClause.transmission = {
         equals: transmission,
-        mode: 'insensitive',
       };
     }
 
@@ -101,10 +99,10 @@ vehicleRouter.get('/', validateQuery(vehicleQuerySchema), async (req: Request, r
     if (search && search.trim() !== '') {
       const q = search.trim();
       whereClause.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { licensePlate: { contains: q, mode: 'insensitive' } },
-        { model: { contains: q, mode: 'insensitive' } },
-        { brand: { contains: q, mode: 'insensitive' } },
+        { name: { contains: q } },
+        { licensePlate: { contains: q } },
+        { model: { contains: q } },
+        { brand: { contains: q } },
       ];
     }
 

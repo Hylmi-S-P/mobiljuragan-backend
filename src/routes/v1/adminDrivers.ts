@@ -88,7 +88,7 @@ async function assertNoDuplicate(
     const sameName = await db.driver.findFirst({
       where: {
         isActive: true,
-        fullName: { equals: fullName, mode: 'insensitive' },
+        fullName: { equals: fullName },
         ...(exceptDriverId ? { id: { not: exceptDriverId } } : {}),
       },
       select: { id: true, fullName: true },
@@ -173,9 +173,9 @@ adminDriverRouter.get('/', validateQuery(listQuerySchema), async (req: Request, 
     if (search && search.trim() !== '') {
       const keyword = search.trim();
       where.OR = [
-        { fullName: { contains: keyword, mode: 'insensitive' } },
-        { externalId: { contains: keyword, mode: 'insensitive' } },
-        { phoneNumber: { contains: keyword, mode: 'insensitive' } },
+        { fullName: { contains: keyword } },
+        { externalId: { contains: keyword } },
+        { phoneNumber: { contains: keyword } },
       ];
     }
 

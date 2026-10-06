@@ -10,10 +10,16 @@ import { UserRole } from '../../generated/prisma/client.js';
 
 export const adminAuthRouter: Router = Router();
 
-const loginSchema = z.object({
-  phoneNumber: z.string().min(8, 'Nomor telepon minimal 8 karakter.'),
-  password: z.string().min(6, 'Password minimal 6 karakter.'),
-});
+const loginSchema = z
+  .object({
+    phoneNumber: z.string().optional(),
+    username: z.string().optional(),
+    password: z.string().min(6, 'Password minimal 6 karakter.'),
+  })
+  .refine((data) => Boolean(data.phoneNumber || data.username), {
+    message: 'Nomor telepon atau username wajib diisi.',
+    path: ['phoneNumber'],
+  });
 
 function normalizePhoneNumber(raw: string): string {
   let cleaned = raw.trim().replace(/\D/g, '');
@@ -31,16 +37,37 @@ function normalizePhoneNumber(raw: string): string {
  */
 adminAuthRouter.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
   try {
-    const { phoneNumber: rawPhone, password } = req.body;
-    const phoneNumber = normalizePhoneNumber(rawPhone);
+    const { phoneNumber: rawPhone, username: rawUsername, password } = req.body;
+    const identifier = (rawPhone || rawUsername || '').trim();
 
-    const user = await db.user.findUnique({
-      where: { phoneNumber },
-    });
+    let user = null;
+    if (/^[0-9+]+$/.test(identifier) || identifier.startsWith('0') || identifier.startsWith('62')) {
+      const phoneNumber = normalizePhoneNumber(identifier);
+      user = await db.user.findUnique({
+        where: { phoneNumber },
+      });
+    } else {
+      // Alias username standar atau pencarian berdasarkan nama staf
+      const lower = identifier.toLowerCase();
+      if (lower === 'admin' || lower === 'admin.mobiljuragan') {
+        user = await db.user.findUnique({ where: { phoneNumber: '081234567890' } });
+      } else if (lower === 'staf' || lower === 'staf.operasional') {
+        user = await db.user.findUnique({ where: { phoneNumber: '081234567899' } });
+      } else {
+        user = await db.user.findFirst({
+          where: {
+            OR: [
+              { phoneNumber: identifier },
+              { fullName: { contains: identifier } },
+            ],
+          },
+        });
+      }
+    }
 
     // Validasi user, status aktif, dan role
     if (!user || !user.isActive || (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)) {
-      return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon atau password salah.', 401);
+      return sendError(res, 'INVALID_CREDENTIALS', 'Nomor telepon/username atau password salah.', 401);
     }
 
     if (!user.passwordHash) {

@@ -206,6 +206,7 @@ export type AuditLogOrderByWithRelationInput = {
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   actor?: Prisma.UserOrderByWithRelationInput
+  _relevance?: Prisma.AuditLogOrderByRelevanceInput
 }
 
 export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
@@ -325,6 +326,12 @@ export type AuditLogListRelationFilter = {
 
 export type AuditLogOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type AuditLogOrderByRelevanceInput = {
+  fields: Prisma.AuditLogOrderByRelevanceFieldEnum | Prisma.AuditLogOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type AuditLogCountOrderByAggregateInput = {
@@ -503,27 +510,7 @@ export type AuditLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
 }, ExtArgs["result"]["auditLog"]>
 
-export type AuditLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  actorId?: boolean
-  action?: boolean
-  entityType?: boolean
-  entityId?: boolean
-  metadata?: boolean
-  createdAt?: boolean
-  actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
-}, ExtArgs["result"]["auditLog"]>
 
-export type AuditLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  actorId?: boolean
-  action?: boolean
-  entityType?: boolean
-  entityId?: boolean
-  metadata?: boolean
-  createdAt?: boolean
-  actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
-}, ExtArgs["result"]["auditLog"]>
 
 export type AuditLogSelectScalar = {
   id?: boolean
@@ -537,12 +524,6 @@ export type AuditLogSelectScalar = {
 
 export type AuditLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "actorId" | "action" | "entityType" | "entityId" | "metadata" | "createdAt", ExtArgs["result"]["auditLog"]>
 export type AuditLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
-}
-export type AuditLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
-}
-export type AuditLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   actor?: boolean | Prisma.AuditLog$actorArgs<ExtArgs>
 }
 
@@ -677,30 +658,6 @@ export interface AuditLogDelegate<ExtArgs extends runtime.Types.Extensions.Inter
   createMany<T extends AuditLogCreateManyArgs>(args?: Prisma.SelectSubset<T, AuditLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many AuditLogs and returns the data saved in the database.
-   * @param {AuditLogCreateManyAndReturnArgs} args - Arguments to create many AuditLogs.
-   * @example
-   * // Create many AuditLogs
-   * const auditLog = await prisma.auditLog.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many AuditLogs and only return the `id`
-   * const auditLogWithIdOnly = await prisma.auditLog.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends AuditLogCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, AuditLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a AuditLog.
    * @param {AuditLogDeleteArgs} args - Arguments to delete one AuditLog.
    * @example
@@ -763,36 +720,6 @@ export interface AuditLogDelegate<ExtArgs extends runtime.Types.Extensions.Inter
    * 
    */
   updateMany<T extends AuditLogUpdateManyArgs>(args: Prisma.SelectSubset<T, AuditLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more AuditLogs and returns the data updated in the database.
-   * @param {AuditLogUpdateManyAndReturnArgs} args - Arguments to update many AuditLogs.
-   * @example
-   * // Update many AuditLogs
-   * const auditLog = await prisma.auditLog.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more AuditLogs and only return the `id`
-   * const auditLogWithIdOnly = await prisma.auditLog.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends AuditLogUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, AuditLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one AuditLog.
@@ -1228,29 +1155,6 @@ export type AuditLogCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 /**
- * AuditLog createManyAndReturn
- */
-export type AuditLogCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the AuditLog
-   */
-  select?: Prisma.AuditLogSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the AuditLog
-   */
-  omit?: Prisma.AuditLogOmit<ExtArgs> | null
-  /**
-   * The data used to create many AuditLogs.
-   */
-  data: Prisma.AuditLogCreateManyInput | Prisma.AuditLogCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AuditLogIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * AuditLog update
  */
 export type AuditLogUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1292,36 +1196,6 @@ export type AuditLogUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many AuditLogs to update.
    */
   limit?: number
-}
-
-/**
- * AuditLog updateManyAndReturn
- */
-export type AuditLogUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the AuditLog
-   */
-  select?: Prisma.AuditLogSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the AuditLog
-   */
-  omit?: Prisma.AuditLogOmit<ExtArgs> | null
-  /**
-   * The data used to update AuditLogs.
-   */
-  data: Prisma.XOR<Prisma.AuditLogUpdateManyMutationInput, Prisma.AuditLogUncheckedUpdateManyInput>
-  /**
-   * Filter which AuditLogs to update
-   */
-  where?: Prisma.AuditLogWhereInput
-  /**
-   * Limit how many AuditLogs to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AuditLogIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

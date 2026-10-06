@@ -116,11 +116,11 @@ adminBookingRouter.get(
       if (search && search.trim() !== '') {
         const q = search.trim();
         whereClause.OR = [
-          { bookingCode: { contains: q, mode: 'insensitive' } },
-          { customer: { fullName: { contains: q, mode: 'insensitive' } } },
-          { customer: { phoneNumber: { contains: q, mode: 'insensitive' } } },
-          { vehicle: { name: { contains: q, mode: 'insensitive' } } },
-          { vehicle: { licensePlate: { contains: q, mode: 'insensitive' } } },
+          { bookingCode: { contains: q } },
+          { customer: { fullName: { contains: q } } },
+          { customer: { phoneNumber: { contains: q } } },
+          { vehicle: { name: { contains: q } } },
+          { vehicle: { licensePlate: { contains: q } } },
         ];
       }
 

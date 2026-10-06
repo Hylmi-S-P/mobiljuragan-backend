@@ -55,7 +55,7 @@ adminFleetRouter.get(
 
       const vehicleWhere: any = {};
       if (category) {
-        vehicleWhere.category = { equals: category, mode: 'insensitive' };
+        vehicleWhere.category = { equals: category };
       }
 
       const vehicles = await db.vehicle.findMany({

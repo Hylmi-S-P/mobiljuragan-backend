@@ -1,6 +1,5 @@
 import 'dotenv/config';
-import pg from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from './generated/prisma/client.js';
 
 const connectionString = process.env.DATABASE_URL;
@@ -8,7 +7,7 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set in environment variables.');
 }
 
-const pool = new pg.Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const mariadbUrl = connectionString.replace(/^mysql:\/\//, 'mariadb://');
+const adapter = new PrismaMariaDb(mariadbUrl);
 
 export const db = new PrismaClient({ adapter });

@@ -234,20 +234,103 @@ export const NullableJsonNullValueInput = {
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
-export const QueryMode = {
-  default: 'default',
-  insensitive: 'insensitive'
-} as const
-
-export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const UserOrderByRelevanceFieldEnum = {
+  id: 'id',
+  fullName: 'fullName',
+  phoneNumber: 'phoneNumber',
+  passwordHash: 'passwordHash'
+} as const
+
+export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
+
+
+export const VehicleOrderByRelevanceFieldEnum = {
+  id: 'id',
+  externalId: 'externalId',
+  name: 'name',
+  licensePlate: 'licensePlate',
+  brand: 'brand',
+  model: 'model',
+  transmission: 'transmission',
+  category: 'category',
+  imageUrl: 'imageUrl'
+} as const
+
+export type VehicleOrderByRelevanceFieldEnum = (typeof VehicleOrderByRelevanceFieldEnum)[keyof typeof VehicleOrderByRelevanceFieldEnum]
+
+
+export const DriverOrderByRelevanceFieldEnum = {
+  id: 'id',
+  externalId: 'externalId',
+  fullName: 'fullName',
+  phoneNumber: 'phoneNumber',
+  licenseNumber: 'licenseNumber'
+} as const
+
+export type DriverOrderByRelevanceFieldEnum = (typeof DriverOrderByRelevanceFieldEnum)[keyof typeof DriverOrderByRelevanceFieldEnum]
+
+
+export const BookingOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingCode: 'bookingCode',
+  customerId: 'customerId',
+  vehicleId: 'vehicleId',
+  driverId: 'driverId',
+  pickupLocation: 'pickupLocation',
+  customerRequest: 'customerRequest'
+} as const
+
+export type BookingOrderByRelevanceFieldEnum = (typeof BookingOrderByRelevanceFieldEnum)[keyof typeof BookingOrderByRelevanceFieldEnum]
+
+
+export const BookingStatusHistoryOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  actorUserId: 'actorUserId',
+  note: 'note'
+} as const
+
+export type BookingStatusHistoryOrderByRelevanceFieldEnum = (typeof BookingStatusHistoryOrderByRelevanceFieldEnum)[keyof typeof BookingStatusHistoryOrderByRelevanceFieldEnum]
+
+
+export const OtpVerificationOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  phoneNumber: 'phoneNumber',
+  otpHash: 'otpHash',
+  purpose: 'purpose'
+} as const
+
+export type OtpVerificationOrderByRelevanceFieldEnum = (typeof OtpVerificationOrderByRelevanceFieldEnum)[keyof typeof OtpVerificationOrderByRelevanceFieldEnum]
+
+
+export const SupportTicketOrderByRelevanceFieldEnum = {
+  id: 'id',
+  ticketNumber: 'ticketNumber',
+  customerId: 'customerId',
+  title: 'title',
+  description: 'description'
+} as const
+
+export type SupportTicketOrderByRelevanceFieldEnum = (typeof SupportTicketOrderByRelevanceFieldEnum)[keyof typeof SupportTicketOrderByRelevanceFieldEnum]
+
+
+export const TicketMessageOrderByRelevanceFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  senderId: 'senderId',
+  body: 'body'
+} as const
+
+export type TicketMessageOrderByRelevanceFieldEnum = (typeof TicketMessageOrderByRelevanceFieldEnum)[keyof typeof TicketMessageOrderByRelevanceFieldEnum]
 
 
 export const JsonNullValueFilter = {
@@ -257,4 +340,23 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const AuditLogOrderByRelevanceFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId'
+} as const
+
+export type AuditLogOrderByRelevanceFieldEnum = (typeof AuditLogOrderByRelevanceFieldEnum)[keyof typeof AuditLogOrderByRelevanceFieldEnum]
 

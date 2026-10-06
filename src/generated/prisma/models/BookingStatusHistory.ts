@@ -219,6 +219,7 @@ export type BookingStatusHistoryOrderByWithRelationInput = {
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   changedAt?: Prisma.SortOrder
   booking?: Prisma.BookingOrderByWithRelationInput
+  _relevance?: Prisma.BookingStatusHistoryOrderByRelevanceInput
 }
 
 export type BookingStatusHistoryWhereUniqueInput = Prisma.AtLeast<{
@@ -348,6 +349,12 @@ export type BookingStatusHistoryListRelationFilter = {
 
 export type BookingStatusHistoryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type BookingStatusHistoryOrderByRelevanceInput = {
+  fields: Prisma.BookingStatusHistoryOrderByRelevanceFieldEnum | Prisma.BookingStatusHistoryOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type BookingStatusHistoryCountOrderByAggregateInput = {
@@ -547,29 +554,7 @@ export type BookingStatusHistorySelect<ExtArgs extends runtime.Types.Extensions.
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["bookingStatusHistory"]>
 
-export type BookingStatusHistorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  bookingId?: boolean
-  fromStatus?: boolean
-  toStatus?: boolean
-  actor?: boolean
-  actorUserId?: boolean
-  note?: boolean
-  changedAt?: boolean
-  booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["bookingStatusHistory"]>
 
-export type BookingStatusHistorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  bookingId?: boolean
-  fromStatus?: boolean
-  toStatus?: boolean
-  actor?: boolean
-  actorUserId?: boolean
-  note?: boolean
-  changedAt?: boolean
-  booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["bookingStatusHistory"]>
 
 export type BookingStatusHistorySelectScalar = {
   id?: boolean
@@ -584,12 +569,6 @@ export type BookingStatusHistorySelectScalar = {
 
 export type BookingStatusHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "fromStatus" | "toStatus" | "actor" | "actorUserId" | "note" | "changedAt", ExtArgs["result"]["bookingStatusHistory"]>
 export type BookingStatusHistoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
-}
-export type BookingStatusHistoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
-}
-export type BookingStatusHistoryIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }
 
@@ -725,30 +704,6 @@ export interface BookingStatusHistoryDelegate<ExtArgs extends runtime.Types.Exte
   createMany<T extends BookingStatusHistoryCreateManyArgs>(args?: Prisma.SelectSubset<T, BookingStatusHistoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many BookingStatusHistories and returns the data saved in the database.
-   * @param {BookingStatusHistoryCreateManyAndReturnArgs} args - Arguments to create many BookingStatusHistories.
-   * @example
-   * // Create many BookingStatusHistories
-   * const bookingStatusHistory = await prisma.bookingStatusHistory.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many BookingStatusHistories and only return the `id`
-   * const bookingStatusHistoryWithIdOnly = await prisma.bookingStatusHistory.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends BookingStatusHistoryCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, BookingStatusHistoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingStatusHistoryPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a BookingStatusHistory.
    * @param {BookingStatusHistoryDeleteArgs} args - Arguments to delete one BookingStatusHistory.
    * @example
@@ -811,36 +766,6 @@ export interface BookingStatusHistoryDelegate<ExtArgs extends runtime.Types.Exte
    * 
    */
   updateMany<T extends BookingStatusHistoryUpdateManyArgs>(args: Prisma.SelectSubset<T, BookingStatusHistoryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more BookingStatusHistories and returns the data updated in the database.
-   * @param {BookingStatusHistoryUpdateManyAndReturnArgs} args - Arguments to update many BookingStatusHistories.
-   * @example
-   * // Update many BookingStatusHistories
-   * const bookingStatusHistory = await prisma.bookingStatusHistory.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more BookingStatusHistories and only return the `id`
-   * const bookingStatusHistoryWithIdOnly = await prisma.bookingStatusHistory.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends BookingStatusHistoryUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, BookingStatusHistoryUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingStatusHistoryPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one BookingStatusHistory.
@@ -1277,29 +1202,6 @@ export type BookingStatusHistoryCreateManyArgs<ExtArgs extends runtime.Types.Ext
 }
 
 /**
- * BookingStatusHistory createManyAndReturn
- */
-export type BookingStatusHistoryCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the BookingStatusHistory
-   */
-  select?: Prisma.BookingStatusHistorySelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the BookingStatusHistory
-   */
-  omit?: Prisma.BookingStatusHistoryOmit<ExtArgs> | null
-  /**
-   * The data used to create many BookingStatusHistories.
-   */
-  data: Prisma.BookingStatusHistoryCreateManyInput | Prisma.BookingStatusHistoryCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.BookingStatusHistoryIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * BookingStatusHistory update
  */
 export type BookingStatusHistoryUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1341,36 +1243,6 @@ export type BookingStatusHistoryUpdateManyArgs<ExtArgs extends runtime.Types.Ext
    * Limit how many BookingStatusHistories to update.
    */
   limit?: number
-}
-
-/**
- * BookingStatusHistory updateManyAndReturn
- */
-export type BookingStatusHistoryUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the BookingStatusHistory
-   */
-  select?: Prisma.BookingStatusHistorySelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the BookingStatusHistory
-   */
-  omit?: Prisma.BookingStatusHistoryOmit<ExtArgs> | null
-  /**
-   * The data used to update BookingStatusHistories.
-   */
-  data: Prisma.XOR<Prisma.BookingStatusHistoryUpdateManyMutationInput, Prisma.BookingStatusHistoryUncheckedUpdateManyInput>
-  /**
-   * Filter which BookingStatusHistories to update
-   */
-  where?: Prisma.BookingStatusHistoryWhereInput
-  /**
-   * Limit how many BookingStatusHistories to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.BookingStatusHistoryIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

@@ -240,6 +240,7 @@ export type DriverOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   bookings?: Prisma.BookingOrderByRelationAggregateInput
+  _relevance?: Prisma.DriverOrderByRelevanceInput
 }
 
 export type DriverWhereUniqueInput = Prisma.AtLeast<{
@@ -384,6 +385,12 @@ export type DriverUncheckedUpdateManyInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type DriverOrderByRelevanceInput = {
+  fields: Prisma.DriverOrderByRelevanceFieldEnum | Prisma.DriverOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type DriverCountOrderByAggregateInput = {
@@ -568,31 +575,7 @@ export type DriverSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   _count?: boolean | Prisma.DriverCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["driver"]>
 
-export type DriverSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  externalId?: boolean
-  fullName?: boolean
-  phoneNumber?: boolean
-  licenseNumber?: boolean
-  routeScope?: boolean
-  readiness?: boolean
-  isActive?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-}, ExtArgs["result"]["driver"]>
 
-export type DriverSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  externalId?: boolean
-  fullName?: boolean
-  phoneNumber?: boolean
-  licenseNumber?: boolean
-  routeScope?: boolean
-  readiness?: boolean
-  isActive?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-}, ExtArgs["result"]["driver"]>
 
 export type DriverSelectScalar = {
   id?: boolean
@@ -612,8 +595,6 @@ export type DriverInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   bookings?: boolean | Prisma.Driver$bookingsArgs<ExtArgs>
   _count?: boolean | Prisma.DriverCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type DriverIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type DriverIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $DriverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Driver"
@@ -752,30 +733,6 @@ export interface DriverDelegate<ExtArgs extends runtime.Types.Extensions.Interna
   createMany<T extends DriverCreateManyArgs>(args?: Prisma.SelectSubset<T, DriverCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many Drivers and returns the data saved in the database.
-   * @param {DriverCreateManyAndReturnArgs} args - Arguments to create many Drivers.
-   * @example
-   * // Create many Drivers
-   * const driver = await prisma.driver.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many Drivers and only return the `id`
-   * const driverWithIdOnly = await prisma.driver.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends DriverCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, DriverCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DriverPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a Driver.
    * @param {DriverDeleteArgs} args - Arguments to delete one Driver.
    * @example
@@ -838,36 +795,6 @@ export interface DriverDelegate<ExtArgs extends runtime.Types.Extensions.Interna
    * 
    */
   updateMany<T extends DriverUpdateManyArgs>(args: Prisma.SelectSubset<T, DriverUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more Drivers and returns the data updated in the database.
-   * @param {DriverUpdateManyAndReturnArgs} args - Arguments to update many Drivers.
-   * @example
-   * // Update many Drivers
-   * const driver = await prisma.driver.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more Drivers and only return the `id`
-   * const driverWithIdOnly = await prisma.driver.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends DriverUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, DriverUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DriverPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one Driver.
@@ -1306,25 +1233,6 @@ export type DriverCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
- * Driver createManyAndReturn
- */
-export type DriverCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Driver
-   */
-  select?: Prisma.DriverSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Driver
-   */
-  omit?: Prisma.DriverOmit<ExtArgs> | null
-  /**
-   * The data used to create many Drivers.
-   */
-  data: Prisma.DriverCreateManyInput | Prisma.DriverCreateManyInput[]
-  skipDuplicates?: boolean
-}
-
-/**
  * Driver update
  */
 export type DriverUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1354,32 +1262,6 @@ export type DriverUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
  * Driver updateMany
  */
 export type DriverUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * The data used to update Drivers.
-   */
-  data: Prisma.XOR<Prisma.DriverUpdateManyMutationInput, Prisma.DriverUncheckedUpdateManyInput>
-  /**
-   * Filter which Drivers to update
-   */
-  where?: Prisma.DriverWhereInput
-  /**
-   * Limit how many Drivers to update.
-   */
-  limit?: number
-}
-
-/**
- * Driver updateManyAndReturn
- */
-export type DriverUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Driver
-   */
-  select?: Prisma.DriverSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Driver
-   */
-  omit?: Prisma.DriverOmit<ExtArgs> | null
   /**
    * The data used to update Drivers.
    */

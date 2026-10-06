@@ -203,6 +203,7 @@ export type TicketMessageOrderByWithRelationInput = {
   sentAt?: Prisma.SortOrder
   ticket?: Prisma.SupportTicketOrderByWithRelationInput
   sender?: Prisma.UserOrderByWithRelationInput
+  _relevance?: Prisma.TicketMessageOrderByRelevanceInput
 }
 
 export type TicketMessageWhereUniqueInput = Prisma.AtLeast<{
@@ -312,6 +313,12 @@ export type TicketMessageListRelationFilter = {
 
 export type TicketMessageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type TicketMessageOrderByRelevanceInput = {
+  fields: Prisma.TicketMessageOrderByRelevanceFieldEnum | Prisma.TicketMessageOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type TicketMessageCountOrderByAggregateInput = {
@@ -598,27 +605,7 @@ export type TicketMessageSelect<ExtArgs extends runtime.Types.Extensions.Interna
   sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["ticketMessage"]>
 
-export type TicketMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  ticketId?: boolean
-  senderId?: boolean
-  body?: boolean
-  isCustomer?: boolean
-  sentAt?: boolean
-  ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["ticketMessage"]>
 
-export type TicketMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  ticketId?: boolean
-  senderId?: boolean
-  body?: boolean
-  isCustomer?: boolean
-  sentAt?: boolean
-  ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["ticketMessage"]>
 
 export type TicketMessageSelectScalar = {
   id?: boolean
@@ -631,14 +618,6 @@ export type TicketMessageSelectScalar = {
 
 export type TicketMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketId" | "senderId" | "body" | "isCustomer" | "sentAt", ExtArgs["result"]["ticketMessage"]>
 export type TicketMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
-export type TicketMessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
-export type TicketMessageIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
   sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -774,30 +753,6 @@ export interface TicketMessageDelegate<ExtArgs extends runtime.Types.Extensions.
   createMany<T extends TicketMessageCreateManyArgs>(args?: Prisma.SelectSubset<T, TicketMessageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many TicketMessages and returns the data saved in the database.
-   * @param {TicketMessageCreateManyAndReturnArgs} args - Arguments to create many TicketMessages.
-   * @example
-   * // Create many TicketMessages
-   * const ticketMessage = await prisma.ticketMessage.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many TicketMessages and only return the `id`
-   * const ticketMessageWithIdOnly = await prisma.ticketMessage.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends TicketMessageCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, TicketMessageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketMessagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a TicketMessage.
    * @param {TicketMessageDeleteArgs} args - Arguments to delete one TicketMessage.
    * @example
@@ -860,36 +815,6 @@ export interface TicketMessageDelegate<ExtArgs extends runtime.Types.Extensions.
    * 
    */
   updateMany<T extends TicketMessageUpdateManyArgs>(args: Prisma.SelectSubset<T, TicketMessageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more TicketMessages and returns the data updated in the database.
-   * @param {TicketMessageUpdateManyAndReturnArgs} args - Arguments to update many TicketMessages.
-   * @example
-   * // Update many TicketMessages
-   * const ticketMessage = await prisma.ticketMessage.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more TicketMessages and only return the `id`
-   * const ticketMessageWithIdOnly = await prisma.ticketMessage.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends TicketMessageUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, TicketMessageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketMessagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one TicketMessage.
@@ -1325,29 +1250,6 @@ export type TicketMessageCreateManyArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
- * TicketMessage createManyAndReturn
- */
-export type TicketMessageCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the TicketMessage
-   */
-  select?: Prisma.TicketMessageSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the TicketMessage
-   */
-  omit?: Prisma.TicketMessageOmit<ExtArgs> | null
-  /**
-   * The data used to create many TicketMessages.
-   */
-  data: Prisma.TicketMessageCreateManyInput | Prisma.TicketMessageCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.TicketMessageIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * TicketMessage update
  */
 export type TicketMessageUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1389,36 +1291,6 @@ export type TicketMessageUpdateManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many TicketMessages to update.
    */
   limit?: number
-}
-
-/**
- * TicketMessage updateManyAndReturn
- */
-export type TicketMessageUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the TicketMessage
-   */
-  select?: Prisma.TicketMessageSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the TicketMessage
-   */
-  omit?: Prisma.TicketMessageOmit<ExtArgs> | null
-  /**
-   * The data used to update TicketMessages.
-   */
-  data: Prisma.XOR<Prisma.TicketMessageUpdateManyMutationInput, Prisma.TicketMessageUncheckedUpdateManyInput>
-  /**
-   * Filter which TicketMessages to update
-   */
-  where?: Prisma.TicketMessageWhereInput
-  /**
-   * Limit how many TicketMessages to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.TicketMessageIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

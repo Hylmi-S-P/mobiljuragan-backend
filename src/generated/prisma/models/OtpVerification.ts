@@ -262,6 +262,7 @@ export type OtpVerificationOrderByWithRelationInput = {
   consumedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
+  _relevance?: Prisma.OtpVerificationOrderByRelevanceInput
 }
 
 export type OtpVerificationWhereUniqueInput = Prisma.AtLeast<{
@@ -403,6 +404,12 @@ export type OtpVerificationListRelationFilter = {
 
 export type OtpVerificationOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type OtpVerificationOrderByRelevanceInput = {
+  fields: Prisma.OtpVerificationOrderByRelevanceFieldEnum | Prisma.OtpVerificationOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type OtpVerificationCountOrderByAggregateInput = {
@@ -617,31 +624,7 @@ export type OtpVerificationSelect<ExtArgs extends runtime.Types.Extensions.Inter
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["otpVerification"]>
 
-export type OtpVerificationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  userId?: boolean
-  phoneNumber?: boolean
-  otpHash?: boolean
-  purpose?: boolean
-  expiresAt?: boolean
-  attemptCount?: boolean
-  consumedAt?: boolean
-  createdAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["otpVerification"]>
 
-export type OtpVerificationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  userId?: boolean
-  phoneNumber?: boolean
-  otpHash?: boolean
-  purpose?: boolean
-  expiresAt?: boolean
-  attemptCount?: boolean
-  consumedAt?: boolean
-  createdAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["otpVerification"]>
 
 export type OtpVerificationSelectScalar = {
   id?: boolean
@@ -657,12 +640,6 @@ export type OtpVerificationSelectScalar = {
 
 export type OtpVerificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "phoneNumber" | "otpHash" | "purpose" | "expiresAt" | "attemptCount" | "consumedAt" | "createdAt", ExtArgs["result"]["otpVerification"]>
 export type OtpVerificationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
-export type OtpVerificationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
-export type OtpVerificationIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
@@ -799,30 +776,6 @@ export interface OtpVerificationDelegate<ExtArgs extends runtime.Types.Extension
   createMany<T extends OtpVerificationCreateManyArgs>(args?: Prisma.SelectSubset<T, OtpVerificationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many OtpVerifications and returns the data saved in the database.
-   * @param {OtpVerificationCreateManyAndReturnArgs} args - Arguments to create many OtpVerifications.
-   * @example
-   * // Create many OtpVerifications
-   * const otpVerification = await prisma.otpVerification.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many OtpVerifications and only return the `id`
-   * const otpVerificationWithIdOnly = await prisma.otpVerification.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends OtpVerificationCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, OtpVerificationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OtpVerificationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a OtpVerification.
    * @param {OtpVerificationDeleteArgs} args - Arguments to delete one OtpVerification.
    * @example
@@ -885,36 +838,6 @@ export interface OtpVerificationDelegate<ExtArgs extends runtime.Types.Extension
    * 
    */
   updateMany<T extends OtpVerificationUpdateManyArgs>(args: Prisma.SelectSubset<T, OtpVerificationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more OtpVerifications and returns the data updated in the database.
-   * @param {OtpVerificationUpdateManyAndReturnArgs} args - Arguments to update many OtpVerifications.
-   * @example
-   * // Update many OtpVerifications
-   * const otpVerification = await prisma.otpVerification.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more OtpVerifications and only return the `id`
-   * const otpVerificationWithIdOnly = await prisma.otpVerification.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends OtpVerificationUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, OtpVerificationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OtpVerificationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one OtpVerification.
@@ -1352,29 +1275,6 @@ export type OtpVerificationCreateManyArgs<ExtArgs extends runtime.Types.Extensio
 }
 
 /**
- * OtpVerification createManyAndReturn
- */
-export type OtpVerificationCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the OtpVerification
-   */
-  select?: Prisma.OtpVerificationSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the OtpVerification
-   */
-  omit?: Prisma.OtpVerificationOmit<ExtArgs> | null
-  /**
-   * The data used to create many OtpVerifications.
-   */
-  data: Prisma.OtpVerificationCreateManyInput | Prisma.OtpVerificationCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.OtpVerificationIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * OtpVerification update
  */
 export type OtpVerificationUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1416,36 +1316,6 @@ export type OtpVerificationUpdateManyArgs<ExtArgs extends runtime.Types.Extensio
    * Limit how many OtpVerifications to update.
    */
   limit?: number
-}
-
-/**
- * OtpVerification updateManyAndReturn
- */
-export type OtpVerificationUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the OtpVerification
-   */
-  select?: Prisma.OtpVerificationSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the OtpVerification
-   */
-  omit?: Prisma.OtpVerificationOmit<ExtArgs> | null
-  /**
-   * The data used to update OtpVerifications.
-   */
-  data: Prisma.XOR<Prisma.OtpVerificationUpdateManyMutationInput, Prisma.OtpVerificationUncheckedUpdateManyInput>
-  /**
-   * Filter which OtpVerifications to update
-   */
-  where?: Prisma.OtpVerificationWhereInput
-  /**
-   * Limit how many OtpVerifications to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.OtpVerificationIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

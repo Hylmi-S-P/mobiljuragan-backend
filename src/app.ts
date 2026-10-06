@@ -10,6 +10,12 @@ export const app: Express = express();
 app.use(cors());
 app.use(express.json());
 
+// Logger request untuk memantau request masuk
+app.use((req: Request, _res: Response, next) => {
+  logger.info({ method: req.method, path: req.path }, `${req.method} ${req.path}`);
+  next();
+});
+
 /**
  * Health check untuk monitoring tanpa dependensi database.
  */

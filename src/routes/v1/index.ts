@@ -7,8 +7,12 @@ import { adminBookingRouter } from './adminBookings.js';
 import { adminFleetRouter } from './adminFleet.js';
 import { adminVehicleRouter } from './adminVehicles.js';
 import { adminDriverRouter } from './adminDrivers.js';
+import { adminUserRouter } from './adminUsers.js';
 
 export const v1Router: Router = Router();
+
+// Admin Accounts Management: /api/v1/admin/users/*
+v1Router.use('/admin/users', adminUserRouter);
 
 // Customer Auth: /api/v1/auth/*
 v1Router.use('/auth', authRouter);
