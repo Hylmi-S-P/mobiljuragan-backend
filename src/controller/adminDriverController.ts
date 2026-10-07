@@ -34,7 +34,7 @@ function slugify(input: string): string {
     .replace(/-+/g, '-');
 }
 
-/** Supir aktif dengan nama atau nomor kontak yang sama dianggap duplikat (butir A5 dan A6). */
+/** Supir aktif dengan nama atau nomor kontak yang sama dianggap duplikat. */
 async function assertNoDuplicate(
   fullName: string | undefined,
   phoneNumber: string | null | undefined,
@@ -82,7 +82,7 @@ function toDriverResponse(driver: DriverWithAssignment) {
 export const adminDriverController = {
   /**
    * GET /api/v1/admin/drivers
-   * Daftar roster supir beserta penugasan aktifnya. Default hanya supir aktif (butir C5).
+   * Daftar roster supir beserta penugasan aktifnya. Default hanya supir aktif.
    */
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -116,7 +116,7 @@ export const adminDriverController = {
 
   /**
    * GET /api/v1/admin/drivers/:id
-   * Detail satu supir. `:id` boleh uuid atau externalId (butir C1).
+   * Detail satu supir. `:id` boleh uuid atau externalId.
    */
   async detail(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -217,7 +217,7 @@ export const adminDriverController = {
   /**
    * PATCH /api/v1/admin/drivers/:id/readiness
    * Sakelar kesiapan supir: hanya memindahkan antara SIAGA dan LIBUR.
-   * Status SEDANG_TUGAS lahir dari penugasan booking, bukan dari sakelar (butir B1 dan B2).
+   * Status SEDANG_TUGAS lahir dari penugasan booking, bukan dari sakelar.
    */
   async updateReadiness(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -272,8 +272,8 @@ export const adminDriverController = {
 
   /**
    * DELETE /api/v1/admin/drivers/:id
-   * Menonaktifkan supir dari roster. Data tidak dihapus permanen supaya jejak audit utuh
-   * (butir C3 dan C4). Supir yang masih terikat booking aktif ditolak.
+   * Menonaktifkan supir dari roster. Data tidak dihapus permanen supaya jejak audit utuh.
+   * Supir yang masih terikat booking aktif ditolak.
    */
   async deactivate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -290,7 +290,7 @@ export const adminDriverController = {
       }
 
       /* Pengikat supir bukan hanya booking yang sudah dikonfirmasi, tetapi juga yang masih
-         menunggu konfirmasi, karena penugasan itu sudah direncanakan (butir C3). */
+         menunggu konfirmasi, karena penugasan itu sudah direncanakan. */
       const pesananBelumSelesai = await driverModel.countUnfinishedBookings(driver.id);
 
       if (pesananBelumSelesai > 0) {

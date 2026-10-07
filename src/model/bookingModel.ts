@@ -261,7 +261,7 @@ export const bookingModel = {
    *
    * Pemeriksaan bentrok dan kewajiban supir ikut di dalam transaksi supaya
    * keputusan konfirmasi tidak dibuat dari data yang sudah basi. Pelepasan supir
-   * ke SIAGA juga menumpang transaksi yang sama (butir E4).
+   * ke SIAGA juga menumpang transaksi yang sama.
    */
   updateStatusWithHistoryAndAudit(input: {
     id: string;

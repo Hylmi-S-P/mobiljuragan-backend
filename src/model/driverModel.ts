@@ -233,7 +233,7 @@ export const driverModel = {
 
   /**
    * Pengikat supir bukan hanya booking yang sudah dikonfirmasi, tetapi juga yang masih
-   * menunggu konfirmasi, karena penugasan itu sudah direncanakan (butir C3).
+   * menunggu konfirmasi, karena penugasan itu sudah direncanakan.
    */
   countUnfinishedBookings(driverId: string) {
     return db.booking.count({
