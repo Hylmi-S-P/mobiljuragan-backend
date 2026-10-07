@@ -314,3 +314,43 @@ Seluruh endpoint REST API menggunakan format respons terstandarisasi yang konsis
 ## 7. Dokumentasi Lengkap
 Untuk panduan detail mengenai format payload JSON, query parameter, dan contoh respons tiap endpoint, silakan buka dokumen:
 👉 **[`docs/README.md`](docs/README.md)**
+
+---
+
+## 8. Strategi Render Halaman Frontend
+
+Backend ini melayani 11 halaman Next.js. Tabel berikut menjelaskan strategi render tiap halaman dan alasannya. Halaman yang menampilkan data operasional memakai **Dynamic SSR** (`export const dynamic = "force-dynamic"`), karena isinya berasal dari tabel MariaDB yang berubah setiap ada pemesanan, penugasan supir, atau perubahan status armada. Halaman yang murni tampilan tetap statis.
+
+| Halaman | Rute URL | Strategi Render | Alasan Pemilihan Strategi |
+| :--- | :--- | :--- | :--- |
+| **Ringkasan Operasional** | `/` | **Dynamic (SSR)** | Antrean konfirmasi dan status armada harus mencerminkan keadaan terkini tiap request. |
+| **Login Staf/Admin** | `/login` | **Dynamic (SSR)** | Jumlah dan plat armada yang ditampilkan diambil dari database, bukan angka tetap. |
+| **Manajemen Admin** | `/admin` | **Dynamic (SSR)** | Daftar akun staf/admin berubah setiap ada penambahan atau perubahan status akun. |
+| **Pemesanan Masuk** | `/bookings` | **Dynamic (SSR)** | Antrean pesanan bertambah setiap pelanggan mengirim pesanan baru. |
+| **Detail Pemesanan** | `/bookings/[id]` | **Dynamic (SSR)** | Status dan tarif berubah mengikuti proses verifikasi tim, tidak bisa dipra-render. |
+| **Katalog Armada** | `/fleet/catalog` | **Dynamic (SSR)** | Status operasional tiap unit berubah saat disewa atau masuk perawatan. |
+| **Kalender Armada** | `/fleet/calendar` | **Dynamic (SSR)** | Jadwal blokir dihitung dari pemesanan aktif sehingga berubah tiap hari. |
+| **Manajemen Supir** | `/fleet/drivers` | **Dynamic (SSR)** | Kesiapan supir berubah mengikuti penugasan aktif dan sakelar kesiapan. |
+| **Customer Care** | `/customer-care` | **Dynamic (SSR)** | Percakapan tiket bertambah setiap ada pesan atau balasan baru. |
+| **Contoh Keadaan Kosong** | `/empty` | **Static** | Halaman rujukan tampilan, isinya tetap dan tidak bergantung data. |
+| **Contoh Error Boundary** | `/error-boundary` | **Static** | Halaman rujukan tampilan kegagalan, tidak memuat data. |
+
+---
+
+## 9. Perbandingan Figma vs Hasil Slicing
+
+Dua halaman yang menjadi fokus pengerjaan: **Login** dan **Manajemen Admin**. Tangkapan diambil pada viewport **1440x900**, sama dengan ukuran frame Figma, supaya proporsinya bisa dibandingkan langsung. Figma di kiri, hasil slicing di kanan.
+
+### 9.1 Halaman Login
+
+![Perbandingan Login: Figma di kiri, hasil slicing di kanan](docs/perbandingan-figma/login.png)
+
+Kartu login 1008x648 px pada kedua sisi, checkbox "Ingat sesi" tidak tercentang pada keduanya, dan teks panel armada sama termasuk huruf besar-kecilnya.
+
+### 9.2 Halaman Manajemen Admin
+
+![Perbandingan Manajemen Admin: Figma di kiri, hasil slicing di kanan](docs/perbandingan-figma/manajemen-admin.png)
+
+Menu sidebar, judul topbar, kotak pencarian, dan kepala kolom sudah sama persis. Perbedaan yang tersisa: aplikasi menampilkan tombol "Hapus" karena endpoint `DELETE /api/v1/admin/users/:id` memang tersedia, dan isi tabel mengikuti data nyata di MariaDB.
+
+**Catatan:** desain Figma ikut diperbarui pada 7 Oktober 2026 agar selaras dengan hasil slicing. Tangkapan layar di atas dihasilkan ulang oleh skrip `.verify/buat-perbandingan-figma.mjs`, sehingga bisa diperbarui kapan saja setelah tampilan berubah.
