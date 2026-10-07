@@ -6,7 +6,15 @@ Layanan REST API untuk sistem operasional dan pemesanan rental mobil **CV. Mobil
 
 ## 1. Arsitektur Sistem
 
-Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered architecture*) yang memisahkan routing, validasi skema, logika autentikasi, dan akses basis data:
+Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered architecture*). Tanggung jawab tiap lapisan dipisah tegas:
+
+- **Routing** (src/routes/) hanya memetakan URL dan middleware ke sebuah fungsi controller. Tidak ada logika bisnis maupun query di lapisan ini.
+- **Controller** (src/controller/) membaca request, menjalankan aturan bisnis, memanggil model, lalu mengirim respons. Setiap kegagalan diteruskan lewat 
+ext(error) sehingga ditangani satu kali oleh errorHandler global.
+- **Model** (src/model/) adalah **satu-satunya** lapisan yang menulis query database. Tidak ada berkas di luar src/model/ yang mengimpor db.
+- **Validator** (src/validators/) menyimpan skema Zod yang dipakai bersama oleh router dan controller.
+
+Alur lengkapnya:
 
 ```text
 ┌─────────────────────────┐         ┌─────────────────────────┐
@@ -24,7 +32,7 @@ Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered archi
                                │ Prisma 7 ORM
                   ┌────────────┴────────────┐
                   │    MariaDB Database     │
-                  │   (8 Model Relasional)  │
+                  │   (9 Model Relasional)  │
                   └─────────────────────────┘
 ```
 
@@ -50,7 +58,7 @@ mobiljuragan-backend/
 ├── docs/
 │   └── README.md            # Dokumentasi lengkap seluruh endpoint & payload REST API
 ├── prisma/
-│   ├── schema.prisma        # Definisi 8 model relasional database PostgreSQL
+│   ├── schema.prisma        # Definisi model relasional database MariaDB
 │   ├── seed.ts              # Seeding 9 armada resmi Merauke & akun admin/staf default
 │   └── migrations/          # Catatan migrasi skema database terkelola
 ├── src/
@@ -62,7 +70,7 @@ mobiljuragan-backend/
 │   │   ├── auth.ts          # Middleware validasi JWT & otorisasi role pengguna
 │   │   ├── errorHandler.ts  # Global error handler dengan format respons konsisten
 │   │   └── validate.ts      # Middleware validasi skema request berbasis Zod
-│   ├── routes/v1/
+│   ├── routes/v1/           # HANYA memetakan URL + middleware ke controller
 │   │   ├── index.ts         # Router induk API v1
 │   │   ├── auth.ts          # Endpoint OTP & autentikasi pelanggan
 │   │   ├── adminAuth.ts     # Endpoint login & profil staf/admin
@@ -71,7 +79,31 @@ mobiljuragan-backend/
 │   │   ├── adminBookings.ts # Endpoint antrean sewa & konfirmasi tarif admin
 │   │   ├── adminFleet.ts    # Endpoint kalender timeline armada admin
 │   │   ├── adminVehicles.ts # Endpoint update status fisik armada & audit log
-│   │   └── adminDrivers.ts  # Endpoint roster supir, kesiapan, & penugasan
+│   │   ├── adminDrivers.ts  # Endpoint roster supir, kesiapan, & penugasan
+│   │   ├── adminUsers.ts    # Endpoint manajemen akun staf & admin
+│   │   └── adminTickets.ts  # Endpoint tiket customer care
+│   ├── controller/          # Membaca request, aturan bisnis, kirim response
+│   │   ├── authController.ts
+│   │   ├── adminAuthController.ts
+│   │   ├── vehicleController.ts
+│   │   ├── adminVehicleController.ts
+│   │   ├── bookingController.ts
+│   │   ├── adminBookingController.ts
+│   │   ├── adminFleetController.ts
+│   │   ├── adminDriverController.ts
+│   │   ├── adminUserController.ts
+│   │   └── ticketController.ts
+│   ├── model/               # SATU-SATUNYA lapisan yang menulis query database
+│   │   ├── authModel.ts
+│   │   ├── userModel.ts
+│   │   ├── vehicleModel.ts
+│   │   ├── bookingModel.ts
+│   │   ├── driverModel.ts
+│   │   ├── fleetModel.ts
+│   │   └── ticketModel.ts
+│   ├── validators/          # Skema Zod yang dipakai bersama router & controller
+│   │   ├── driverSchemas.ts
+│   │   └── bookingSchemas.ts
 │   └── utils/
 │       ├── auth.ts          # Helper token JWT, hashing OTP SHA-256, & verifikasi
 │       └── response.ts      # Standard response envelope (status ok & error)
@@ -144,7 +176,7 @@ npm run prisma:generate
 ```
 
 ### Langkah 5: Migrasi Skema ke Database
-Eksekusi migrasi tabel relasional (`users`, `vehicles`, `bookings`, `booking_status_histories`, `audit_logs`, dll.) ke PostgreSQL:
+Eksekusi migrasi tabel relasional (`users`, `vehicles`, `bookings`, `booking_status_histories`, `audit_logs`, dll.) ke MariaDB:
 ```bash
 npm run prisma:migrate
 ```
@@ -222,6 +254,16 @@ npm run prisma:studio
 | **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id` | Admin/Staff | Ubah data supir |
 | **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id/readiness` | Admin/Staff | Sakelar kesiapan SIAGA atau LIBUR |
 | **Supir Admin** | `DELETE`| `/api/v1/admin/drivers/:id` | Admin/Staff | Nonaktifkan supir dari roster |
+| **Akun Admin** | `GET` | `/api/v1/admin/users` | Admin/Staff | Daftar akun staf & admin pengelola portal |
+| **Akun Admin** | `POST` | `/api/v1/admin/users` | Admin/Staff | Daftarkan akun staf/admin baru |
+| **Akun Admin** | `GET` | `/api/v1/admin/users/:id` | Admin/Staff | Detail satu akun staf/admin |
+| **Akun Admin** | `PATCH`| `/api/v1/admin/users/:id` | Admin/Staff | Ubah data, peran, status, atau sandi akun |
+| **Akun Admin** | `DELETE`| `/api/v1/admin/users/:id` | Admin/Staff | Hapus akun, ditolak bila masih terikat transaksi |
+| **Customer Care** | `GET` | `/api/v1/admin/tickets` | Admin/Staff | Daftar tiket bantuan pelanggan |
+| **Customer Care** | `POST` | `/api/v1/admin/tickets` | Admin/Staff | Buat tiket bantuan baru |
+| **Customer Care** | `GET` | `/api/v1/admin/tickets/:id` | Admin/Staff | Detail tiket beserta percakapan |
+| **Customer Care** | `PATCH`| `/api/v1/admin/tickets/:id/status` | Admin/Staff | Ubah status penanganan tiket |
+| **Customer Care** | `POST` | `/api/v1/admin/tickets/:id/messages` | Admin/Staff | Kirim balasan tim pada tiket |
 
 **Catatan:** `GET /api/v1/auth/me` dan `POST /api/v1/auth/logout` belum ada di kode, sehingga tidak
 dicantumkan di tabel ini. Keduanya tercatat sebagai rencana pada `x-roadmap` di
@@ -257,4 +299,3 @@ Seluruh endpoint REST API menggunakan format respons terstandarisasi yang konsis
 ## 7. Dokumentasi Lengkap
 Untuk panduan detail mengenai format payload JSON, query parameter, dan contoh respons tiap endpoint, silakan buka dokumen:
 👉 **[`docs/README.md`](docs/README.md)**
-

@@ -8,6 +8,7 @@ import { adminFleetRouter } from './adminFleet.js';
 import { adminVehicleRouter } from './adminVehicles.js';
 import { adminDriverRouter } from './adminDrivers.js';
 import { adminUserRouter } from './adminUsers.js';
+import { adminTicketRouter } from './adminTickets.js';
 
 export const v1Router: Router = Router();
 
@@ -32,9 +33,11 @@ v1Router.use('/admin/vehicles', adminVehicleRouter);
 // Admin Driver Roster: /api/v1/admin/drivers/*
 v1Router.use('/admin/drivers', adminDriverRouter);
 
+// Customer Care / Support Tickets: /api/v1/admin/tickets/*
+v1Router.use('/admin/tickets', adminTicketRouter);
+
 // Vehicle Catalog & Availability: /api/v1/vehicles/*
 v1Router.use('/vehicles', vehicleRouter);
 
 // Booking Domain: /api/v1/bookings/*
 v1Router.use('/bookings', bookingRouter);
-

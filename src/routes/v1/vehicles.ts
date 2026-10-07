@@ -1,10 +1,11 @@
-import { Router, type Request, type Response } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
-import { db } from '../../db.js';
+import { vehicleController } from '../../controller/vehicleController.js';
 import { validateQuery } from '../../middleware/validate.js';
-import { sendSuccess, sendError } from '../../utils/response.js';
-import { BookingStatus, OperationalStatus } from '../../generated/prisma/client.js';
 
+/**
+ * Vehicle Catalog & Availability: /api/v1/vehicles/*
+ */
 export const vehicleRouter: Router = Router();
 
 const vehicleQuerySchema = z.object({
@@ -36,149 +37,11 @@ const vehicleQuerySchema = z.object({
   }
 );
 
-/**
- * GET /api/v1/vehicles/categories
- * Mengambil daftar kategori armada yang tersedia (MPV, SUV, PICKUP, dll).
- */
-vehicleRouter.get('/categories', async (_req: Request, res: Response) => {
-  try {
-    const records = await db.vehicle.findMany({
-      select: { category: true },
-      distinct: ['category'],
-    });
+// Mengambil daftar kategori armada yang tersedia (MPV, SUV, PICKUP, dll).
+vehicleRouter.get('/categories', vehicleController.listCategories);
 
-    const categories = records
-      .map((r) => r.category)
-      .filter((c): c is string => Boolean(c));
+// Katalog armada kendaraan dengan filter kategori, pencarian, dan ketersediaan tanggal sewa.
+vehicleRouter.get('/', validateQuery(vehicleQuerySchema), vehicleController.list);
 
-    sendSuccess(res, categories);
-  } catch (error) {
-    sendError(res, 'FETCH_CATEGORIES_ERROR', 'Gagal memuat kategori armada.', 500);
-  }
-});
-
-/**
- * GET /api/v1/vehicles
- * Mengambil katalog armada kendaraan dengan filter kategori, pencarian, dan ketersediaan tanggal sewa.
- */
-vehicleRouter.get('/', validateQuery(vehicleQuerySchema), async (req: Request, res: Response) => {
-  try {
-    const { category, transmission, search, operationalStatus, startDate, endDate } = req.query as {
-      category?: string;
-      transmission?: string;
-      search?: string;
-      operationalStatus?: string;
-      startDate?: string;
-      endDate?: string;
-    };
-
-    const whereClause: any = {};
-
-    // Filter status operasional (default: AVAILABLE)
-    if (operationalStatus && operationalStatus !== 'ALL') {
-      whereClause.operationalStatus = operationalStatus as OperationalStatus;
-    } else if (!operationalStatus) {
-      whereClause.operationalStatus = OperationalStatus.AVAILABLE;
-    }
-
-    // Filter kategori
-    if (category) {
-      whereClause.category = {
-        equals: category,
-      };
-    }
-
-    // Filter transmisi
-    if (transmission) {
-      whereClause.transmission = {
-        equals: transmission,
-      };
-    }
-
-    // Filter pencarian nama armada, plat nomor, atau model
-    if (search && search.trim() !== '') {
-      const q = search.trim();
-      whereClause.OR = [
-        { name: { contains: q } },
-        { licensePlate: { contains: q } },
-        { model: { contains: q } },
-        { brand: { contains: q } },
-      ];
-    }
-
-    // Filter ketersediaan berdasarkan bentrok tanggal sewa dengan booking aktif
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      whereClause.bookings = {
-        none: {
-          AND: [
-            {
-              status: {
-                in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS],
-              },
-            },
-            { startDateTime: { lt: end } },
-            { endDateTime: { gt: start } },
-          ],
-        },
-      };
-    }
-
-    const vehicles = await db.vehicle.findMany({
-      where: whereClause,
-      orderBy: [
-        { operationalStatus: 'asc' },
-        { name: 'asc' },
-      ],
-      select: {
-        id: true,
-        externalId: true,
-        name: true,
-        licensePlate: true,
-        brand: true,
-        model: true,
-        seatingCapacity: true,
-        transmission: true,
-        category: true,
-        imageUrl: true,
-        operationalStatus: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    sendSuccess(res, vehicles);
-  } catch (error) {
-    sendError(res, 'FETCH_VEHICLES_ERROR', 'Gagal memuat katalog armada kendaraan.', 500);
-  }
-});
-
-/**
- * GET /api/v1/vehicles/:id
- * Mengambil detail armada kendaraan berdasarkan ID (UUID) atau externalId.
- */
-vehicleRouter.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const vehicle = await db.vehicle.findFirst({
-      where: {
-        OR: [
-          { id },
-          { externalId: id },
-        ],
-      },
-    });
-
-    if (!vehicle) {
-      sendError(res, 'VEHICLE_NOT_FOUND', `Armada dengan pengenal '${id}' tidak ditemukan.`, 404);
-      return;
-    }
-
-    sendSuccess(res, vehicle);
-  } catch (error) {
-    sendError(res, 'FETCH_VEHICLE_DETAIL_ERROR', 'Gagal memuat detail armada kendaraan.', 500);
-  }
-});
+// Detail armada kendaraan berdasarkan ID (UUID) atau externalId.
+vehicleRouter.get('/:id', vehicleController.detail);
