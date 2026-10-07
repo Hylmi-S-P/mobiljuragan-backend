@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyAuthToken, type AuthTokenPayload } from '../utils/auth.js';
 import { sendError } from '../utils/response.js';
-import { db } from '../db.js';
+import { userModel } from '../model/userModel.js';
 import type { UserRole } from '../generated/prisma/client.js';
 
 declare global {
@@ -27,10 +27,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const payload = verifyAuthToken(token);
 
     // Pastikan user masih aktif di database
-    const user = await db.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, fullName: true, phoneNumber: true, role: true, isActive: true },
-    });
+    const user = await userModel.findActiveSessionUser(payload.userId);
 
     if (!user || !user.isActive) {
       sendError(res, 'ACCOUNT_INACTIVE', 'Akun tidak ditemukan atau tidak aktif.', 401);

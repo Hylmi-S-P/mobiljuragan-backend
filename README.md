@@ -9,8 +9,7 @@ Layanan REST API untuk sistem operasional dan pemesanan rental mobil **CV. Mobil
 Layanan backend dibangun menggunakan arsitektur modular berlapis (*layered architecture*). Tanggung jawab tiap lapisan dipisah tegas:
 
 - **Routing** (src/routes/) hanya memetakan URL dan middleware ke sebuah fungsi controller. Tidak ada logika bisnis maupun query di lapisan ini.
-- **Controller** (src/controller/) membaca request, menjalankan aturan bisnis, memanggil model, lalu mengirim respons. Setiap kegagalan diteruskan lewat 
-ext(error) sehingga ditangani satu kali oleh errorHandler global.
+- **Controller** (src/controller/) membaca request, menjalankan aturan bisnis, memanggil model, lalu mengirim respons. Setiap kegagalan diteruskan lewat `next(error)` sehingga ditangani satu kali oleh errorHandler global.
 - **Model** (src/model/) adalah **satu-satunya** lapisan yang menulis query database. Tidak ada berkas di luar src/model/ yang mengimpor db.
 - **Validator** (src/validators/) menyimpan skema Zod yang dipakai bersama oleh router dan controller.
 
@@ -179,7 +178,7 @@ npm run prisma:generate
 ```
 
 ### Langkah 5: Migrasi Skema ke Database
-Eksekusi migrasi tabel relasional (`users`, `vehicles`, `bookings`, `booking_status_histories`, `audit_logs`, dll.) ke MariaDB:
+Eksekusi migrasi tabel relasional (`users`, `vehicles`, `bookings`, `booking_status_history`, `audit_logs`, dll.) ke MariaDB:
 ```bash
 npm run prisma:migrate
 ```
