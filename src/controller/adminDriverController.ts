@@ -1,13 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
-import {
-  DriverReadiness,
-  DriverRoute,
-  type Prisma,
-} from '../generated/prisma/client.js';
+import { DriverReadiness, DriverRoute, type Prisma } from '../generated/prisma/client.js';
 import { driverModel } from '../model/driverModel.js';
 import { AppError, sendSuccess } from '../utils/response.js';
-import { createDriverSchema, readinessSchema, updateDriverSchema } from '../validators/driverSchemas.js';
+import {
+  createDriverSchema,
+  readinessSchema,
+  updateDriverSchema,
+} from '../validators/driverSchemas.js';
 import type { DriverWithAssignment } from '../model/driverModel.js';
 
 /**
@@ -43,7 +43,11 @@ async function assertNoDuplicate(
   if (fullName) {
     const sameName = await driverModel.findActiveByName(fullName, exceptDriverId);
     if (sameName) {
-      throw new AppError('DRIVER_DUPLICATE', `Supir dengan nama '${fullName}' sudah terdaftar di roster.`, 409);
+      throw new AppError(
+        'DRIVER_DUPLICATE',
+        `Supir dengan nama '${fullName}' sudah terdaftar di roster.`,
+        409,
+      );
     }
   }
 
@@ -124,7 +128,11 @@ export const adminDriverController = {
       const driver = await driverModel.findByIdOrExternalId(id);
 
       if (!driver) {
-        throw new AppError('DRIVER_NOT_FOUND', `Supir dengan pengenal '${id}' tidak ditemukan di roster.`, 404);
+        throw new AppError(
+          'DRIVER_NOT_FOUND',
+          `Supir dengan pengenal '${id}' tidak ditemukan di roster.`,
+          404,
+        );
       }
 
       sendSuccess(res, toDriverResponse(driver));
@@ -181,10 +189,18 @@ export const adminDriverController = {
 
       const driver = await driverModel.findPlainByIdOrExternalId(id);
       if (!driver) {
-        throw new AppError('DRIVER_NOT_FOUND', `Supir dengan pengenal '${id}' tidak ditemukan di roster.`, 404);
+        throw new AppError(
+          'DRIVER_NOT_FOUND',
+          `Supir dengan pengenal '${id}' tidak ditemukan di roster.`,
+          404,
+        );
       }
       if (!driver.isActive) {
-        throw new AppError('DRIVER_INACTIVE', `Supir '${driver.fullName}' sudah nonaktif dan tidak bisa diubah.`, 409);
+        throw new AppError(
+          'DRIVER_INACTIVE',
+          `Supir '${driver.fullName}' sudah nonaktif dan tidak bisa diubah.`,
+          409,
+        );
       }
 
       await assertNoDuplicate(payload.fullName, payload.phoneNumber ?? null, driver.id);
@@ -193,22 +209,29 @@ export const adminDriverController = {
       const changes: Record<string, string | null> = {};
       if (payload.fullName !== undefined) changes.fullName = payload.fullName;
       if (payload.phoneNumber !== undefined) changes.phoneNumber = payload.phoneNumber ?? null;
-      if (payload.licenseNumber !== undefined) changes.licenseNumber = payload.licenseNumber ?? null;
+      if (payload.licenseNumber !== undefined)
+        changes.licenseNumber = payload.licenseNumber ?? null;
       if (payload.routeScope !== undefined) changes.routeScope = payload.routeScope;
 
       const updated = await driverModel.updateWithAudit(
         driver.id,
         {
           fullName: payload.fullName,
-          phoneNumber: payload.phoneNumber === undefined ? undefined : payload.phoneNumber ?? null,
-          licenseNumber: payload.licenseNumber === undefined ? undefined : payload.licenseNumber ?? null,
+          phoneNumber:
+            payload.phoneNumber === undefined ? undefined : (payload.phoneNumber ?? null),
+          licenseNumber:
+            payload.licenseNumber === undefined ? undefined : (payload.licenseNumber ?? null),
           routeScope: payload.routeScope,
         },
         changes,
         staffUser.userId,
       );
 
-      sendSuccess(res, { ...updated, activeAssignment: null, isLocked: updated.readiness === DriverReadiness.SEDANG_TUGAS });
+      sendSuccess(res, {
+        ...updated,
+        activeAssignment: null,
+        isLocked: updated.readiness === DriverReadiness.SEDANG_TUGAS,
+      });
     } catch (error) {
       next(error);
     }
@@ -236,7 +259,11 @@ export const adminDriverController = {
       const driver = await driverModel.findByIdOrExternalId(id);
 
       if (!driver) {
-        throw new AppError('DRIVER_NOT_FOUND', `Supir dengan pengenal '${id}' tidak ditemukan di roster.`, 404);
+        throw new AppError(
+          'DRIVER_NOT_FOUND',
+          `Supir dengan pengenal '${id}' tidak ditemukan di roster.`,
+          404,
+        );
       }
       if (!driver.isActive) {
         throw new AppError('DRIVER_INACTIVE', `Supir '${driver.fullName}' sudah nonaktif.`, 409);
@@ -283,10 +310,18 @@ export const adminDriverController = {
       const driver = await driverModel.findByIdOrExternalId(id);
 
       if (!driver) {
-        throw new AppError('DRIVER_NOT_FOUND', `Supir dengan pengenal '${id}' tidak ditemukan di roster.`, 404);
+        throw new AppError(
+          'DRIVER_NOT_FOUND',
+          `Supir dengan pengenal '${id}' tidak ditemukan di roster.`,
+          404,
+        );
       }
       if (!driver.isActive) {
-        throw new AppError('DRIVER_INACTIVE', `Supir '${driver.fullName}' sudah nonaktif sebelumnya.`, 409);
+        throw new AppError(
+          'DRIVER_INACTIVE',
+          `Supir '${driver.fullName}' sudah nonaktif sebelumnya.`,
+          409,
+        );
       }
 
       /* Pengikat supir bukan hanya booking yang sudah dikonfirmasi, tetapi juga yang masih

@@ -23,7 +23,7 @@ export const ticketController = {
         throw new AppError(
           'VALIDATION_ERROR',
           `Status tiket tidak valid (pilih: ${STATUS_VALUES.join(', ')}).`,
-          400
+          400,
         );
       }
 
@@ -61,7 +61,7 @@ export const ticketController = {
         throw new AppError(
           'VALIDATION_ERROR',
           `Status tiket wajib diisi dan harus salah satu dari: ${STATUS_VALUES.join(', ')}.`,
-          400
+          400,
         );
       }
 
@@ -129,7 +129,7 @@ export const ticketController = {
         throw new AppError(
           'VALIDATION_ERROR',
           `Kategori tiket tidak valid (pilih: ${CATEGORY_VALUES.join(', ')}).`,
-          400
+          400,
         );
       }
 

@@ -12,18 +12,23 @@ import { BookingStatus, RentalType } from '../generated/prisma/client.js';
 export const createBookingSchema = z
   .object({
     vehicleId: z.string().min(1, 'vehicleId wajib diisi.'),
-    startDateTime: z
-      .string()
-      .datetime({ message: 'startDateTime harus berformat ISO 8601 (contoh: 2026-10-01T08:00:00Z).' }),
-    endDateTime: z
-      .string()
-      .datetime({ message: 'endDateTime harus berformat ISO 8601 (contoh: 2026-10-03T18:00:00Z).' }),
+    startDateTime: z.string().datetime({
+      message: 'startDateTime harus berformat ISO 8601 (contoh: 2026-10-01T08:00:00Z).',
+    }),
+    endDateTime: z.string().datetime({
+      message: 'endDateTime harus berformat ISO 8601 (contoh: 2026-10-03T18:00:00Z).',
+    }),
     rentalType: z.nativeEnum(RentalType, {
       errorMap: () => ({ message: 'rentalType harus bernilai WITH_DRIVER atau WITHOUT_DRIVER.' }),
     }),
     pickupLocation: z.string().max(255).optional(),
     customerRequest: z.string().max(1000).optional(),
-    numberGuests: z.number().int().min(1, 'Minimal jumlah penumpang adalah 1 orang.').max(50).optional(),
+    numberGuests: z
+      .number()
+      .int()
+      .min(1, 'Minimal jumlah penumpang adalah 1 orang.')
+      .max(50)
+      .optional(),
   })
   .refine((data) => new Date(data.endDateTime) > new Date(data.startDateTime), {
     message: 'endDateTime harus lebih besar dari startDateTime.',

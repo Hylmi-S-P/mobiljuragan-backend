@@ -3,12 +3,7 @@ import { ZodError } from 'zod';
 import { AppError, sendError } from '../utils/response.js';
 import { logger } from '../logger.js';
 
-export function errorHandler(
-  err: unknown,
-  req: Request,
-  res: Response,
-  _next: NextFunction
-): void {
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof AppError) {
     sendError(res, err.code, err.message, err.statusCode, err.details);
     return;
@@ -38,8 +33,13 @@ export function errorHandler(
       method: req.method,
       url: req.originalUrl,
     },
-    'Unhandled server error occurred'
+    'Unhandled server error occurred',
   );
 
-  sendError(res, 'INTERNAL_SERVER_ERROR', 'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.', 500);
+  sendError(
+    res,
+    'INTERNAL_SERVER_ERROR',
+    'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.',
+    500,
+  );
 }

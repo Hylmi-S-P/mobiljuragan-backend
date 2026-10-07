@@ -30,7 +30,11 @@ const fleetCalendarQuerySchema = z
     {
       message: 'endDate harus lebih besar dari startDate.',
       path: ['endDate'],
-    }
+    },
   );
 
-adminFleetRouter.get('/calendar', validateQuery(fleetCalendarQuerySchema), adminFleetController.calendar);
+adminFleetRouter.get(
+  '/calendar',
+  validateQuery(fleetCalendarQuerySchema),
+  adminFleetController.calendar,
+);

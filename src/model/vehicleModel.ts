@@ -138,7 +138,7 @@ export const vehicleModel = {
     },
     nextStatus: OperationalStatus,
     actorId: string,
-    note?: string
+    note?: string,
   ) {
     return db.$transaction(async (tx) => {
       const updated = await tx.vehicle.update({

@@ -239,7 +239,9 @@ export const driverModel = {
     return db.booking.count({
       where: {
         driverId,
-        status: { notIn: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REJECTED] },
+        status: {
+          notIn: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REJECTED],
+        },
       },
     });
   },

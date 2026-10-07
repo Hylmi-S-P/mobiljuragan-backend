@@ -300,11 +300,7 @@ export const bookingModel = {
 
       /* Booking bersupir wajib punya supir terpilih sebelum dikonfirmasi.
          Pesanan lepas kunci tidak terikat aturan ini. */
-      if (
-        isConfirming &&
-        booking.rentalType === RentalType.WITH_DRIVER &&
-        !booking.driverId
-      ) {
+      if (isConfirming && booking.rentalType === RentalType.WITH_DRIVER && !booking.driverId) {
         return { kind: 'driver_required' as const, booking };
       }
 

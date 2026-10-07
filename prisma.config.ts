@@ -20,7 +20,6 @@ export default defineConfig({
     url: env('DATABASE_URL'),
   },
   migrate: {
-    adapter: () =>
-      new PrismaMariaDb(env('DATABASE_URL').replace(/^mysql:\/\//, 'mariadb://')),
+    adapter: () => new PrismaMariaDb(env('DATABASE_URL').replace(/^mysql:\/\//, 'mariadb://')),
   },
 });

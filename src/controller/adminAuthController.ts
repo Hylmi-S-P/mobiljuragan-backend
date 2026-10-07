@@ -34,7 +34,11 @@ export const adminAuthController = {
       const identifier = (rawPhone || rawUsername || '').trim();
 
       let user = null;
-      if (/^[0-9+]+$/.test(identifier) || identifier.startsWith('0') || identifier.startsWith('62')) {
+      if (
+        /^[0-9+]+$/.test(identifier) ||
+        identifier.startsWith('0') ||
+        identifier.startsWith('62')
+      ) {
         const phoneNumber = normalizePhoneNumber(identifier);
         user = await userModel.findByPhoneNumber(phoneNumber);
       } else {
@@ -50,8 +54,16 @@ export const adminAuthController = {
       }
 
       // Validasi user, status aktif, dan role
-      if (!user || !user.isActive || (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)) {
-        throw new AppError('INVALID_CREDENTIALS', 'Nomor telepon/username atau password salah.', 401);
+      if (
+        !user ||
+        !user.isActive ||
+        (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)
+      ) {
+        throw new AppError(
+          'INVALID_CREDENTIALS',
+          'Nomor telepon/username atau password salah.',
+          401,
+        );
       }
 
       if (!user.passwordHash) {
@@ -82,20 +94,27 @@ export const adminAuthController = {
           phoneNumber: user.phoneNumber,
           role: user.role,
         },
-        rememberMe ? '7d' : '1h'
+        rememberMe ? '7d' : '1h',
       );
 
-      logger.info({ userId: user.id, role: user.role }, `[ADMIN LOGIN] ${user.role} ${user.fullName} berhasil login.`);
+      logger.info(
+        { userId: user.id, role: user.role },
+        `[ADMIN LOGIN] ${user.role} ${user.fullName} berhasil login.`,
+      );
 
-      sendSuccess(res, {
-        token,
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          phoneNumber: user.phoneNumber,
-          role: user.role,
+      sendSuccess(
+        res,
+        {
+          token,
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+          },
         },
-      }, 200);
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -103,9 +122,13 @@ export const adminAuthController = {
 
   async me(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      sendSuccess(res, {
-        user: req.user,
-      }, 200);
+      sendSuccess(
+        res,
+        {
+          user: req.user,
+        },
+        200,
+      );
     } catch (error) {
       next(error);
     }

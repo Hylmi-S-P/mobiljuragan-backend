@@ -50,10 +50,7 @@ export const userModel = {
   findFirstByNameOrPhone(identifier: string) {
     return db.user.findFirst({
       where: {
-        OR: [
-          { phoneNumber: identifier },
-          { fullName: { contains: identifier } },
-        ],
+        OR: [{ phoneNumber: identifier }, { fullName: { contains: identifier } }],
       },
     });
   },
@@ -92,10 +89,7 @@ export const userModel = {
    * `entityId` dan metadata diisi dari hasil pembuatan, karena id akun baru belum ada
    * saat pemanggil menyusun permintaan.
    */
-  createWithAudit(
-    data: Prisma.UserCreateInput,
-    audit: { actorId: string; action: string }
-  ) {
+  createWithAudit(data: Prisma.UserCreateInput, audit: { actorId: string; action: string }) {
     return db.$transaction(async (tx) => {
       const created = await tx.user.create({ data, select: PUBLIC_FIELDS });
 
@@ -127,7 +121,7 @@ export const userModel = {
       entityType: string;
       entityId?: string;
       metadata?: Prisma.InputJsonValue;
-    }
+    },
   ) {
     return db.$transaction(async (tx) => {
       const updated = await tx.user.update({ where: { id }, data, select: PUBLIC_FIELDS });
@@ -149,7 +143,7 @@ export const userModel = {
       entityType: string;
       entityId?: string;
       metadata?: Prisma.InputJsonValue;
-    }
+    },
   ) {
     return db.$transaction(async (tx) => {
       await tx.auditLog.create({ data: audit });

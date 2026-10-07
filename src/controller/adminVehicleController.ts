@@ -21,14 +21,18 @@ export const adminVehicleController = {
       const vehicle = await vehicleModel.findByIdOrExternalId(id);
 
       if (!vehicle) {
-        throw new AppError('VEHICLE_NOT_FOUND', `Armada dengan pengenal '${id}' tidak ditemukan.`, 404);
+        throw new AppError(
+          'VEHICLE_NOT_FOUND',
+          `Armada dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
       }
 
       const updatedVehicle = await vehicleModel.updateOperationalStatus(
         vehicle,
         nextStatus as OperationalStatus,
         staffUser.userId,
-        note
+        note,
       );
 
       sendSuccess(res, updatedVehicle);

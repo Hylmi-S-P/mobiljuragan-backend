@@ -26,4 +26,9 @@ const loginSchema = z
 adminAuthRouter.post('/login', validateBody(loginSchema), adminAuthController.login);
 
 // Mengambil informasi user staf/admin yang sedang login.
-adminAuthRouter.get('/me', requireAuth, requireRole(UserRole.ADMIN, UserRole.STAFF), adminAuthController.me);
+adminAuthRouter.get(
+  '/me',
+  requireAuth,
+  requireRole(UserRole.ADMIN, UserRole.STAFF),
+  adminAuthController.me,
+);

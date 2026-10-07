@@ -16,7 +16,11 @@ import {
 const DRIVER_ROSTER = [
   { externalId: 'markus-gebze', fullName: 'Markus Gebze', routeScope: DriverRoute.DALAM_KOTA },
   { externalId: 'yohanes-mahuze', fullName: 'Yohanes Mahuze', routeScope: DriverRoute.LUAR_KOTA },
-  { externalId: 'agustinus-balagaise', fullName: 'Agustinus Balagaise', routeScope: DriverRoute.DALAM_KOTA },
+  {
+    externalId: 'agustinus-balagaise',
+    fullName: 'Agustinus Balagaise',
+    routeScope: DriverRoute.DALAM_KOTA,
+  },
   { externalId: 'bartho-kaize', fullName: 'Bartho Kaize', routeScope: DriverRoute.LUAR_KOTA },
 ];
 

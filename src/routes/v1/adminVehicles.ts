@@ -16,10 +16,17 @@ adminVehicleRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
 
 const updateVehicleStatusSchema = z.object({
   status: z.nativeEnum(OperationalStatus, {
-    errorMap: () => ({ message: 'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE).' }),
+    errorMap: () => ({
+      message:
+        'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE).',
+    }),
   }),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 
 // Memperbarui status fisik/operasional armada mobil dan mencatat ke audit log staf.
-adminVehicleRouter.patch('/:id/status', validateBody(updateVehicleStatusSchema), adminVehicleController.updateStatus);
+adminVehicleRouter.patch(
+  '/:id/status',
+  validateBody(updateVehicleStatusSchema),
+  adminVehicleController.updateStatus,
+);

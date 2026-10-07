@@ -22,14 +22,15 @@ export const vehicleController = {
 
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { category, transmission, search, operationalStatus, startDate, endDate } = req.query as {
-        category?: string;
-        transmission?: string;
-        search?: string;
-        operationalStatus?: string;
-        startDate?: string;
-        endDate?: string;
-      };
+      const { category, transmission, search, operationalStatus, startDate, endDate } =
+        req.query as {
+          category?: string;
+          transmission?: string;
+          search?: string;
+          operationalStatus?: string;
+          startDate?: string;
+          endDate?: string;
+        };
 
       const vehicles = await vehicleModel.listCatalog({
         category,
@@ -53,7 +54,11 @@ export const vehicleController = {
       const vehicle = await vehicleModel.findByIdOrExternalId(id);
 
       if (!vehicle) {
-        throw new AppError('VEHICLE_NOT_FOUND', `Armada dengan pengenal '${id}' tidak ditemukan.`, 404);
+        throw new AppError(
+          'VEHICLE_NOT_FOUND',
+          `Armada dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
       }
 
       sendSuccess(res, vehicle);

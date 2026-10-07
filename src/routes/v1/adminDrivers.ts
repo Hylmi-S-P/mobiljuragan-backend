@@ -22,5 +22,9 @@ adminDriverRouter.get('/', validateQuery(listQuerySchema), adminDriverController
 adminDriverRouter.post('/', validateBody(createDriverSchema), adminDriverController.create);
 adminDriverRouter.get('/:id', adminDriverController.detail);
 adminDriverRouter.patch('/:id', validateBody(updateDriverSchema), adminDriverController.update);
-adminDriverRouter.patch('/:id/readiness', validateBody(readinessSchema), adminDriverController.updateReadiness);
+adminDriverRouter.patch(
+  '/:id/readiness',
+  validateBody(readinessSchema),
+  adminDriverController.updateReadiness,
+);
 adminDriverRouter.delete('/:id', adminDriverController.deactivate);

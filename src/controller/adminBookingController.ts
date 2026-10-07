@@ -140,7 +140,11 @@ export const adminBookingController = {
       const booking = await bookingModel.findAdminDetail(id);
 
       if (!booking) {
-        throw new AppError('BOOKING_NOT_FOUND', `Pesanan dengan pengenal '${id}' tidak ditemukan.`, 404);
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
       }
 
       sendSuccess(res, {
@@ -159,9 +163,11 @@ export const adminBookingController = {
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status: nextStatus, quotedAmount, note } = req.body as z.infer<
-        typeof updateBookingStatusSchema
-      >;
+      const {
+        status: nextStatus,
+        quotedAmount,
+        note,
+      } = req.body as z.infer<typeof updateBookingStatusSchema>;
       const staffUser = req.user!;
 
       const result = await bookingModel.updateStatusWithHistoryAndAudit({

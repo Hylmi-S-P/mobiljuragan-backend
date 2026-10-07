@@ -20,10 +20,7 @@ export const fleetModel = {
 
     return db.vehicle.findMany({
       where: vehicleWhere,
-      orderBy: [
-        { category: 'asc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
       include: {
         bookings: {
           where: {

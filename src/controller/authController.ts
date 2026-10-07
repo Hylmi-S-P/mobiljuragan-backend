@@ -56,12 +56,16 @@ export const authController = {
       // Pada mode dev, sertakan mockOtp agar mempermudah testing tim & frontend
       const isDev = process.env.NODE_ENV !== 'production';
 
-      sendSuccess(res, {
-        message: 'Kode verifikasi OTP telah dikirim.',
-        phoneNumber,
-        expiresInSeconds: 300,
-        ...(isDev ? { devMockOtp: plainOtp } : {}),
-      }, 200);
+      sendSuccess(
+        res,
+        {
+          message: 'Kode verifikasi OTP telah dikirim.',
+          phoneNumber,
+          expiresInSeconds: 300,
+          ...(isDev ? { devMockOtp: plainOtp } : {}),
+        },
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -76,7 +80,11 @@ export const authController = {
       const latestOtp = await authModel.findLatestActiveOtp(phoneNumber, purpose);
 
       if (!latestOtp) {
-        throw new AppError('OTP_NOT_FOUND', 'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.', 400);
+        throw new AppError(
+          'OTP_NOT_FOUND',
+          'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.',
+          400,
+        );
       }
 
       // Cek batas percobaan
@@ -84,13 +92,17 @@ export const authController = {
         throw new AppError(
           'OTP_TOO_MANY_ATTEMPTS',
           'Terlalu banyak percobaan yang salah. Permintaan dibatalkan demi keamanan. Silakan minta kode baru.',
-          429
+          429,
         );
       }
 
       // Cek kedaluwarsa
       if (latestOtp.expiresAt < new Date()) {
-        throw new AppError('OTP_EXPIRED', 'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.', 400);
+        throw new AppError(
+          'OTP_EXPIRED',
+          'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.',
+          400,
+        );
       }
 
       // Update attempt count
@@ -104,7 +116,7 @@ export const authController = {
           'OTP_INVALID',
           `Kode OTP yang Anda masukkan salah. Sisa kesempatan: ${remainingAttempts} kali.`,
           400,
-          { remainingAttempts }
+          { remainingAttempts },
         );
       }
 
@@ -118,17 +130,24 @@ export const authController = {
         role: latestOtp.user.role,
       });
 
-      logger.info({ userId: latestOtp.user.id, phoneNumber }, `[OTP VERIFY] Customer ${phoneNumber} berhasil login.`);
+      logger.info(
+        { userId: latestOtp.user.id, phoneNumber },
+        `[OTP VERIFY] Customer ${phoneNumber} berhasil login.`,
+      );
 
-      sendSuccess(res, {
-        token,
-        user: {
-          id: latestOtp.user.id,
-          fullName: latestOtp.user.fullName,
-          phoneNumber: latestOtp.user.phoneNumber,
-          role: latestOtp.user.role,
+      sendSuccess(
+        res,
+        {
+          token,
+          user: {
+            id: latestOtp.user.id,
+            fullName: latestOtp.user.fullName,
+            phoneNumber: latestOtp.user.phoneNumber,
+            role: latestOtp.user.role,
+          },
         },
-      }, 200);
+        200,
+      );
     } catch (error) {
       next(error);
     }

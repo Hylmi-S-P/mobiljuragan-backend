@@ -53,7 +53,10 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 /**
  * Membuat token JWT autentikasi.
  */
-export function signAuthToken(payload: AuthTokenPayload, expiresIn: string | number = '7d'): string {
+export function signAuthToken(
+  payload: AuthTokenPayload,
+  expiresIn: string | number = '7d',
+): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 }
 

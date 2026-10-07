@@ -77,7 +77,7 @@ export const adminUserController = {
         throw new AppError(
           'PHONE_NUMBER_EXISTS',
           'Nomor telepon ini sudah terdaftar pada sistem.',
-          409
+          409,
         );
       }
 
@@ -91,7 +91,7 @@ export const adminUserController = {
           passwordHash,
           isActive: true,
         },
-        { actorId: actorUser.userId, action: 'CREATE_ADMIN_ACCOUNT' }
+        { actorId: actorUser.userId, action: 'CREATE_ADMIN_ACCOUNT' },
       );
 
       sendSuccess(res, newUser, 201);
@@ -127,7 +127,7 @@ export const adminUserController = {
             throw new AppError(
               'PHONE_NUMBER_EXISTS',
               'Nomor telepon ini sudah dipakai akun lain.',
-              409
+              409,
             );
           }
           updateData.phoneNumber = phoneNumber;
@@ -176,7 +176,7 @@ export const adminUserController = {
         throw new AppError(
           'CANNOT_DELETE_SELF',
           'Akun yang sedang dipakai untuk masuk tidak dapat dihapus.',
-          400
+          400,
         );
       }
 
@@ -187,7 +187,7 @@ export const adminUserController = {
           throw new AppError(
             'LAST_ADMIN_PROTECTED',
             'Akun admin aktif terakhir tidak dapat dihapus. Buat admin lain lebih dulu.',
-            409
+            409,
           );
         }
       }
@@ -199,7 +199,7 @@ export const adminUserController = {
         throw new AppError(
           'USER_HAS_REFERENCES',
           `Akun tidak dapat dihapus karena masih terhubung dengan ${bookingCount} pemesanan, ${ticketCount} tiket, dan ${messageCount} pesan. Nonaktifkan akun ini sebagai gantinya.`,
-          409
+          409,
         );
       }
 

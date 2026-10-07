@@ -5,7 +5,12 @@ export class AppError extends Error {
   public readonly code: string;
   public readonly details: Record<string, unknown>;
 
-  constructor(code: string, message: string, statusCode = 400, details: Record<string, unknown> = {}) {
+  constructor(
+    code: string,
+    message: string,
+    statusCode = 400,
+    details: Record<string, unknown> = {},
+  ) {
     super(message);
     this.name = 'AppError';
     this.code = code;
@@ -35,7 +40,7 @@ export function sendError(
   code: string,
   message: string,
   statusCode = 400,
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ): Response {
   return res.status(statusCode).json({
     error: {

@@ -15,7 +15,11 @@ export const adminFleetController = {
    */
   async calendar(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { startDate: rawStart, endDate: rawEnd, category } = req.query as {
+      const {
+        startDate: rawStart,
+        endDate: rawEnd,
+        category,
+      } = req.query as {
         startDate?: string;
         endDate?: string;
         category?: string;
@@ -23,10 +27,10 @@ export const adminFleetController = {
 
       // Default rentang waktu: 30 hari ke depan jika parameter tidak ditentukan
       const now = new Date();
-      const start = rawStart ? new Date(rawStart) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = rawEnd
-        ? new Date(rawEnd)
-        : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const start = rawStart
+        ? new Date(rawStart)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const end = rawEnd ? new Date(rawEnd) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
 
       const vehicles = await fleetModel.listVehiclesWithSchedules({ category, start, end });
 

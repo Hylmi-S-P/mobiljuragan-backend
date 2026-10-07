@@ -22,6 +22,7 @@ Dokumentasi ringkas endpoint REST API backend MobilJuragan untuk integrasi aplik
 ## 2. Standar Format Respons
 
 ### Respons Berhasil (HTTP 200 / 201)
+
 ```json
 {
   "status": "ok",
@@ -30,6 +31,7 @@ Dokumentasi ringkas endpoint REST API backend MobilJuragan untuk integrasi aplik
 ```
 
 ### Respons Gagal (HTTP 400 / 401 / 403 / 404 / 500)
+
 ```json
 {
   "error": {
@@ -47,6 +49,7 @@ Dokumentasi ringkas endpoint REST API backend MobilJuragan untuk integrasi aplik
 Endpoint ini siap dipakai untuk halaman katalog di Mobile maupun manajemen armada di Web.
 
 ### A. Ambil Semua Armada
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/vehicles`
 - **Query Parameter (Opsional):**
@@ -82,6 +85,7 @@ Endpoint ini siap dipakai untuk halaman katalog di Mobile maupun manajemen armad
   ```
 
 ### B. Ambil Daftar Kategori
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/vehicles/categories`
 - **Fungsi:** Menyediakan daftar kategori aktif untuk tab filter tombol di mobile/web.
@@ -94,6 +98,7 @@ Endpoint ini siap dipakai untuk halaman katalog di Mobile maupun manajemen armad
   ```
 
 ### C. Ambil Detail Satu Armada
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/vehicles/:id`
 - **Keterangan:** `:id` bisa berupa UUID database atau `externalId` (contoh: `avanza-g-putih-ps1692b`).
@@ -124,6 +129,7 @@ Endpoint ini siap dipakai untuk halaman katalog di Mobile maupun manajemen armad
 Digunakan pada aplikasi Customer Mobile Flutter (Harun).
 
 ### A. Minta Kode OTP
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/auth/otp/request`
 - **Request Body:**
@@ -145,9 +151,10 @@ Digunakan pada aplikasi Customer Mobile Flutter (Harun).
     }
   }
   ```
-  *(Catatan dev: Nilai `devMockOtp` disediakan langsung di response JSON selama development agar testing login cepat tanpa gateway SMS/WA berbayar).*
+  _(Catatan dev: Nilai `devMockOtp` disediakan langsung di response JSON selama development agar testing login cepat tanpa gateway SMS/WA berbayar)._
 
 ### B. Verifikasi Kode OTP (Login / Masuk)
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/auth/otp/verify`
 - **Request Body:**
@@ -191,6 +198,7 @@ profil yang didapat dari respons verifikasi OTP.
 Digunakan pada aplikasi Admin Web Dashboard Next.js (Dehan).
 
 ### A. Login Admin
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/admin/auth/login`
 - **Akun Default Database (Seeded):**
@@ -220,6 +228,7 @@ Digunakan pada aplikasi Admin Web Dashboard Next.js (Dehan).
   ```
 
 ### B. Profil Admin yang Sedang Login
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/auth/me`
 - **Header:** `Authorization: Bearer <ADMIN_TOKEN>`
@@ -243,6 +252,7 @@ Digunakan pada aplikasi Admin Web Dashboard Next.js (Dehan).
 Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
 
 ### A. Buat Pemesanan Baru (Transaksi Atomik)
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/bookings`
 - **Request Body:**
@@ -257,7 +267,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
     "numberGuests": 4
   }
   ```
-  *(Catatan: `vehicleId` dapat berupa UUID database atau `externalId` armada).*
+  _(Catatan: `vehicleId` dapat berupa UUID database atau `externalId` armada)._
 - **Contoh Respons (HTTP 201 Created):**
   ```json
   {
@@ -290,9 +300,10 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
   ```
 
 ### B. Daftar Pesanan Customer
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/bookings`
-- **Fungsi:** Mengambil daftar seluruh riwayat booking milik customer yang sedang login (untuk tab *Status / Pesanan* di mobile).
+- **Fungsi:** Mengambil daftar seluruh riwayat booking milik customer yang sedang login (untuk tab _Status / Pesanan_ di mobile).
 - **Contoh Respons:**
   ```json
   {
@@ -313,12 +324,14 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
   ```
 
 ### C. Detail Pesanan Tertentu
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/bookings/:id`
 - **Keterangan:** `:id` bisa berupa UUID booking atau `bookingCode` (misal: `MJ-20261101-ABCD`).
 - **Contoh Respons:** Menampilkan data lengkap pesanan, spesifikasi mobil, data pemesan, dan riwayat status.
 
 ### D. Lacak Status & Timeline Pesanan (Stepper View)
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/bookings/:id/status`
 - **Fungsi:** Menyediakan status terkini dan timeline lengkap (`statusHistory`) yang cocok dipasangkan langsung ke komponen stepper status di aplikasi mobile.
@@ -355,6 +368,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <TOKEN>`.
 Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>` (role `ADMIN` atau `STAFF`).
 
 ### A. Antrean Booking Masuk (Tabel & Pagination)
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/bookings`
 - **Query Parameter (Opsional):**
@@ -402,11 +416,13 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
   ```
 
 ### B. Detail Booking & Payload WhatsApp
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/bookings/:id`
 - **Keterangan:** Mengembalikan data detail pemesanan, riwayat status, serta properti `whatsappIntent` berupa teks pesan dan URL `https://api.whatsapp.com/send` yang siap diklik staf admin untuk menghubungi customer.
 
 ### C. Update Status Pesanan & Konfirmasi Tarif
+
 - **Method:** `PATCH`
 - **Endpoint:** `/api/v1/admin/bookings/:id/status`
 - **Request Body:**
@@ -430,6 +446,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>` (role `ADMIN` atau `STAFF`).
 
 ### A. Kalender Jadwal Sewa Armada
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/fleet/calendar`
 - **Fungsi:** Mengambil matriks jadwal pemesanan sewa 9 armada resmi Merauke untuk tampilan visual timeline / kalender di Web Dashboard.
@@ -485,6 +502,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
   ```
 
 ### B. Update Status Operasional Armada
+
 - **Method:** `PATCH`
 - **Endpoint:** `/api/v1/admin/vehicles/:id/status`
 - **Keterangan:** `:id` bisa berupa UUID database atau `externalId` mobil (contoh: `avanza-g-putih-ps1692b`).
@@ -495,7 +513,7 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
     "note": "Perawatan berkala ganti oli dan servis rem di bengkel resmi."
   }
   ```
-  *(Pilihan nilai `status`: `AVAILABLE`, `BOOKED`, `MAINTENANCE`, `UNAVAILABLE`).*
+  _(Pilihan nilai `status`: `AVAILABLE`, `BOOKED`, `MAINTENANCE`, `UNAVAILABLE`)._
 - **Contoh Respons (HTTP 200 OK):**
   ```json
   {
@@ -527,6 +545,7 @@ boleh kembar, supir yang masih terikat pesanan aktif tidak boleh dinonaktifkan, 
 bisa diubah saat supir sedang bertugas.
 
 ### A. Daftar Roster Supir
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/drivers`
 - **Query Parameter (Opsional):** `readiness` (`SIAGA`, `LIBUR`, `SEDANG_TUGAS`), `routeScope`
@@ -558,6 +577,7 @@ bisa diubah saat supir sedang bertugas.
 Nomor kontak dan nomor SIM sengaja bernilai `null` selama datanya belum diverifikasi tim.
 
 ### B. Tambah Supir
+
 - **Method:** `POST` · **Endpoint:** `/api/v1/admin/drivers`
 - **Request Body:** `fullName` (wajib, 3 sampai 80 karakter), `routeScope` (wajib),
   `phoneNumber` dan `licenseNumber` (opsional, boleh `null`).
@@ -565,10 +585,12 @@ Nomor kontak dan nomor SIM sengaja bernilai `null` selama datanya belum diverifi
   dengan `409 DRIVER_DUPLICATE`.
 
 ### C. Ubah Data Supir
+
 - **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/drivers/:id`
 - Body sama seperti penambahan, tetapi seluruh field opsional. Kesiapan tidak diubah di sini.
 
 ### D. Sakelar Kesiapan
+
 - **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/drivers/:id/readiness`
 - **Request Body:** `readiness` bernilai `SIAGA` atau `LIBUR`, ditambah `note` opsional.
 - Nilai `SEDANG_TUGAS` ditolak `400 DRIVER_READINESS_MANUAL_INVALID`, karena status itu hanya
@@ -576,12 +598,14 @@ Nomor kontak dan nomor SIM sengaja bernilai `null` selama datanya belum diverifi
 - Bila statusnya sama dengan sebelumnya, respons memuat `unchanged: true`.
 
 ### E. Nonaktifkan Supir
+
 - **Method:** `DELETE` · **Endpoint:** `/api/v1/admin/drivers/:id`
 - Penonaktifan bersifat lunak: `isActive` menjadi `false` supaya jejak audit tetap utuh, dan
   supir itu hilang dari daftar default.
 - Ditolak `409 DRIVER_ASSIGNED` bila supir masih terikat pesanan yang belum selesai.
 
 ### F. Penugasan Supir ke Pesanan
+
 - **Method:** `PATCH` · **Endpoint:** `/api/v1/admin/bookings/:id/driver`
 - **Request Body:** `driverId` (uuid atau `externalId` seperti `markus-gebze`) dan `note` opsional.
 - Hanya berlaku untuk pesanan bertipe `WITH_DRIVER`. Dalam satu transaksi: supir diikat ke
@@ -609,6 +633,7 @@ Aturan yang dijaga saat menghapus akun:
   sebagai gantinya.
 
 ### A. Daftar Akun
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/users`
 
@@ -628,10 +653,12 @@ Aturan yang dijaga saat menghapus akun:
 ```
 
 ### B. Detail Akun
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/users/:id`
 
 ### C. Tambah Akun
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/admin/users`
 - **Body:** `fullName`, `phoneNumber`, `role` (`ADMIN` atau `STAFF`), `password`
@@ -640,11 +667,13 @@ Aturan yang dijaga saat menghapus akun:
   `PHONE_NUMBER_EXISTS`.
 
 ### D. Ubah Akun
+
 - **Method:** `PATCH`
 - **Endpoint:** `/api/v1/admin/users/:id`
 - **Body:** semua field opsional — `fullName`, `phoneNumber`, `role`, `password`, `isActive`.
 
 ### E. Hapus Akun
+
 - **Method:** `DELETE`
 - **Endpoint:** `/api/v1/admin/users/:id`
 - **Respons:** `200` dengan nama akun yang dihapus.
@@ -656,25 +685,30 @@ Aturan yang dijaga saat menghapus akun:
 Menopang layar Customer Care pada dashboard: daftar tiket, ruang percakapan, dan balasan tim.
 
 ### A. Daftar Tiket
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/tickets`
 
 ### B. Buat Tiket
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/admin/tickets`
 - **Body:** `subject` dan `description` wajib diisi; keduanya dibalas `400`
   `VALIDATION_ERROR` bila kosong.
 
 ### C. Detail Tiket
+
 - **Method:** `GET`
 - **Endpoint:** `/api/v1/admin/tickets/:id`
 - Memuat percakapan lengkap tiket.
 
 ### D. Ubah Status Tiket
+
 - **Method:** `PATCH`
 - **Endpoint:** `/api/v1/admin/tickets/:id/status`
 
 ### E. Kirim Balasan
+
 - **Method:** `POST`
 - **Endpoint:** `/api/v1/admin/tickets/:id/messages`
 - **Body:** `body` wajib diisi; dibalas `400` `VALIDATION_ERROR` bila kosong.
@@ -683,38 +717,36 @@ Menopang layar Customer Care pada dashboard: daftar tiket, ruang percakapan, dan
 
 ## 12. Daftar Kode Error Umum
 
-| HTTP Code | Error Code | Keterangan |
-|---|---|---|
-| 400 | `VALIDATION_ERROR` | Format body atau query parameter tidak sesuai validasi Zod. |
-| 400 | `OTP_INVALID` | Kode OTP salah atau belum pernah diminta. |
-| 400 | `OTP_EXPIRED` | Kode OTP telah kedaluwarsa (lebih dari 5 menit). |
-| 400 | `OTP_ALREADY_USED` | Kode OTP sudah pernah digunakan sebelumnya. |
-| 401 | `UNAUTHORIZED` | Header token tidak ditemukan atau token tidak valid. |
-| 401 | `INVALID_CREDENTIALS` | Password admin atau nomor telepon admin salah. |
-| 403 | `FORBIDDEN` | Pengguna tidak memiliki hak akses (role tidak mencukupi). |
-| 404 | `VEHICLE_NOT_FOUND` | Armada mobil dengan ID tersebut tidak ada di sistem. |
-| 404 | `BOOKING_NOT_FOUND` | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan. |
-| 409 | `BOOKING_VEHICLE_UNAVAILABLE` | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
-| 409 | `BOOKING_CONFLICT` | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
-| 400 | `DRIVER_READINESS_MANUAL_INVALID` | Status `SEDANG_TUGAS` dipaksa lewat sakelar kesiapan. |
-| 404 | `DRIVER_NOT_FOUND` | Supir dengan uuid atau `externalId` tersebut tidak ada di roster. |
-| 404 | `USER_NOT_FOUND` | Akun staf/admin dengan ID tersebut tidak ditemukan. |
-| 404 | `TICKET_NOT_FOUND` | Tiket bantuan dengan ID tersebut tidak ditemukan. |
-| 409 | `PHONE_NUMBER_EXISTS` | Nomor telepon sudah dipakai akun staf/admin lain. |
-| 400 | `CANNOT_DELETE_SELF` | Akun yang sedang dipakai untuk masuk tidak boleh dihapus sendiri. |
-| 409 | `LAST_ADMIN_PROTECTED` | Admin aktif terakhir tidak boleh dihapus. |
-| 409 | `USER_HAS_REFERENCES` | Akun masih terikat pemesanan, tiket, atau pesan sehingga tidak bisa dihapus. |
-| 409 | `DRIVER_DUPLICATE` | Nama atau nomor kontak supir sudah dipakai supir aktif lain. |
-| 409 | `DRIVER_INACTIVE` | Supir sudah nonaktif sehingga tidak bisa diubah atau ditugaskan. |
-| 409 | `DRIVER_NOT_AVAILABLE` | Supir berstatus `LIBUR` sehingga belum bisa ditugaskan. |
-| 409 | `DRIVER_ALREADY_ASSIGNED` | Supir sudah terikat pesanan lain pada rentang tanggal yang bertabrakan. |
-| 409 | `DRIVER_ON_DUTY` | Kesiapan supir yang sedang bertugas tidak bisa diubah. |
-| 409 | `DRIVER_ASSIGNED` | Supir masih terikat pesanan yang belum selesai. |
-| 409 | `DRIVER_REQUIRED` | Pesanan memakai supir tetapi supirnya belum dipilih saat konfirmasi. |
-| 409 | `BOOKING_NOT_WITH_DRIVER` | Pesanan bertipe lepas kunci tidak memakai supir. |
-| 409 | `BOOKING_NOT_ASSIGNABLE` | Pesanan sudah selesai, dibatalkan, atau ditolak. |
-| 500 | `FETCH_FLEET_CALENDAR_ERROR` | Terjadi kesalahan saat memuat kalender jadwal armada. |
-| 500 | `UPDATE_VEHICLE_STATUS_ERROR` | Terjadi kesalahan saat mengubah status armada. |
-| 500 | `INTERNAL_SERVER_ERROR` | Kesalahan tidak terduga pada server database. |
-
-
+| HTTP Code | Error Code                        | Keterangan                                                                       |
+| --------- | --------------------------------- | -------------------------------------------------------------------------------- |
+| 400       | `VALIDATION_ERROR`                | Format body atau query parameter tidak sesuai validasi Zod.                      |
+| 400       | `OTP_INVALID`                     | Kode OTP salah atau belum pernah diminta.                                        |
+| 400       | `OTP_EXPIRED`                     | Kode OTP telah kedaluwarsa (lebih dari 5 menit).                                 |
+| 400       | `OTP_ALREADY_USED`                | Kode OTP sudah pernah digunakan sebelumnya.                                      |
+| 401       | `UNAUTHORIZED`                    | Header token tidak ditemukan atau token tidak valid.                             |
+| 401       | `INVALID_CREDENTIALS`             | Password admin atau nomor telepon admin salah.                                   |
+| 403       | `FORBIDDEN`                       | Pengguna tidak memiliki hak akses (role tidak mencukupi).                        |
+| 404       | `VEHICLE_NOT_FOUND`               | Armada mobil dengan ID tersebut tidak ada di sistem.                             |
+| 404       | `BOOKING_NOT_FOUND`               | Data pesanan sewa dengan ID atau booking code tersebut tidak ditemukan.          |
+| 409       | `BOOKING_VEHICLE_UNAVAILABLE`     | Armada sedang tidak tersedia atau jadwal sewa bentrok dengan pesanan aktif lain. |
+| 409       | `BOOKING_CONFLICT`                | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
+| 400       | `DRIVER_READINESS_MANUAL_INVALID` | Status `SEDANG_TUGAS` dipaksa lewat sakelar kesiapan.                            |
+| 404       | `DRIVER_NOT_FOUND`                | Supir dengan uuid atau `externalId` tersebut tidak ada di roster.                |
+| 404       | `USER_NOT_FOUND`                  | Akun staf/admin dengan ID tersebut tidak ditemukan.                              |
+| 404       | `TICKET_NOT_FOUND`                | Tiket bantuan dengan ID tersebut tidak ditemukan.                                |
+| 409       | `PHONE_NUMBER_EXISTS`             | Nomor telepon sudah dipakai akun staf/admin lain.                                |
+| 400       | `CANNOT_DELETE_SELF`              | Akun yang sedang dipakai untuk masuk tidak boleh dihapus sendiri.                |
+| 409       | `LAST_ADMIN_PROTECTED`            | Admin aktif terakhir tidak boleh dihapus.                                        |
+| 409       | `USER_HAS_REFERENCES`             | Akun masih terikat pemesanan, tiket, atau pesan sehingga tidak bisa dihapus.     |
+| 409       | `DRIVER_DUPLICATE`                | Nama atau nomor kontak supir sudah dipakai supir aktif lain.                     |
+| 409       | `DRIVER_INACTIVE`                 | Supir sudah nonaktif sehingga tidak bisa diubah atau ditugaskan.                 |
+| 409       | `DRIVER_NOT_AVAILABLE`            | Supir berstatus `LIBUR` sehingga belum bisa ditugaskan.                          |
+| 409       | `DRIVER_ALREADY_ASSIGNED`         | Supir sudah terikat pesanan lain pada rentang tanggal yang bertabrakan.          |
+| 409       | `DRIVER_ON_DUTY`                  | Kesiapan supir yang sedang bertugas tidak bisa diubah.                           |
+| 409       | `DRIVER_ASSIGNED`                 | Supir masih terikat pesanan yang belum selesai.                                  |
+| 409       | `DRIVER_REQUIRED`                 | Pesanan memakai supir tetapi supirnya belum dipilih saat konfirmasi.             |
+| 409       | `BOOKING_NOT_WITH_DRIVER`         | Pesanan bertipe lepas kunci tidak memakai supir.                                 |
+| 409       | `BOOKING_NOT_ASSIGNABLE`          | Pesanan sudah selesai, dibatalkan, atau ditolak.                                 |
+| 500       | `FETCH_FLEET_CALENDAR_ERROR`      | Terjadi kesalahan saat memuat kalender jadwal armada.                            |
+| 500       | `UPDATE_VEHICLE_STATUS_ERROR`     | Terjadi kesalahan saat mengubah status armada.                                   |
+| 500       | `INTERNAL_SERVER_ERROR`           | Kesalahan tidak terduga pada server database.                                    |

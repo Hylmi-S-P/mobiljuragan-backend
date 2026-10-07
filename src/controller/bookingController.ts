@@ -56,7 +56,11 @@ export const bookingController = {
       }
 
       // Hanya pesanan berstatus aktif yang dihitung bentrok jadwal.
-      const conflictingBooking = await bookingModel.findVehicleScheduleConflict(vehicle.id, start, end);
+      const conflictingBooking = await bookingModel.findVehicleScheduleConflict(
+        vehicle.id,
+        start,
+        end,
+      );
 
       if (conflictingBooking) {
         throw new AppError(
@@ -101,7 +105,10 @@ export const bookingController = {
       const actor = req.user!;
       const isStaffOrAdmin = actor.role === UserRole.STAFF || actor.role === UserRole.ADMIN;
 
-      const bookings = await bookingModel.listForActor({ customerId: actor.userId, isStaffOrAdmin });
+      const bookings = await bookingModel.listForActor({
+        customerId: actor.userId,
+        isStaffOrAdmin,
+      });
 
       sendSuccess(res, bookings);
     } catch (error) {
@@ -127,7 +134,11 @@ export const bookingController = {
       });
 
       if (!booking) {
-        throw new AppError('BOOKING_NOT_FOUND', `Pesanan dengan pengenal '${id}' tidak ditemukan.`, 404);
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
       }
 
       sendSuccess(res, booking);
@@ -154,7 +165,11 @@ export const bookingController = {
       });
 
       if (!booking) {
-        throw new AppError('BOOKING_NOT_FOUND', `Pesanan dengan pengenal '${id}' tidak ditemukan.`, 404);
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
       }
 
       sendSuccess(res, booking);

@@ -1,0 +1,24 @@
+# Dependency & hasil build
+node_modules/
+dist/
+
+# Kode generated Prisma: hasil mesin, akan ditimpa oleh `prisma generate`
+src/generated/
+
+# Berkas migrasi Prisma: ditulis oleh Prisma, jangan diformat ulang
+prisma/migrations/
+
+# Dokumen: ditulis manual, bukan kode
+README.md
+docs/
+
+# Lockfile: ditulis npm, jangan diformat ulang
+package-lock.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Log
+*.log
