@@ -5,7 +5,7 @@ import { validateBody } from '../../middleware/validate.js';
 import { createBookingSchema } from '../../validators/bookingSchemas.js';
 
 /**
- * Booking Domain: /api/v1/bookings/*
+ * Pemesanan sewa sisi pelanggan: /api/v1/bookings/*
  */
 export const bookingRouter: Router = Router();
 

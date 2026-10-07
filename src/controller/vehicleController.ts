@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { vehicleModel } from '../model/vehicleModel.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
 
 /**
  * Controller katalog armada.

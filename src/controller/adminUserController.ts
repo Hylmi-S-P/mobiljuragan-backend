@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { UserRole, type Prisma } from '../generated/prisma/client.js';
 import { userModel } from '../model/userModel.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
+import { normalizePhoneNumber } from '../lib/phone.js';
 
 /**
  * Controller manajemen akun staf dan admin.
@@ -12,17 +13,6 @@ import { AppError, sendSuccess } from '../utils/response.js';
  * Semua kegagalan diteruskan lewat `next(error)` agar ditangani errorHandler global
  * satu kali, bukan diulang di setiap blok catch.
  */
-
-/** Menyeragamkan nomor telepon ke format lokal 08xxxx. */
-function normalizePhoneNumber(raw: string): string {
-  let cleaned = raw.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
-    cleaned = '0' + cleaned.slice(2);
-  } else if (!cleaned.startsWith('0')) {
-    cleaned = '0' + cleaned;
-  }
-  return cleaned;
-}
 
 export const createAdminSchema = z.object({
   fullName: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.'),

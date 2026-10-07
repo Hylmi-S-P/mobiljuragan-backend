@@ -2,7 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { BookingStatusActor, UserRole, type Prisma } from '../generated/prisma/client.js';
 import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
+import { toInternationalPhone } from '../lib/phone.js';
 import type {
   adminBookingQuerySchema,
   assignDriverSchema,
@@ -24,17 +25,6 @@ import type {
  * tidak sedang terikat pesanan lain, jadwalnya tidak bentrok, dan hanya pesanan
  * bertipe WITH_DRIVER yang boleh ditugaskan supir.
  */
-
-/** WhatsApp memakai format internasional tanpa tanda plus, mis. 6281234567890. */
-function toInternationalPhone(phone: string): string {
-  let cleaned = phone.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.slice(1);
-  } else if (!cleaned.startsWith('62')) {
-    cleaned = '62' + cleaned;
-  }
-  return cleaned;
-}
 
 /**
  * Data minimum yang dibutuhkan draf WhatsApp. Sengaja lebih sempit daripada

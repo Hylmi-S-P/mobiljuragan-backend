@@ -10,7 +10,7 @@ import {
 } from '../../validators/bookingSchemas.js';
 
 /**
- * Admin Bookings & Operations: /api/v1/admin/bookings/*
+ * Antrean pesanan & konfirmasi admin: /api/v1/admin/bookings/*
  */
 export const adminBookingRouter: Router = Router();
 

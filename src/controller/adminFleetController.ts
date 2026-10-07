@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { fleetModel } from '../model/fleetModel.js';
-import { sendSuccess } from '../utils/response.js';
+import { sendSuccess } from '../lib/response.js';
 
 /**
  * Controller kalender armada.

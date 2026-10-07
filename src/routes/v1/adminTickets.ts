@@ -4,7 +4,7 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
 /**
- * Customer Care: /api/v1/admin/tickets/*
+ * Tiket bantuan pelanggan: /api/v1/admin/tickets/*
  */
 export const adminTicketRouter: Router = Router();
 

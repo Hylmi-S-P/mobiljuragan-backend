@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { DriverReadiness, DriverRoute, type Prisma } from '../generated/prisma/client.js';
 import { driverModel } from '../model/driverModel.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
 import {
   createDriverSchema,
   readinessSchema,

@@ -4,7 +4,7 @@ import { vehicleController } from '../../controller/vehicleController.js';
 import { validateQuery } from '../../middleware/validate.js';
 
 /**
- * Vehicle Catalog & Availability: /api/v1/vehicles/*
+ * Katalog armada & ketersediaannya: /api/v1/vehicles/*
  */
 export const vehicleRouter: Router = Router();
 

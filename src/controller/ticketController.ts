@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { TicketCategory, TicketStatus } from '../generated/prisma/client.js';
 import { ticketModel } from '../model/ticketModel.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
 
 /**
  * Controller customer care.

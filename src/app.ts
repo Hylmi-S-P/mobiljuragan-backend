@@ -17,7 +17,7 @@ app.use((req: Request, _res: Response, next) => {
 });
 
 /**
- * Health check untuk monitoring tanpa dependensi database.
+ * Pemeriksaan kesehatan server, bisa diakses tanpa menyentuh database.
  */
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
@@ -42,7 +42,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Global Error Handler
+// Handler galat global, wajib berada paling akhir
 app.use(errorHandler);
 
-logger.info('Express app configured with CORS, /api/v1 routes, and error handler.');
+logger.info('Aplikasi Express siap: CORS, rute /api/v1, dan handler galat terpasang.');

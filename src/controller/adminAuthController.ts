@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import { userModel } from '../model/userModel.js';
-import { verifyPassword, signAuthToken } from '../utils/auth.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { verifyPassword, signAuthToken } from '../lib/auth.js';
+import { AppError, sendSuccess } from '../lib/response.js';
+import { normalizePhoneNumber } from '../lib/phone.js';
 import { logger } from '../logger.js';
 import { UserRole } from '../generated/prisma/client.js';
 
@@ -16,17 +17,6 @@ import { UserRole } from '../generated/prisma/client.js';
  * karena tabelnya memang satu; tidak ada model terpisah hanya untuk login.
  */
 
-/** Nomor lokal dinormalkan supaya cocok dengan format yang tersimpan. */
-function normalizePhoneNumber(raw: string): string {
-  let cleaned = raw.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
-    cleaned = '0' + cleaned.slice(2);
-  } else if (!cleaned.startsWith('0')) {
-    cleaned = '0' + cleaned;
-  }
-  return cleaned;
-}
-
 export const adminAuthController = {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -34,11 +24,12 @@ export const adminAuthController = {
       const identifier = (rawPhone || rawUsername || '').trim();
 
       let user = null;
-      if (
-        /^[0-9+]+$/.test(identifier) ||
-        identifier.startsWith('0') ||
-        identifier.startsWith('62')
-      ) {
+      // Dianggap nomor telepon kalau isinya hanya angka dan pemisah umum
+      // (spasi, tanda hubung, tanda plus), lalu punya cukup digit.
+      // Bentuk `+62 812-3456-7890` ikut tertangkap, bukan jatuh ke pencarian nama.
+      const digitCount = identifier.replace(/\D/g, '').length;
+      const looksLikePhone = /^[0-9+\-\s()]+$/.test(identifier) && digitCount >= 8;
+      if (looksLikePhone) {
         const phoneNumber = normalizePhoneNumber(identifier);
         user = await userModel.findByPhoneNumber(phoneNumber);
       } else {

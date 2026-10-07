@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyAuthToken, type AuthTokenPayload } from '../utils/auth.js';
-import { sendError } from '../utils/response.js';
+import { verifyAuthToken, type AuthTokenPayload } from '../lib/auth.js';
+import { sendError } from '../lib/response.js';
 import { userModel } from '../model/userModel.js';
 import type { UserRole } from '../generated/prisma/client.js';
 
@@ -13,7 +13,7 @@ declare global {
 }
 
 /**
- * Middleware untuk memverifikasi Authorization: Bearer <token>
+ * Memeriksa header Authorization: Bearer <token> dan memastikan akunnya masih aktif.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
@@ -26,7 +26,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   try {
     const payload = verifyAuthToken(token);
 
-    // Pastikan user masih aktif di database
+    // Token yang masih berlaku tetap ditolak kalau akunnya sudah dinonaktifkan
     const user = await userModel.findActiveSessionUser(payload.userId);
 
     if (!user || !user.isActive) {

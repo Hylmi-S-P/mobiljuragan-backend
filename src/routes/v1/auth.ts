@@ -4,7 +4,7 @@ import { authController } from '../../controller/authController.js';
 import { validateBody } from '../../middleware/validate.js';
 
 /**
- * Customer Auth: /api/v1/auth/*
+ * Autentikasi pelanggan berbasis OTP: /api/v1/auth/*
  */
 export const authRouter: Router = Router();
 

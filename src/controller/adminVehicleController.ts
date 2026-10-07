@@ -1,7 +1,7 @@
 import { vehicleModel } from '../model/vehicleModel.js';
 import type { NextFunction, Request, Response } from 'express';
 import type { OperationalStatus } from '../generated/prisma/client.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
 
 /**
  * Controller manajemen armada untuk portal staf/admin.

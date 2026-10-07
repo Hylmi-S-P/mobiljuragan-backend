@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
 /**
- * Admin Auth: /api/v1/admin/auth/*
+ * Autentikasi staf & admin: /api/v1/admin/auth/*
  */
 export const adminAuthRouter: Router = Router();
 

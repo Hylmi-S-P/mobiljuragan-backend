@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import { authModel, OTP_MAX_ATTEMPTS } from '../model/authModel.js';
-import { generateOtp, hashOtp, verifyOtpHash, signAuthToken } from '../utils/auth.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { generateOtp, hashOtp, verifyOtpHash, signAuthToken } from '../lib/auth.js';
+import { AppError, sendSuccess } from '../lib/response.js';
+import { normalizePhoneNumber } from '../lib/phone.js';
 import { logger } from '../logger.js';
 
 /**
@@ -11,24 +12,13 @@ import { logger } from '../logger.js';
  * lewat `next(error)` supaya ditangani satu kali oleh errorHandler global.
  */
 
-/** Nomor lokal dinormalkan supaya satu pelanggan tidak punya dua akun. */
-function normalizePhoneNumber(raw: string): string {
-  let cleaned = raw.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
-    cleaned = '0' + cleaned.slice(2);
-  } else if (!cleaned.startsWith('0')) {
-    cleaned = '0' + cleaned;
-  }
-  return cleaned;
-}
-
 export const authController = {
   async requestOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { phoneNumber: rawPhone, fullName, purpose } = req.body;
       const phoneNumber = normalizePhoneNumber(rawPhone);
 
-      // Cari atau buat customer
+      // Cari pelanggan yang sudah terdaftar, atau daftarkan kalau belum ada
       let user = await authModel.findUserByPhoneNumber(phoneNumber);
 
       if (!user) {
@@ -105,7 +95,7 @@ export const authController = {
         );
       }
 
-      // Update attempt count
+      // Tambah jumlah percobaan, termasuk saat kode yang dimasukkan salah
       await authModel.incrementAttemptCount(latestOtp.id);
 
       // Verifikasi kecocokan hash
@@ -120,7 +110,7 @@ export const authController = {
         );
       }
 
-      // Tandai consumed
+      // Tandai OTP sudah terpakai supaya tidak bisa dipakai dua kali
       await authModel.markConsumed(latestOtp.id);
 
       // Terbitkan token autentikasi

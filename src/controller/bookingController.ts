@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { bookingModel } from '../model/bookingModel.js';
 import { OperationalStatus, UserRole } from '../generated/prisma/client.js';
-import { AppError, sendSuccess } from '../utils/response.js';
+import { AppError, sendSuccess } from '../lib/response.js';
 import type { createBookingSchema } from '../validators/bookingSchemas.js';
 
 /**

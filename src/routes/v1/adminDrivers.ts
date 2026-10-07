@@ -11,7 +11,7 @@ import {
 } from '../../validators/driverSchemas.js';
 
 /**
- * Admin Driver Roster: /api/v1/admin/drivers/*
+ * Roster supir: /api/v1/admin/drivers/*
  */
 export const adminDriverRouter: Router = Router();
 

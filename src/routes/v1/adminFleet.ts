@@ -6,7 +6,7 @@ import { validateQuery } from '../../middleware/validate.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
 /**
- * Admin Fleet Calendar: /api/v1/admin/fleet/*
+ * Kalender jadwal armada: /api/v1/admin/fleet/*
  */
 export const adminFleetRouter: Router = Router();
 

@@ -12,32 +12,32 @@ import { adminTicketRouter } from './adminTickets.js';
 
 export const v1Router: Router = Router();
 
-// Admin Accounts Management: /api/v1/admin/users/*
+// Manajemen akun staf & admin: /api/v1/admin/users/*
 v1Router.use('/admin/users', adminUserRouter);
 
-// Customer Auth: /api/v1/auth/*
+// Autentikasi pelanggan berbasis OTP: /api/v1/auth/*
 v1Router.use('/auth', authRouter);
 
-// Admin Auth: /api/v1/admin/auth/*
+// Login staf & admin portal: /api/v1/admin/auth/*
 v1Router.use('/admin/auth', adminAuthRouter);
 
-// Admin Bookings & Operations: /api/v1/admin/bookings/*
+// Antrean pesanan & konfirmasi admin: /api/v1/admin/bookings/*
 v1Router.use('/admin/bookings', adminBookingRouter);
 
-// Admin Fleet Calendar: /api/v1/admin/fleet/*
+// Kalender jadwal armada: /api/v1/admin/fleet/*
 v1Router.use('/admin/fleet', adminFleetRouter);
 
-// Admin Vehicle Management: /api/v1/admin/vehicles/*
+// Status operasional armada: /api/v1/admin/vehicles/*
 v1Router.use('/admin/vehicles', adminVehicleRouter);
 
-// Admin Driver Roster: /api/v1/admin/drivers/*
+// Roster supir & penugasannya: /api/v1/admin/drivers/*
 v1Router.use('/admin/drivers', adminDriverRouter);
 
-// Customer Care / Support Tickets: /api/v1/admin/tickets/*
+// Tiket bantuan pelanggan: /api/v1/admin/tickets/*
 v1Router.use('/admin/tickets', adminTicketRouter);
 
-// Vehicle Catalog & Availability: /api/v1/vehicles/*
+// Katalog armada & ketersediaannya: /api/v1/vehicles/*
 v1Router.use('/vehicles', vehicleRouter);
 
-// Booking Domain: /api/v1/bookings/*
+// Pemesanan sewa sisi pelanggan: /api/v1/bookings/*
 v1Router.use('/bookings', bookingRouter);

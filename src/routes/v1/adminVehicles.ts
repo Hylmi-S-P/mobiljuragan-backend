@@ -6,7 +6,7 @@ import { validateBody } from '../../middleware/validate.js';
 import { OperationalStatus, UserRole } from '../../generated/prisma/client.js';
 
 /**
- * Admin Vehicle Management: /api/v1/admin/vehicles/*
+ * Status operasional armada: /api/v1/admin/vehicles/*
  */
 export const adminVehicleRouter: Router = Router();
 
