@@ -21,3 +21,10 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Berkas konfigurasi & catatan kerja agent, disimpan di luar repo
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+DESIGN.md
+docs/design/
