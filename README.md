@@ -335,6 +335,14 @@ Backend ini melayani 11 halaman Next.js. Tabel berikut menjelaskan strategi rend
 | **Contoh Keadaan Kosong** | `/empty` | **Static** | Halaman rujukan tampilan, isinya tetap dan tidak bergantung data. |
 | **Contoh Error Boundary** | `/error-boundary` | **Static** | Halaman rujukan tampilan kegagalan, tidak memuat data. |
 
+### Bukti hasil `npm run build`
+
+![Hasil npm run build: seluruh rute terkompilasi tanpa error](docs/build/npm-run-build.png)
+
+Build selesai tanpa error dan menghasilkan **12 rute**: 9 bertanda `ƒ` (Dynamic, dirender saat diminta) dan 3 bertanda `○` (Static, sudah disiapkan saat build). Tiga yang statis adalah dua halaman rujukan tampilan ditambah halaman 404 bawaan Next.js. Jumlah dan tanda pada keluaran ini cocok dengan tabel strategi render di atas.
+
+Selain itu terlihat `ƒ Proxy (Middleware)` — gerbang sesi di sisi Next.js yang memeriksa token sebelum halaman dashboard dibuka, sebelum permintaan diteruskan ke API ini.
+
 ---
 
 ## 9. Perbandingan Figma vs Hasil Slicing
