@@ -229,6 +229,17 @@ Untuk melihat dan mengelola isi tabel secara visual melalui peramban web:
 npm run prisma:studio
 ```
 
+### Langkah 10: Format Kode dengan Prettier
+Seluruh kode backend mengikuti satu gaya penulisan yang dijaga Prettier (kutip satu, 2 spasi, lebar 100 karakter). Untuk memformat ulang seluruh berkas:
+```bash
+npm run format
+```
+Untuk sekadar memeriksa apakah ada berkas yang belum sesuai (tanpa mengubah apa pun):
+```bash
+npm run format:check
+```
+Berkas yang dikecualikan diatur di `.prettierignore` — antara lain `src/generated/` (kode buatan Prisma), `prisma/migrations/`, dan `README.md`.
+
 ---
 
 ## 5. Ringkasan Endpoint API Terimplementasi
