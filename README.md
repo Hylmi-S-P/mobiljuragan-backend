@@ -55,6 +55,8 @@ Berikut adalah file dan direktori utama yang mengelola logika sistem:
 
 ```text
 mobiljuragan-backend/
+├── database.sql             # Struktur tabel + data awal, bisa diimpor ke database kosong
+├── .env.example             # Contoh konfigurasi environment (salin jadi .env)
 ├── docs/
 │   └── README.md            # Dokumentasi lengkap seluruh endpoint & payload REST API
 ├── prisma/
@@ -111,9 +113,10 @@ mobiljuragan-backend/
 └── tsconfig.json            # Konfigurasi compiler TypeScript (NodeNext)
 ```
 
-Suite E2E beserta konfigurasi typecheck-nya sengaja diletakkan **di luar repo ini**, yaitu di
-`.verify/e2e/` pada root workspace, supaya berkas uji dan laporan hasilnya tidak ikut
-ter-commit maupun ter-push. Perintah `npm test` tetap bisa dijalankan dari folder ini.
+Suite E2E disimpan di folder `.verify/e2e/` pada root workspace, di luar repo ini, supaya berkas uji
+dan laporan hasilnya tidak ikut ter-commit. Perintah `npm test` tetap bisa dijalankan dari folder
+ini. Kalau folder tersebut tidak tersedia, backend tetap bisa dijalankan dan diperiksa manual lewat
+endpoint pada tabel di bagian 5.
 
 ---
 
@@ -194,15 +197,18 @@ Setelah proses seeding selesai, database akan memiliki:
    - *PICKUP*: Toyota Hilux Double Cabin 4x4 Putih (`PS2266B`), Mitsubishi Triton Ultimate 4x4 Hitam (`PS2377B`).
    - *COMMERCIAL*: Daihatsu Gran Max Blind Van Putih (`PS2488B`).
 2. **Akun Staf & Admin Default:**
-   - **Admin Utama:** No. HP `081234567890` | Password: `Admin123!`
-   - **Staf Operasional:** No. HP `081234567891` | Password: `Staff123!`
+   - **Admin Utama:** No. HP `081234567890` (alias `admin`) | Password: `Admin123!`
+   - **Staf Operasional:** No. HP `081234567899` (alias `staf`) | Password: `Staf123!`
 
 ### Langkah 7: Jalankan Pengujian Otomatis
 Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi booking, antrean operasional admin, sampai modul supir:
 ```bash
 npm test
 ```
-*(Harus menampilkan 52/52 pemeriksaan lolos. Skrip suite ini berada di `.verify/e2e/api-e2e.ts` pada root workspace, di luar repo, dan berjalan lewat HTTP sungguhan di port 4999. Ia ikut menguji jalur gagal seperti 401, 403, dan 409, lalu menulis laporan ke `.verify/e2e/report.md` dan `.verify/e2e/last-run.json`. Kalau ada satu saja pemeriksaan yang gagal, perintahnya keluar dengan kode bukan nol sehingga bisa dipakai di alur otomatis.)*
+*(Harus menampilkan 52/52 pemeriksaan lolos. Suite ini berjalan lewat HTTP sungguhan di port 4999,
+ikut menguji jalur gagal seperti 401, 403, dan 409, lalu menulis laporan ke `.verify/e2e/report.md`
+dan `.verify/e2e/last-run.json` di root workspace. Kalau ada satu saja pemeriksaan yang gagal,
+perintahnya keluar dengan kode bukan nol sehingga bisa dipakai di alur otomatis.)*
 
 Typecheck khusus berkas uji dijalankan terpisah karena `tsconfig.json` sengaja hanya mengompilasi `src/`:
 ```bash
@@ -266,8 +272,7 @@ npm run prisma:studio
 | **Customer Care** | `POST` | `/api/v1/admin/tickets/:id/messages` | Admin/Staff | Kirim balasan tim pada tiket |
 
 **Catatan:** `GET /api/v1/auth/me` dan `POST /api/v1/auth/logout` belum ada di kode, sehingga tidak
-dicantumkan di tabel ini. Keduanya tercatat sebagai rencana pada `x-roadmap` di
-`docs(discontinueid)/api/openapi.yaml`.
+dicantumkan di tabel ini. Keduanya masih berupa rencana untuk modul profil pelanggan.
 
 ---
 

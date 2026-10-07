@@ -180,9 +180,9 @@ Dua endpoint berikut masih direncanakan dan **belum ada di kode**, jadi belum bi
 - `GET /api/v1/auth/me` untuk profil pelanggan yang sedang masuk.
 - `POST /api/v1/auth/logout` untuk mengakhiri sesi pelanggan.
 
-Keduanya tercatat pada bagian `x-roadmap` di `docs(discontinueid)/api/openapi.yaml` supaya tidak
-dianggap tersedia. Sampai dibangun, sisi aplikasi cukup membuang token tersimpan saat pengguna
-keluar, dan memakai data profil yang didapat dari respons verifikasi OTP.
+Keduanya sengaja tidak didaftarkan sebagai endpoint supaya tidak dianggap tersedia. Sampai
+dibangun, sisi aplikasi cukup membuang token tersimpan saat pengguna keluar, dan memakai data
+profil yang didapat dari respons verifikasi OTP.
 
 ---
 
@@ -522,9 +522,9 @@ Seluruh endpoint di bawah mewajibkan header `Authorization: Bearer <ADMIN_TOKEN>
 ## 9. Roster Supir (`/admin/drivers`)
 
 Menopang layar Manajemen Supir, modal tambah dan hapus supir, serta pemilihan supir di Detail
-Pemesanan pada dashboard. Daftar lengkap aturan penolakannya ada di
-`docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md` pada root workspace, di luar repo ini, dan
-seluruh butirnya diuji lewat E2E di `.verify/e2e/api-e2e.ts` pada root workspace, di luar repo ini.
+Pemesanan pada dashboard. Aturan penolakan yang dijaga: nama atau nomor kontak supir aktif tidak
+boleh kembar, supir yang masih terikat pesanan aktif tidak boleh dinonaktifkan, dan kesiapan tidak
+bisa diubah saat supir sedang bertugas.
 
 ### A. Daftar Roster Supir
 - **Method:** `GET`
@@ -596,7 +596,92 @@ masih menunggu konfirmasi.
 
 ---
 
-## 10. Daftar Kode Error Umum
+## 10. Manajemen Akun Staf & Admin (`/admin/users`)
+
+Menopang layar Manajemen Admin pada dashboard. Seluruh endpoint di sini butuh sesi
+`ADMIN` atau `STAFF`, dan `passwordHash` tidak pernah ikut dikirim ke klien.
+
+Aturan yang dijaga saat menghapus akun:
+
+- Akun yang sedang dipakai untuk masuk tidak bisa dihapus sendiri.
+- Admin aktif terakhir tidak bisa dihapus, supaya portal tidak terkunci.
+- Akun yang masih terikat pemesanan, tiket, atau pesan tidak bisa dihapus; nonaktifkan
+  sebagai gantinya.
+
+### A. Daftar Akun
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/users`
+
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "id": "8b1d2c34-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "fullName": "Admin MobilJuragan",
+      "phoneNumber": "081234567890",
+      "role": "ADMIN",
+      "isActive": true
+    }
+  ]
+}
+```
+
+### B. Detail Akun
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/users/:id`
+
+### C. Tambah Akun
+- **Method:** `POST`
+- **Endpoint:** `/api/v1/admin/users`
+- **Body:** `fullName`, `phoneNumber`, `role` (`ADMIN` atau `STAFF`), `password`
+  (minimal 8 karakter).
+- **Respons:** `201` bila berhasil. Nomor telepon yang sudah dipakai dibalas `409`
+  `PHONE_NUMBER_EXISTS`.
+
+### D. Ubah Akun
+- **Method:** `PATCH`
+- **Endpoint:** `/api/v1/admin/users/:id`
+- **Body:** semua field opsional — `fullName`, `phoneNumber`, `role`, `password`, `isActive`.
+
+### E. Hapus Akun
+- **Method:** `DELETE`
+- **Endpoint:** `/api/v1/admin/users/:id`
+- **Respons:** `200` dengan nama akun yang dihapus.
+
+---
+
+## 11. Customer Care / Tiket Bantuan (`/admin/tickets`)
+
+Menopang layar Customer Care pada dashboard: daftar tiket, ruang percakapan, dan balasan tim.
+
+### A. Daftar Tiket
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/tickets`
+
+### B. Buat Tiket
+- **Method:** `POST`
+- **Endpoint:** `/api/v1/admin/tickets`
+- **Body:** `subject` dan `description` wajib diisi; keduanya dibalas `400`
+  `VALIDATION_ERROR` bila kosong.
+
+### C. Detail Tiket
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/admin/tickets/:id`
+- Memuat percakapan lengkap tiket.
+
+### D. Ubah Status Tiket
+- **Method:** `PATCH`
+- **Endpoint:** `/api/v1/admin/tickets/:id/status`
+
+### E. Kirim Balasan
+- **Method:** `POST`
+- **Endpoint:** `/api/v1/admin/tickets/:id/messages`
+- **Body:** `body` wajib diisi; dibalas `400` `VALIDATION_ERROR` bila kosong.
+
+---
+
+## 12. Daftar Kode Error Umum
 
 | HTTP Code | Error Code | Keterangan |
 |---|---|---|
@@ -613,6 +698,12 @@ masih menunggu konfirmasi.
 | 409 | `BOOKING_CONFLICT` | Tidak dapat mengonfirmasi pesanan karena terjadi bentrok jadwal sewa aktif lain. |
 | 400 | `DRIVER_READINESS_MANUAL_INVALID` | Status `SEDANG_TUGAS` dipaksa lewat sakelar kesiapan. |
 | 404 | `DRIVER_NOT_FOUND` | Supir dengan uuid atau `externalId` tersebut tidak ada di roster. |
+| 404 | `USER_NOT_FOUND` | Akun staf/admin dengan ID tersebut tidak ditemukan. |
+| 404 | `TICKET_NOT_FOUND` | Tiket bantuan dengan ID tersebut tidak ditemukan. |
+| 409 | `PHONE_NUMBER_EXISTS` | Nomor telepon sudah dipakai akun staf/admin lain. |
+| 400 | `CANNOT_DELETE_SELF` | Akun yang sedang dipakai untuk masuk tidak boleh dihapus sendiri. |
+| 409 | `LAST_ADMIN_PROTECTED` | Admin aktif terakhir tidak boleh dihapus. |
+| 409 | `USER_HAS_REFERENCES` | Akun masih terikat pemesanan, tiket, atau pesan sehingga tidak bisa dihapus. |
 | 409 | `DRIVER_DUPLICATE` | Nama atau nomor kontak supir sudah dipakai supir aktif lain. |
 | 409 | `DRIVER_INACTIVE` | Supir sudah nonaktif sehingga tidak bisa diubah atau ditugaskan. |
 | 409 | `DRIVER_NOT_AVAILABLE` | Supir berstatus `LIBUR` sehingga belum bisa ditugaskan. |
