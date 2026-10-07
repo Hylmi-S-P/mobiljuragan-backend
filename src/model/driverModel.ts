@@ -1,5 +1,10 @@
 import { db } from '../db.js';
-import { BookingStatus, DriverReadiness } from '../generated/prisma/client.js';
+import {
+  BookingStatus,
+  DriverReadiness,
+  type DriverRoute,
+  type Prisma,
+} from '../generated/prisma/client.js';
 
 /**
  * Lapisan model untuk tabel `drivers`.
@@ -32,9 +37,15 @@ const driverInclude = {
   },
 };
 
+/**
+ * Bentuk baris supir beserta penugasan aktifnya, diturunkan langsung dari `driverInclude`.
+ * Dipakai controller untuk membentuk respons tanpa menebak bentuk datanya.
+ */
+export type DriverWithAssignment = Prisma.DriverGetPayload<{ include: typeof driverInclude }>;
+
 export const driverModel = {
   /** Daftar roster supir. `where` disusun controller karena bergantung filter query. */
-  findMany(where: Record<string, unknown>) {
+  findMany(where: Prisma.DriverWhereInput) {
     return db.driver.findMany({
       where,
       orderBy: [{ readiness: 'asc' }, { fullName: 'asc' }],
@@ -90,7 +101,7 @@ export const driverModel = {
     fullName: string;
     phoneNumber: string | null;
     licenseNumber: string | null;
-    routeScope: string;
+    routeScope: DriverRoute;
     actorId: string;
   }) {
     return db.$transaction(async (tx) => {
@@ -100,7 +111,7 @@ export const driverModel = {
           fullName: input.fullName,
           phoneNumber: input.phoneNumber,
           licenseNumber: input.licenseNumber,
-          routeScope: input.routeScope as never,
+          routeScope: input.routeScope,
           readiness: DriverReadiness.SIAGA,
           isActive: true,
         },
@@ -131,7 +142,7 @@ export const driverModel = {
       fullName?: string;
       phoneNumber?: string | null;
       licenseNumber?: string | null;
-      routeScope?: string;
+      routeScope?: DriverRoute;
     },
     changes: Record<string, string | null>,
     actorId: string,
@@ -143,7 +154,7 @@ export const driverModel = {
           ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
           ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
           ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
-          ...(data.routeScope !== undefined ? { routeScope: data.routeScope as never } : {}),
+          ...(data.routeScope !== undefined ? { routeScope: data.routeScope } : {}),
         },
       });
 
@@ -166,15 +177,15 @@ export const driverModel = {
 
   updateReadinessWithAudit(input: {
     id: string;
-    fromReadiness: string;
-    toReadiness: string;
+    fromReadiness: DriverReadiness;
+    toReadiness: DriverReadiness;
     note: string | null;
     actorId: string;
   }) {
     return db.$transaction(async (tx) => {
       const record = await tx.driver.update({
         where: { id: input.id },
-        data: { readiness: input.toReadiness as never },
+        data: { readiness: input.toReadiness },
       });
 
       await tx.auditLog.create({

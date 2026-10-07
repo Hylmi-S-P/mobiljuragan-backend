@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
-import { BookingStatusActor, UserRole } from '../generated/prisma/client.js';
-import { bookingModel } from '../model/bookingModel.js';
+import { BookingStatusActor, UserRole, type Prisma } from '../generated/prisma/client.js';
+import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 import type {
   adminBookingQuerySchema,
@@ -20,8 +20,9 @@ import type {
  * `bookingModel`. Semua kegagalan diteruskan lewat `next(error)` supaya
  * ditangani satu kali oleh errorHandler global.
  *
- * Aturan penolakan penugasan supir mengikuti daftar cara gagal modul supir pada
- * `docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md` butir B3 sampai B7.
+ * Aturan penolakan penugasan supir dijaga di sini: supir harus berstatus SIAGA,
+ * tidak sedang terikat pesanan lain, jadwalnya tidak bentrok, dan hanya pesanan
+ * bertipe WITH_DRIVER yang boleh ditugaskan supir.
  */
 
 /** WhatsApp memakai format internasional tanpa tanda plus, mis. 6281234567890. */
@@ -35,21 +36,26 @@ function toInternationalPhone(phone: string): string {
   return cleaned;
 }
 
-/** Menyusun draf pesan konfirmasi beserta tautan WhatsApp yang dikirim staf ke pelanggan. */
-function buildWhatsAppIntent(booking: {
-  bookingCode: string;
-  status: string;
-  quotedAmount: any;
-  startDateTime: Date;
-  endDateTime: Date;
-  customer: { fullName: string; phoneNumber: string };
+/**
+ * Data minimum yang dibutuhkan draf WhatsApp. Sengaja lebih sempit daripada
+ * `AdminBookingDetail` supaya fungsi ini juga bisa dipakai untuk hasil konfirmasi
+ * dan penugasan supir, yang tidak membawa riwayat status.
+ */
+type WhatsAppIntentSource = Pick<
+  AdminBookingDetail,
+  'bookingCode' | 'status' | 'quotedAmount' | 'startDateTime' | 'endDateTime'
+> & {
+  customer: Pick<AdminBookingDetail['customer'], 'fullName' | 'phoneNumber'>;
   vehicle: { name: string; licensePlate: string };
-}): { message: string; url: string } {
+};
+
+/** Menyusun draf pesan konfirmasi beserta tautan WhatsApp yang dikirim staf ke pelanggan. */
+function buildWhatsAppIntent(booking: WhatsAppIntentSource): { message: string; url: string } {
   const phone = toInternationalPhone(booking.customer.phoneNumber);
   const startStr = booking.startDateTime.toISOString().slice(0, 10);
   const endStr = booking.endDateTime.toISOString().slice(0, 10);
   const tarifStr =
-    booking.quotedAmount !== null && booking.quotedAmount !== undefined
+    booking.quotedAmount !== null
       ? `Rp ${Number(booking.quotedAmount).toLocaleString('id-ID')}`
       : 'Menunggu konfirmasi';
 
@@ -84,7 +90,7 @@ export const adminBookingController = {
         typeof adminBookingQuerySchema
       >;
 
-      const whereClause: any = {};
+      const whereClause: Prisma.BookingWhereInput = {};
 
       if (status) {
         whereClause.status = status;

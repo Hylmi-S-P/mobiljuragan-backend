@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { BookingStatus } from '../generated/prisma/client.js';
+import { BookingStatus, type Prisma } from '../generated/prisma/client.js';
 
 /**
  * Lapisan model untuk kalender armada.
@@ -13,7 +13,7 @@ export const fleetModel = {
    * Hanya booking CONFIRMED dan IN_PROGRESS yang dianggap mengunci jadwal.
    */
   listVehiclesWithSchedules(input: { category?: string; start: Date; end: Date }) {
-    const vehicleWhere: Record<string, unknown> = {};
+    const vehicleWhere: Prisma.VehicleWhereInput = {};
     if (input.category) {
       vehicleWhere.category = { equals: input.category };
     }

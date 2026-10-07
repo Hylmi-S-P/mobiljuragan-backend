@@ -1,9 +1,14 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
-import { DriverReadiness, DriverRoute } from '../generated/prisma/client.js';
+import {
+  DriverReadiness,
+  DriverRoute,
+  type Prisma,
+} from '../generated/prisma/client.js';
 import { driverModel } from '../model/driverModel.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 import { createDriverSchema, readinessSchema, updateDriverSchema } from '../validators/driverSchemas.js';
+import type { DriverWithAssignment } from '../model/driverModel.js';
 
 /**
  * Controller roster supir.
@@ -11,9 +16,9 @@ import { createDriverSchema, readinessSchema, updateDriverSchema } from '../vali
  * Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
  * modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
  *
- * Daftar lengkap cara modul ini bisa gagal ada di `docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md`
- * pada root workspace, di luar repo ini,
- * dan setiap butirnya diuji lewat E2E di `.verify/e2e/api-e2e.ts` pada root workspace.
+ * Aturan yang dijaga di sini: nama atau nomor kontak supir aktif tidak boleh kembar,
+ * supir yang masih terikat pesanan aktif tidak boleh dinonaktifkan, dan sakelar
+ * kesiapan tidak bisa diubah saat supir sedang bertugas.
  *
  * Semua kegagalan diteruskan lewat `next(error)` supaya ditangani satu kali oleh
  * errorHandler global, yang sudah menerjemahkan AppError menjadi respons error standar.
@@ -55,7 +60,7 @@ async function assertNoDuplicate(
 }
 
 /** Bentuk keluaran supir yang dipakai dashboard: ditambah penugasan aktif dan status terkunci. */
-function toDriverResponse(driver: any) {
+function toDriverResponse(driver: DriverWithAssignment) {
   const activeBooking = Array.isArray(driver.bookings) ? driver.bookings[0] : undefined;
   return {
     ...driver,
@@ -88,7 +93,7 @@ export const adminDriverController = {
         includeInactive?: 'true' | 'false';
       };
 
-      const where: any = {};
+      const where: Prisma.DriverWhereInput = {};
       if (includeInactive !== 'true') where.isActive = true;
       if (readiness) where.readiness = readiness;
       if (routeScope) where.routeScope = routeScope;

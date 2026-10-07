@@ -57,6 +57,30 @@ const bookingCustomerSummary = {
   },
 } as const;
 
+/** Bentuk include detail pesanan untuk admin, dipakai juga oleh draf WhatsApp. */
+const adminBookingDetailInclude = {
+  customer: {
+    select: {
+      id: true,
+      fullName: true,
+      phoneNumber: true,
+      role: true,
+    },
+  },
+  vehicle: true,
+  statusHistory: {
+    orderBy: { changedAt: 'asc' as const },
+  },
+} as const;
+
+/**
+ * Bentuk baris detail pesanan admin, diturunkan dari `adminBookingDetailInclude`
+ * supaya controller tidak perlu menebak bentuk datanya.
+ */
+export type AdminBookingDetail = Prisma.BookingGetPayload<{
+  include: typeof adminBookingDetailInclude;
+}>;
+
 export const bookingModel = {
   /* Sisi pelanggan */
 
@@ -73,7 +97,7 @@ export const bookingModel = {
     vehicleId: string;
     start: Date;
     end: Date;
-    rentalType: string;
+    rentalType: RentalType;
     pickupLocation: string | null;
     customerRequest: string | null;
     numberGuests: number | null;
@@ -86,7 +110,7 @@ export const bookingModel = {
           vehicleId: input.vehicleId,
           startDateTime: input.start,
           endDateTime: input.end,
-          rentalType: input.rentalType as never,
+          rentalType: input.rentalType,
           pickupLocation: input.pickupLocation,
           customerRequest: input.customerRequest,
           numberGuests: input.numberGuests,
@@ -202,12 +226,12 @@ export const bookingModel = {
 
   /* Sisi admin */
 
-  countByFilter(where: Record<string, unknown>) {
+  countByFilter(where: Prisma.BookingWhereInput) {
     return db.booking.count({ where });
   },
 
   /** Antrean pesanan admin; `where`, `skip`, dan `take` disusun controller. */
-  listPaged(input: { where: Record<string, unknown>; skip: number; take: number }) {
+  listPaged(input: { where: Prisma.BookingWhereInput; skip: number; take: number }) {
     return db.booking.findMany({
       where: input.where,
       skip: input.skip,
@@ -228,20 +252,7 @@ export const bookingModel = {
   findAdminDetail(id: string) {
     return db.booking.findFirst({
       where: { OR: [{ id }, { bookingCode: id }] },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true,
-            role: true,
-          },
-        },
-        vehicle: true,
-        statusHistory: {
-          orderBy: { changedAt: 'asc' },
-        },
-      },
+      include: adminBookingDetailInclude,
     });
   },
 
@@ -287,7 +298,7 @@ export const bookingModel = {
         if (conflict) return { kind: 'conflict' as const, booking };
       }
 
-      /* Booking bersupir wajib punya supir terpilih sebelum dikonfirmasi (butir B8).
+      /* Booking bersupir wajib punya supir terpilih sebelum dikonfirmasi.
          Pesanan lepas kunci tidak terikat aturan ini. */
       if (
         isConfirming &&
@@ -340,7 +351,7 @@ export const bookingModel = {
         },
       });
 
-      /* Supir dilepas kembali ke SIAGA saat pesanan selesai, batal, atau ditolak (butir E4),
+      /* Supir dilepas kembali ke SIAGA saat pesanan selesai, batal, atau ditolak,
          tetapi hanya kalau tidak ada pesanan aktif lain yang masih memegangnya. */
       if (booking.driverId && CLOSED_BOOKING_STATUSES.includes(input.nextStatus)) {
         const otherActiveBooking = await tx.booking.count({
@@ -366,10 +377,10 @@ export const bookingModel = {
   /**
    * Penugasan supir ke pesanan, dikonfirmasi dalam satu transaksi.
    *
-   * Penolakannya mengikuti daftar cara gagal modul supir pada
-   * `docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md` butir B3 sampai B7.
-   * Pemeriksaan bentrok jadwal supir ada di dalam transaksi supaya dua penugasan
-   * bersamaan tidak lolos bersamaan.
+   * Penolakan terjadi saat supir tidak berstatus SIAGA, sudah terikat pesanan lain,
+   * jadwalnya bentrok, atau pesanannya bertipe lepas kunci. Pemeriksaan bentrok
+   * jadwal supir ada di dalam transaksi supaya dua penugasan bersamaan tidak lolos
+   * bersamaan.
    */
   assignDriverWithAudit(input: {
     id: string;
@@ -410,7 +421,7 @@ export const bookingModel = {
           id: { not: booking.id },
           driverId: driver.id,
           /* Termasuk pesanan yang masih menunggu konfirmasi, karena penugasan supir
-             sudah direncanakan sejak saat itu (butir B5). */
+             sudah direncanakan sejak saat itu. */
           status: { notIn: CLOSED_BOOKING_STATUSES },
           startDateTime: { lt: booking.endDateTime },
           endDateTime: { gt: booking.startDateTime },

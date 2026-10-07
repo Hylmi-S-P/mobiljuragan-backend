@@ -16,8 +16,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
  * Model Driver
  * Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
  * modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
- * Rencana dan daftar cara gagalnya ada di docs(discontinueid)/DRIVER-MODULE-FAILURE-MODES.md
- * pada root workspace, di luar repo ini.
+ * Kesiapan supir (SIAGA/LIBUR/SEDANG_TUGAS) menentukan apakah ia boleh ditugaskan.
  */
 export type DriverModel = runtime.Types.Result.DefaultSelection<Prisma.$DriverPayload>
 

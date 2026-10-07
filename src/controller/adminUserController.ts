@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { UserRole } from '../generated/prisma/client.js';
+import { UserRole, type Prisma } from '../generated/prisma/client.js';
 import { userModel } from '../model/userModel.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 
@@ -111,7 +111,7 @@ export const adminUserController = {
         throw new AppError('USER_NOT_FOUND', `Akun dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      const updateData: Record<string, unknown> = {};
+      const updateData: Prisma.UserUpdateInput = {};
       if (fullName) updateData.fullName = fullName;
       if (role) updateData.role = role as UserRole;
       if (typeof isActive === 'boolean') updateData.isActive = isActive;
