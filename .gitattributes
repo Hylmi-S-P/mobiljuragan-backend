@@ -1,0 +1,17 @@
+# Normalisasi line ending: simpan LF di repo, apa pun OS-nya.
+# Tanpa ini, core.autocrlf di Windows menulis CRLF ke disk dan
+# `prettier --check` selalu menganggap berkas belum terformat.
+* text=auto eol=lf
+
+# Berkas biner jangan disentuh
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+
+# Lockfile ditulis npm, biarkan apa adanya
+package-lock.json -text
