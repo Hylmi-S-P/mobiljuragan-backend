@@ -200,7 +200,7 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
           healthStatus: 'HEALTHY',
           lastLatencyMs: 0,
           temperature: 0.7,
-          maxTokens: 1000,
+          maxTokens: 1200,
           enableRag: true,
           systemPrompt: 'Asisten Virtual Resmi MobilJuragan Merauke.',
         },
@@ -683,7 +683,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     const temperature =
       reqTemp !== undefined && !isNaN(Number(reqTemp)) ? Number(reqTemp) : config?.temperature ?? 0.7;
     const maxTokens =
-      reqTokens !== undefined && !isNaN(Number(reqTokens)) ? Number(reqTokens) : config?.maxTokens ?? 1000;
+      reqTokens !== undefined && !isNaN(Number(reqTokens)) ? Number(reqTokens) : config?.maxTokens ?? 1200;
     const enableRag = config?.enableRag ?? true;
 
     // 1. Ambil dokumen pengetahuan aktif jika RAG diaktifkan
@@ -705,7 +705,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         for (const doc of activeDocs) {
           ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
         }
-        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\nJawab pertanyaan pelanggan hanya berdasarkan fakta di atas.';
+        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
       }
     }
 
