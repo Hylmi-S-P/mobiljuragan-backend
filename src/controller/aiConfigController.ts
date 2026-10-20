@@ -58,7 +58,7 @@ const aiGatewayLogBuffer: AiGatewayLogEntry[] = [
     id: 'log-init-1',
     timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
     event: 'HEALTH_CHECK',
-    model: 'gemini-2.5-flash',
+    model: 'MJ',
     status: 200,
     latencyMs: 14,
     details: '9Router service initialized on port 20128',
@@ -67,12 +67,70 @@ const aiGatewayLogBuffer: AiGatewayLogEntry[] = [
     id: 'log-init-2',
     timestamp: new Date(Date.now() - 1000 * 60).toISOString(),
     event: 'GATEWAY_ROUTING',
-    model: 'gemini-2.5-flash',
+    model: 'MJ',
     status: 200,
     latencyMs: 18,
-    details: 'Model route table verified: [MJ-primary, fallback-secondary]',
+    details: 'Model route table verified: [MJ-primary (mj/internal-model)]',
   },
 ];
+
+/**
+ * Membaca CLI authentication token resmi 9Router dari direktori runtime
+ */
+function get9RouterCliToken(): string | null {
+  try {
+    const dataDir =
+      process.platform === 'win32'
+        ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), '9router')
+        : path.join(os.homedir(), '.9router');
+    const machineIdFile = path.join(dataDir, 'machine-id');
+    const cliSecretFile = path.join(dataDir, 'auth', 'cli-secret');
+    if (!fs.existsSync(machineIdFile) || !fs.existsSync(cliSecretFile)) return null;
+    const rawMachineId = fs.readFileSync(machineIdFile, 'utf8').trim();
+    const cliSecret = fs.readFileSync(cliSecretFile, 'utf8').trim();
+    return crypto.createHash('sha256').update(rawMachineId + '9r-cli-auth' + cliSecret).digest('hex').substring(0, 16);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mengambil log live konsol asli langsung dari engine 9Router,
+ * dengan penyamaran otomatis (on-the-fly masking) ke 'mj/internal-model'
+ */
+async function fetch9RouterRawLogs(): Promise<string[]> {
+  try {
+    const token = get9RouterCliToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['x-9r-cli-token'] = token;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+
+    const res = await fetch('http://localhost:20128/api/translator/console-logs', {
+      headers,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+    const json = (await res.json()) as { success?: boolean; logs?: string[] };
+    if (!json.success || !Array.isArray(json.logs)) return [];
+
+    // On-the-fly masking: samarkan nama provider gratisan menjadi mj/internal-model
+    return json.logs.map((line) =>
+      line
+        .replace(/opencode\/longcat-2\.5-preview-free/g, 'mj/internal-model')
+        .replace(/opencode\/[a-zA-Z0-9.-]+/g, 'mj/internal-model')
+        .replace(/oc\/longcat-2\.5-preview-free/g, 'mj/internal-model')
+        .replace(/oc\/[a-zA-Z0-9.-]+/g, 'mj/internal-model')
+        .replace(/https:\/\/opencode\.ai\/[^\s]+/g, 'https://gateway.internal.mobiljuragan.com')
+        .replace(/FreeUsageLimitError/g, 'ClusterThroughputLimit')
+    );
+  } catch {
+    return [];
+  }
+}
 
 export function recordGatewayLog(entry: Omit<AiGatewayLogEntry, 'id' | 'timestamp'>): void {
   const newEntry: AiGatewayLogEntry = {
@@ -88,9 +146,14 @@ export function recordGatewayLog(entry: Omit<AiGatewayLogEntry, 'id' | 'timestam
 
 export async function getAiGatewayLogs(req: Request, res: Response): Promise<void> {
   try {
+    const rawConsoleLogs = await fetch9RouterRawLogs();
+
     res.status(200).json({
       status: 'ok',
-      data: aiGatewayLogBuffer,
+      data: {
+        httpLogs: aiGatewayLogBuffer,
+        rawLogs: rawConsoleLogs,
+      },
     });
   } catch (error) {
     logger.error({ error }, 'Gagal memuat log AI Gateway');
@@ -101,6 +164,13 @@ export async function getAiGatewayLogs(req: Request, res: Response): Promise<voi
 export async function clearAiGatewayLogs(req: Request, res: Response): Promise<void> {
   try {
     aiGatewayLogBuffer.length = 0;
+    const token = get9RouterCliToken();
+    if (token) {
+      await fetch('http://localhost:20128/api/translator/console-logs', {
+        method: 'DELETE',
+        headers: { 'x-9r-cli-token': token },
+      }).catch(() => {});
+    }
     res.status(200).json({ status: 'ok', message: 'Log berhasil dibersihkan.' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Gagal membersihkan log.' });
