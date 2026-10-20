@@ -14,7 +14,7 @@ export async function ensureAiDefaults(): Promise<void> {
           id: 'default',
           gatewayUrl: 'http://localhost:20128/v1',
           apiKey: '',
-          activeModel: 'gemini-2.5-flash',
+          activeModel: 'MJ',
           temperature: 0.7,
           maxTokens: 1000,
           enableRag: true,
