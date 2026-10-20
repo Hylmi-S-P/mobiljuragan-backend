@@ -271,3 +271,42 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+
+/// Konfigurasi AI Gateway (9Router / LiteLLM / OpenRouter) & Parameter Model
+model AiSetting {
+  id                  String    @id @default("default")
+  gatewayUrl          String    @default("http://localhost:20128/v1")
+  apiKey              String?   @default("")
+  activeModel         String    @default("gemini-2.5-flash")
+  fallbackModel       String    @default("gemini-2.5-flash")
+  fallbackGatewayUrl  String?   @default("https://generativelanguage.googleapis.com/v1beta/openai")
+  fallbackApiKey      String?   @default("")
+  autoFallbackEnabled Boolean   @default(true)
+  proxyUrl            String?   @default("")
+  healthStatus        String    @default("HEALTHY")
+  lastLatencyMs       Int?      @default(0)
+  lastHealthCheckedAt DateTime?
+  systemPrompt        String    @db.Text
+  temperature         Float     @default(0.7)
+  maxTokens           Int       @default(1000)
+  enableRag           Boolean   @default(true)
+  updatedAt           DateTime  @updatedAt
+
+  @@map("ai_settings")
+}
+
+/// Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+model KnowledgeDocument {
+  id        String   @id @default(uuid())
+  title     String
+  category  String   // SOP | ROUTE | TARIFF | EMERGENCY
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("knowledge_documents")
+}
