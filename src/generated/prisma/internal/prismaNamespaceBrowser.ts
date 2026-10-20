@@ -59,7 +59,9 @@ export const ModelName = {
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  AiSetting: 'AiSetting',
+  KnowledgeDocument: 'KnowledgeDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -218,6 +220,42 @@ export const AuditLogScalarFieldEnum = {
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
+export const AiSettingScalarFieldEnum = {
+  id: 'id',
+  gatewayUrl: 'gatewayUrl',
+  apiKey: 'apiKey',
+  activeModel: 'activeModel',
+  fallbackModel: 'fallbackModel',
+  fallbackGatewayUrl: 'fallbackGatewayUrl',
+  fallbackApiKey: 'fallbackApiKey',
+  autoFallbackEnabled: 'autoFallbackEnabled',
+  proxyUrl: 'proxyUrl',
+  healthStatus: 'healthStatus',
+  lastLatencyMs: 'lastLatencyMs',
+  lastHealthCheckedAt: 'lastHealthCheckedAt',
+  systemPrompt: 'systemPrompt',
+  temperature: 'temperature',
+  maxTokens: 'maxTokens',
+  enableRag: 'enableRag',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiSettingScalarFieldEnum = (typeof AiSettingScalarFieldEnum)[keyof typeof AiSettingScalarFieldEnum]
+
+
+export const KnowledgeDocumentScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -359,4 +397,30 @@ export const AuditLogOrderByRelevanceFieldEnum = {
 } as const
 
 export type AuditLogOrderByRelevanceFieldEnum = (typeof AuditLogOrderByRelevanceFieldEnum)[keyof typeof AuditLogOrderByRelevanceFieldEnum]
+
+
+export const AiSettingOrderByRelevanceFieldEnum = {
+  id: 'id',
+  gatewayUrl: 'gatewayUrl',
+  apiKey: 'apiKey',
+  activeModel: 'activeModel',
+  fallbackModel: 'fallbackModel',
+  fallbackGatewayUrl: 'fallbackGatewayUrl',
+  fallbackApiKey: 'fallbackApiKey',
+  proxyUrl: 'proxyUrl',
+  healthStatus: 'healthStatus',
+  systemPrompt: 'systemPrompt'
+} as const
+
+export type AiSettingOrderByRelevanceFieldEnum = (typeof AiSettingOrderByRelevanceFieldEnum)[keyof typeof AiSettingOrderByRelevanceFieldEnum]
+
+
+export const KnowledgeDocumentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  title: 'title',
+  category: 'category',
+  content: 'content'
+} as const
+
+export type KnowledgeDocumentOrderByRelevanceFieldEnum = (typeof KnowledgeDocumentOrderByRelevanceFieldEnum)[keyof typeof KnowledgeDocumentOrderByRelevanceFieldEnum]
 

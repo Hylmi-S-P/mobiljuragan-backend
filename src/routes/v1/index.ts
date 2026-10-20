@@ -9,8 +9,16 @@ import { adminVehicleRouter } from './adminVehicles.js';
 import { adminDriverRouter } from './adminDrivers.js';
 import { adminUserRouter } from './adminUsers.js';
 import { adminTicketRouter } from './adminTickets.js';
+import { adminFinanceRouter } from './financeRoutes.js';
+import { adminAiRouter } from './adminAiRoutes.js';
 
 export const v1Router: Router = Router();
+
+// Laporan keuangan pemasukan: /api/v1/admin/finance/*
+v1Router.use('/admin/finance', adminFinanceRouter);
+
+// Modul AI Gateway & RAG Hub: /api/v1/admin/ai/*
+v1Router.use('/admin/ai', adminAiRouter);
 
 // Manajemen akun staf & admin: /api/v1/admin/users/*
 v1Router.use('/admin/users', adminUserRouter);

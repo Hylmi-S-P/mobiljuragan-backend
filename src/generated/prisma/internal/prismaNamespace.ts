@@ -405,7 +405,9 @@ export const ModelName = {
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  AiSetting: 'AiSetting',
+  KnowledgeDocument: 'KnowledgeDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -421,7 +423,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeDocument"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1019,6 +1021,138 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiSetting: {
+      payload: Prisma.$AiSettingPayload<ExtArgs>
+      fields: Prisma.AiSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.AiSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        findMany: {
+          args: Prisma.AiSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>[]
+        }
+        create: {
+          args: Prisma.AiSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        createMany: {
+          args: Prisma.AiSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.AiSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        update: {
+          args: Prisma.AiSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.AiSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.AiSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiSetting>
+        }
+        groupBy: {
+          args: Prisma.AiSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiSettingCountAggregateOutputType> | number
+        }
+      }
+    }
+    KnowledgeDocument: {
+      payload: Prisma.$KnowledgeDocumentPayload<ExtArgs>
+      fields: Prisma.KnowledgeDocumentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KnowledgeDocumentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KnowledgeDocumentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        findFirst: {
+          args: Prisma.KnowledgeDocumentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KnowledgeDocumentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        findMany: {
+          args: Prisma.KnowledgeDocumentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>[]
+        }
+        create: {
+          args: Prisma.KnowledgeDocumentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        createMany: {
+          args: Prisma.KnowledgeDocumentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.KnowledgeDocumentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        update: {
+          args: Prisma.KnowledgeDocumentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        deleteMany: {
+          args: Prisma.KnowledgeDocumentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KnowledgeDocumentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.KnowledgeDocumentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+        }
+        aggregate: {
+          args: Prisma.KnowledgeDocumentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKnowledgeDocument>
+        }
+        groupBy: {
+          args: Prisma.KnowledgeDocumentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeDocumentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KnowledgeDocumentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeDocumentCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1198,6 +1332,42 @@ export const AuditLogScalarFieldEnum = {
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
+export const AiSettingScalarFieldEnum = {
+  id: 'id',
+  gatewayUrl: 'gatewayUrl',
+  apiKey: 'apiKey',
+  activeModel: 'activeModel',
+  fallbackModel: 'fallbackModel',
+  fallbackGatewayUrl: 'fallbackGatewayUrl',
+  fallbackApiKey: 'fallbackApiKey',
+  autoFallbackEnabled: 'autoFallbackEnabled',
+  proxyUrl: 'proxyUrl',
+  healthStatus: 'healthStatus',
+  lastLatencyMs: 'lastLatencyMs',
+  lastHealthCheckedAt: 'lastHealthCheckedAt',
+  systemPrompt: 'systemPrompt',
+  temperature: 'temperature',
+  maxTokens: 'maxTokens',
+  enableRag: 'enableRag',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiSettingScalarFieldEnum = (typeof AiSettingScalarFieldEnum)[keyof typeof AiSettingScalarFieldEnum]
+
+
+export const KnowledgeDocumentScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1339,6 +1509,32 @@ export const AuditLogOrderByRelevanceFieldEnum = {
 } as const
 
 export type AuditLogOrderByRelevanceFieldEnum = (typeof AuditLogOrderByRelevanceFieldEnum)[keyof typeof AuditLogOrderByRelevanceFieldEnum]
+
+
+export const AiSettingOrderByRelevanceFieldEnum = {
+  id: 'id',
+  gatewayUrl: 'gatewayUrl',
+  apiKey: 'apiKey',
+  activeModel: 'activeModel',
+  fallbackModel: 'fallbackModel',
+  fallbackGatewayUrl: 'fallbackGatewayUrl',
+  fallbackApiKey: 'fallbackApiKey',
+  proxyUrl: 'proxyUrl',
+  healthStatus: 'healthStatus',
+  systemPrompt: 'systemPrompt'
+} as const
+
+export type AiSettingOrderByRelevanceFieldEnum = (typeof AiSettingOrderByRelevanceFieldEnum)[keyof typeof AiSettingOrderByRelevanceFieldEnum]
+
+
+export const KnowledgeDocumentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  title: 'title',
+  category: 'category',
+  content: 'content'
+} as const
+
+export type KnowledgeDocumentOrderByRelevanceFieldEnum = (typeof KnowledgeDocumentOrderByRelevanceFieldEnum)[keyof typeof KnowledgeDocumentOrderByRelevanceFieldEnum]
 
 
 
@@ -1632,6 +1828,8 @@ export type GlobalOmitConfig = {
   supportTicket?: Prisma.SupportTicketOmit
   ticketMessage?: Prisma.TicketMessageOmit
   auditLog?: Prisma.AuditLogOmit
+  aiSetting?: Prisma.AiSettingOmit
+  knowledgeDocument?: Prisma.KnowledgeDocumentOmit
 }
 
 /* Types for Logging */

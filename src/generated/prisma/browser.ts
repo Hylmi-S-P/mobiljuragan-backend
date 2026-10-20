@@ -64,3 +64,13 @@ export type TicketMessage = Prisma.TicketMessageModel
  * Audit trail aktivitas penting admin (untuk staff/admin role).
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model AiSetting
+ * Konfigurasi AI Gateway (9Router / LiteLLM / OpenRouter) & Parameter Model
+ */
+export type AiSetting = Prisma.AiSettingModel
+/**
+ * Model KnowledgeDocument
+ * Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+ */
+export type KnowledgeDocument = Prisma.KnowledgeDocumentModel
