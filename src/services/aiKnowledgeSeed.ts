@@ -16,7 +16,7 @@ export async function ensureAiDefaults(): Promise<void> {
           apiKey: '',
           activeModel: 'MJ',
           temperature: 0.7,
-          maxTokens: 1000,
+          maxTokens: 1200,
           enableRag: true,
           systemPrompt: `Anda adalah Asisten Virtual Resmi MobilJuragan (CV. Mobil Juragan Express Transport, Merauke).
 Tugas Anda adalah melayani pertanyaan pelanggan seputar rental mobil di Merauke, rekomendasi unit armada, persyaratan sewa (lepas kunci & dengan supir), aturan rute, dan tarif sewa.
