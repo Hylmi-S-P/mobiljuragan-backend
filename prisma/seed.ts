@@ -139,6 +139,60 @@ const OFFICIAL_FLEET = [
   },
 ];
 
+/**
+ * 6 FAQ Resmi MobilJuragan (diekstraksi dari mobile HelpCenterScreen).
+ */
+const INITIAL_FAQS = [
+  {
+    category: 'Booking & Sewa',
+    question: 'Bagaimana prosedur penjemputan di Bandara Mopah Merauke?',
+    answer:
+      'Tim operasional kami akan menunggu di lobi kedatangan Bandara Mopah dengan papan nama penyewa atau menghubungi via WhatsApp 30 menit sebelum jadwal pesawat mendarat. Serah terima unit dilakukan langsung di area parkir bandara tanpa biaya tambahan antar-jemput.',
+    orderIndex: 1,
+    isActive: true,
+  },
+  {
+    category: 'Booking & Sewa',
+    question: 'Bagaimana verifikasi dokumen KTP dan SIM A untuk lepas kunci?',
+    answer:
+      'Verifikasi dokumen fisik asli (KTP elektronik dan SIM A aktif) dilakukan langsung di kantor operasional MobilJuragan atau saat serah terima unit di titik penjemputan Merauke.',
+    orderIndex: 2,
+    isActive: true,
+  },
+  {
+    category: 'Armada',
+    question: 'Bagaimana kebijakan bahan bakar (BBM) armada?',
+    answer:
+      'Mobil diserahterimakan dengan indikator BBM tertentu (umumnya terisi minimal setengah bar). Penyewa diharapkan mengembalikan unit dengan posisi BBM setara saat serah terima awal.',
+    orderIndex: 3,
+    isActive: true,
+  },
+  {
+    category: 'Booking & Sewa',
+    question: 'Berapa tarif jasa pengemudi dan durasi kerjanya?',
+    answer:
+      'Jasa pengemudi lokal Merauke bertarif Rp 150.000 per hari dengan durasi pemakaian normal hingga 12 jam per hari dalam wilayah perkotaan Merauke dan sekitarnya.',
+    orderIndex: 4,
+    isActive: true,
+  },
+  {
+    category: 'Pembayaran',
+    question: 'Metode pembayaran apa saja yang berlaku?',
+    answer:
+      'Pembayaran dapat diselesaikan langsung di aplikasi menggunakan QRIS Dinamis, Virtual Account / Transfer Bank (BRI / Mandiri), atau Tunai di Tempat (COD) saat serah terima unit di Merauke. Layanan konfirmasi manual melalui Chat CS juga siap membantu jika Anda memerlukan bantuan pembayaran.',
+    orderIndex: 5,
+    isActive: true,
+  },
+  {
+    category: 'Armada',
+    question: 'Apakah tersedia bantuan jika terjadi kendala armada di jalan?',
+    answer:
+      'MobilJuragan siap membantu penanganan kendala armada selama jam operasional (06.00 - 22.00 WIT) untuk wilayah Merauke Kota, Kurik, Tanah Miring, hingga Semangga. Hubungi nomor operasional kami jika membutuhkan bantuan darurat.',
+    orderIndex: 6,
+    isActive: true,
+  },
+];
+
 async function main() {
   console.log('Memulai seeding 9 armada resmi MobilJuragan...');
 
@@ -224,6 +278,32 @@ async function main() {
     },
   });
   console.log(`  - Tersimpan staf: ${staff.fullName} (${staff.phoneNumber})`);
+
+  console.log('\nMemulai seeding 6 FAQ awal resmi MobilJuragan...');
+  for (const faq of INITIAL_FAQS) {
+    const existing = await db.faq.findFirst({
+      where: { question: faq.question },
+    });
+    if (existing) {
+      await db.faq.update({
+        where: { id: existing.id },
+        data: {
+          answer: faq.answer,
+          category: faq.category,
+          orderIndex: faq.orderIndex,
+          isActive: faq.isActive,
+        },
+      });
+      console.log(`  - Diperbarui FAQ: [${faq.category}] ${faq.question.slice(0, 40)}...`);
+    } else {
+      await db.faq.create({
+        data: faq,
+      });
+      console.log(`  - Dibuat FAQ: [${faq.category}] ${faq.question.slice(0, 40)}...`);
+    }
+  }
+  const faqCount = await db.faq.count();
+  console.log(`Seeding FAQ selesai. Total FAQ di database: ${faqCount}`);
 }
 
 main()

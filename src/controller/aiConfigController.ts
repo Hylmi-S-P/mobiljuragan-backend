@@ -209,6 +209,8 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
 
     const documentCount = await db.knowledgeDocument.count();
     const activeDocumentCount = await db.knowledgeDocument.count({ where: { isActive: true } });
+    const faqCount = await db.faq.count();
+    const activeFaqCount = await db.faq.count({ where: { isActive: true } });
 
     res.status(200).json({
       status: 'ok',
@@ -217,6 +219,8 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
         stats: {
           documentCount,
           activeDocumentCount,
+          faqCount,
+          activeFaqCount,
         },
       },
     });
@@ -686,9 +690,10 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       reqTokens !== undefined && !isNaN(Number(reqTokens)) ? Number(reqTokens) : config?.maxTokens ?? 1200;
     const enableRag = config?.enableRag ?? true;
 
-    // 1. Ambil dokumen pengetahuan aktif jika RAG diaktifkan
+    // 1. Ambil dokumen pengetahuan aktif dan seluruh FAQ aktif jika RAG diaktifkan
     let ragContextText = '';
     let injectedDocsCount = 0;
+    let injectedFaqsCount = 0;
     let referencedDocuments: string[] = [];
 
     if (enableRag) {
@@ -697,15 +702,33 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         orderBy: { category: 'asc' },
       });
 
+      const activeFaqs = await db.faq.findMany({
+        where: { isActive: true },
+        orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }],
+      });
+
       injectedDocsCount = activeDocs.length;
+      injectedFaqsCount = activeFaqs.length;
       referencedDocuments = activeDocs.map((d) => d.title);
 
       if (activeDocs.length > 0) {
-        ragContextText = '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG CONTEXT) ===\n';
+        ragContextText += '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG CONTEXT) ===\n';
         for (const doc of activeDocs) {
           ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
         }
-        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
+        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\n';
+      }
+
+      if (activeFaqs.length > 0) {
+        ragContextText += '\n\n=== BASIS PENGETAHUAN FAQ RESMI MOBILJURAGAN ===\n';
+        for (const faq of activeFaqs) {
+          ragContextText += `\n[KATEGORI: ${faq.category}]\nTANYA: ${faq.question}\nJAWAB: ${faq.answer}\n`;
+        }
+        ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
+      }
+
+      if (activeDocs.length > 0 || activeFaqs.length > 0) {
+        ragContextText += '\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
       }
     }
 
@@ -806,6 +829,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
             latencyMs,
             tokensPerSecond,
             ragDocumentsInjected: injectedDocsCount,
+            ragFaqsInjected: injectedFaqsCount,
             referencedDocuments,
             isSimulationFallback: false,
             isFallbackTriggered: false,
@@ -857,6 +881,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
           tokens: simTokens,
           tokensPerSecond: simTps,
           ragDocumentsInjected: injectedDocsCount,
+          ragFaqsInjected: injectedFaqsCount,
           referencedDocuments,
           isSimulationFallback: true,
           isFallbackTriggered: false,

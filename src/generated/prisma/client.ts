@@ -98,3 +98,9 @@ export type AiSetting = Prisma.AiSettingModel
  * Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
  */
 export type KnowledgeDocument = Prisma.KnowledgeDocumentModel
+/**
+ * Model Faq
+ * Tanya Jawab Umum (FAQ) Resmi MobilJuragan Merauke.
+ * Ditampilkan dinamis di aplikasi mobile (HelpCenterScreen) dan diintegrasikan ke RAG AI Gateway.
+ */
+export type Faq = Prisma.FaqModel

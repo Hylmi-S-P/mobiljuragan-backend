@@ -407,7 +407,8 @@ export const ModelName = {
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
   AiSetting: 'AiSetting',
-  KnowledgeDocument: 'KnowledgeDocument'
+  KnowledgeDocument: 'KnowledgeDocument',
+  Faq: 'Faq'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -423,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeDocument"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeDocument" | "faq"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1153,6 +1154,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Faq: {
+      payload: Prisma.$FaqPayload<ExtArgs>
+      fields: Prisma.FaqFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FaqFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FaqFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        findFirst: {
+          args: Prisma.FaqFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FaqFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        findMany: {
+          args: Prisma.FaqFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>[]
+        }
+        create: {
+          args: Prisma.FaqCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        createMany: {
+          args: Prisma.FaqCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.FaqDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        update: {
+          args: Prisma.FaqUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        deleteMany: {
+          args: Prisma.FaqDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FaqUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.FaqUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqPayload>
+        }
+        aggregate: {
+          args: Prisma.FaqAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFaq>
+        }
+        groupBy: {
+          args: Prisma.FaqGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FaqGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FaqCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FaqCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1368,6 +1435,20 @@ export const KnowledgeDocumentScalarFieldEnum = {
 export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
 
 
+export const FaqScalarFieldEnum = {
+  id: 'id',
+  question: 'question',
+  answer: 'answer',
+  category: 'category',
+  orderIndex: 'orderIndex',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FaqScalarFieldEnum = (typeof FaqScalarFieldEnum)[keyof typeof FaqScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1535,6 +1616,16 @@ export const KnowledgeDocumentOrderByRelevanceFieldEnum = {
 } as const
 
 export type KnowledgeDocumentOrderByRelevanceFieldEnum = (typeof KnowledgeDocumentOrderByRelevanceFieldEnum)[keyof typeof KnowledgeDocumentOrderByRelevanceFieldEnum]
+
+
+export const FaqOrderByRelevanceFieldEnum = {
+  id: 'id',
+  question: 'question',
+  answer: 'answer',
+  category: 'category'
+} as const
+
+export type FaqOrderByRelevanceFieldEnum = (typeof FaqOrderByRelevanceFieldEnum)[keyof typeof FaqOrderByRelevanceFieldEnum]
 
 
 
@@ -1830,6 +1921,7 @@ export type GlobalOmitConfig = {
   auditLog?: Prisma.AuditLogOmit
   aiSetting?: Prisma.AiSettingOmit
   knowledgeDocument?: Prisma.KnowledgeDocumentOmit
+  faq?: Prisma.FaqOmit
 }
 
 /* Types for Logging */

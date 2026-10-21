@@ -11,6 +11,8 @@ import { adminUserRouter } from './adminUsers.js';
 import { adminTicketRouter } from './adminTickets.js';
 import { adminFinanceRouter } from './financeRoutes.js';
 import { adminAiRouter } from './adminAiRoutes.js';
+import { faqRouter } from './faqs.js';
+import { adminFaqRouter } from './adminFaqs.js';
 
 export const v1Router: Router = Router();
 
@@ -19,6 +21,9 @@ v1Router.use('/admin/finance', adminFinanceRouter);
 
 // Modul AI Gateway & RAG Hub: /api/v1/admin/ai/*
 v1Router.use('/admin/ai', adminAiRouter);
+
+// Manajemen FAQ admin portal: /api/v1/admin/faqs/*
+v1Router.use('/admin/faqs', adminFaqRouter);
 
 // Manajemen akun staf & admin: /api/v1/admin/users/*
 v1Router.use('/admin/users', adminUserRouter);
@@ -49,3 +54,7 @@ v1Router.use('/vehicles', vehicleRouter);
 
 // Pemesanan sewa sisi pelanggan: /api/v1/bookings/*
 v1Router.use('/bookings', bookingRouter);
+
+// Tanya jawab resmi dinamis (FAQ): /api/v1/faqs/*
+v1Router.use('/faqs', faqRouter);
+
