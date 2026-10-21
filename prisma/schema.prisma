@@ -88,6 +88,21 @@ enum TicketCategory {
   OTHER
 }
 
+enum PaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  QRIS
+  BANK_TRANSFER
+  CASH
+}
+
+
 model User {
   id            String    @id @default(uuid())
   fullName      String
@@ -181,6 +196,8 @@ model Booking {
   statusHistory       BookingStatusHistory[]
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
+
+  payment             Payment?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -328,4 +345,38 @@ model Faq {
   @@index([orderIndex])
   @@map("faqs")
 }
+
+/// Pembayaran & Pemisahan Arus Kas Riil (Payment Lifecycle)
+model Payment {
+  id              String         @id @default(uuid())
+  bookingId       String         @unique
+  booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  baseAmount      Decimal        @db.Decimal(12, 2)
+  uniqueCode      Int            @default(0) // 1 s.d. 999 untuk pencocokan mutasi otomatis
+  totalAmount     Decimal        @db.Decimal(12, 2) // baseAmount + uniqueCode
+
+  method          PaymentMethod  @default(QRIS)
+  status          PaymentStatus  @default(UNPAID)
+
+  qrisPayload     String?        @db.Text
+  proofImageUrl   String?        @db.Text
+  bankName        String?
+  senderAccount   String?
+
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  notes           String?        @db.Text
+  expiresAt       DateTime?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([totalAmount])
+  @@index([method])
+  @@map("payments")
+}
+
 

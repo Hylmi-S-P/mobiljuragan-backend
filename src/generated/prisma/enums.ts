@@ -105,3 +105,23 @@ export const TicketCategory = {
 } as const
 
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory]
+
+
+export const PaymentStatus = {
+  UNPAID: 'UNPAID',
+  PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+} as const
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const PaymentMethod = {
+  QRIS: 'QRIS',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  CASH: 'CASH'
+} as const
+
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]

@@ -62,7 +62,8 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   AiSetting: 'AiSetting',
   KnowledgeDocument: 'KnowledgeDocument',
-  Faq: 'Faq'
+  Faq: 'Faq',
+  Payment: 'Payment'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -271,6 +272,29 @@ export const FaqScalarFieldEnum = {
 export type FaqScalarFieldEnum = (typeof FaqScalarFieldEnum)[keyof typeof FaqScalarFieldEnum]
 
 
+export const PaymentScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  baseAmount: 'baseAmount',
+  uniqueCode: 'uniqueCode',
+  totalAmount: 'totalAmount',
+  method: 'method',
+  status: 'status',
+  qrisPayload: 'qrisPayload',
+  proofImageUrl: 'proofImageUrl',
+  bankName: 'bankName',
+  senderAccount: 'senderAccount',
+  verifiedAt: 'verifiedAt',
+  verifiedBy: 'verifiedBy',
+  notes: 'notes',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -448,4 +472,18 @@ export const FaqOrderByRelevanceFieldEnum = {
 } as const
 
 export type FaqOrderByRelevanceFieldEnum = (typeof FaqOrderByRelevanceFieldEnum)[keyof typeof FaqOrderByRelevanceFieldEnum]
+
+
+export const PaymentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  qrisPayload: 'qrisPayload',
+  proofImageUrl: 'proofImageUrl',
+  bankName: 'bankName',
+  senderAccount: 'senderAccount',
+  verifiedBy: 'verifiedBy',
+  notes: 'notes'
+} as const
+
+export type PaymentOrderByRelevanceFieldEnum = (typeof PaymentOrderByRelevanceFieldEnum)[keyof typeof PaymentOrderByRelevanceFieldEnum]
 

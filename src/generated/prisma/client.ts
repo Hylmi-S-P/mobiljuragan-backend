@@ -104,3 +104,8 @@ export type KnowledgeDocument = Prisma.KnowledgeDocumentModel
  * Ditampilkan dinamis di aplikasi mobile (HelpCenterScreen) dan diintegrasikan ke RAG AI Gateway.
  */
 export type Faq = Prisma.FaqModel
+/**
+ * Model Payment
+ * Pembayaran & Pemisahan Arus Kas Riil (Payment Lifecycle)
+ */
+export type Payment = Prisma.PaymentModel

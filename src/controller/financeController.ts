@@ -21,11 +21,12 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     const bookingWhere = dateFilter ? { createdAt: dateFilter } : {};
 
-    // 1. Ambil semua booking yang relevan dengan unit armada
+    // 1. Ambil semua booking yang relevan dengan unit armada beserta status pembayarannya
     const bookings = await db.booking.findMany({
       where: bookingWhere,
       include: {
         vehicle: true,
+        payment: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -79,26 +80,41 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     // Kalkulasi per booking
     for (const b of bookings) {
       const amount = b.quotedAmount ? Number(b.quotedAmount) : 0;
+      const isPaid = b.payment?.status === 'PAID';
 
-      if (b.status === 'COMPLETED') {
+      if (isPaid) {
+        // Omzet kas masuk riil hanya tercatat jika pembayaran telah terverifikasi lunas (PAID)
         totalRevenue += amount;
-        completedBookingsCount += 1;
 
         if (b.rentalType === 'WITHOUT_DRIVER') {
           withoutDriverRevenue += amount;
-          withoutDriverCount += 1;
         } else {
           withDriverRevenue += amount;
+        }
+
+        const stat = vehicleStatsMap.get(b.vehicleId);
+        if (stat) {
+          stat.totalRevenue += amount;
+        }
+      } else if (b.status !== 'CANCELLED' && b.status !== 'REJECTED' && amount > 0) {
+        // Transaksi aktif atau selesai yang belum lunas dicatat sebagai piutang / pending revenue
+        pendingRevenue += amount;
+      }
+
+      // Hitung metrik operasional armada
+      if (b.status === 'COMPLETED') {
+        completedBookingsCount += 1;
+        if (b.rentalType === 'WITHOUT_DRIVER') {
+          withoutDriverCount += 1;
+        } else {
           withDriverCount += 1;
         }
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
           stat.completedBookings += 1;
-          stat.totalRevenue += amount;
         }
       } else if (b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS') {
-        pendingRevenue += amount;
         confirmedOrActiveCount += 1;
 
         const stat = vehicleStatsMap.get(b.vehicleId);
@@ -127,8 +143,8 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     }
 
     for (const b of bookings) {
-      if (b.status === 'COMPLETED') {
-        const d = new Date(b.createdAt);
+      if (b.payment?.status === 'PAID') {
+        const d = b.payment.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         if (monthlyMap.has(key)) {
           const entry = monthlyMap.get(key)!;

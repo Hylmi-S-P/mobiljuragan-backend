@@ -27,6 +27,7 @@ export class AppError extends Error {
 export function sendSuccess<T>(res: Response, data: T, statusCode = 200): Response {
   return res.status(statusCode).json({
     status: 'ok',
+    success: true,
     data,
   });
 }

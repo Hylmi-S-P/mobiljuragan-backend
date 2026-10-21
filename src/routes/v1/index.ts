@@ -13,8 +13,16 @@ import { adminFinanceRouter } from './financeRoutes.js';
 import { adminAiRouter } from './adminAiRoutes.js';
 import { faqRouter } from './faqs.js';
 import { adminFaqRouter } from './adminFaqs.js';
+import { paymentRouter } from './paymentRoutes.js';
+import { adminPaymentRouter } from './adminPaymentRoutes.js';
 
 export const v1Router: Router = Router();
+
+// Manajemen pembayaran admin portal: /api/v1/admin/payments/*
+v1Router.use('/admin/payments', adminPaymentRouter);
+
+// Pemrosesan pembayaran & mutasi: /api/v1/payments/*
+v1Router.use('/payments', paymentRouter);
 
 // Laporan keuangan pemasukan: /api/v1/admin/finance/*
 v1Router.use('/admin/finance', adminFinanceRouter);

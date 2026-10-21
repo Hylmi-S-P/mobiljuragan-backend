@@ -66,3 +66,35 @@ export function requireRole(...roles: UserRole[]) {
     next();
   };
 }
+
+/**
+ * Middleware autentikasi opsional: mengecek Bearer token jika disediakan.
+ * Jika tidak ada token atau token tidak valid, alur tetap berlanjut tanpa melempar 401.
+ */
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const payload = verifyAuthToken(token);
+    const user = await userModel.findActiveSessionUser(payload.userId);
+
+    if (user && user.isActive) {
+      req.user = {
+        userId: user.id,
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+      };
+    }
+  } catch {
+    // Abaikan error token pada autentikasi opsional
+  }
+
+  next();
+}
+
