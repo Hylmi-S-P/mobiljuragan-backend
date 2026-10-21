@@ -20,6 +20,7 @@ const CATALOG_FIELDS = {
   transmission: true,
   category: true,
   imageUrl: true,
+  pricePerDay: true,
   operationalStatus: true,
   createdAt: true,
   updatedAt: true,
@@ -167,6 +168,164 @@ export const vehicleModel = {
       });
 
       return updated;
+    });
+  },
+
+  createVehicle(
+    data: {
+      name: string;
+      licensePlate: string;
+      category?: string;
+      transmission?: string;
+      seatingCapacity?: number;
+      pricePerDay?: number;
+      brand?: string;
+      model?: string;
+      imageUrl?: string;
+      operationalStatus?: OperationalStatus;
+    },
+    actorId: string,
+  ) {
+    const slug =
+      data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') +
+      '-' +
+      data.licensePlate.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return db.$transaction(async (tx) => {
+      const created = await tx.vehicle.create({
+        data: {
+          externalId: slug,
+          name: data.name,
+          licensePlate: data.licensePlate,
+          category: data.category ?? 'MPV',
+          transmission: data.transmission ?? 'MANUAL',
+          seatingCapacity: data.seatingCapacity ?? 7,
+          pricePerDay: data.pricePerDay ?? 400000,
+          brand: data.brand ?? null,
+          model: data.model ?? null,
+          imageUrl: data.imageUrl ?? null,
+          operationalStatus: data.operationalStatus ?? OperationalStatus.AVAILABLE,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'CREATE_VEHICLE',
+          entityType: 'Vehicle',
+          entityId: created.id,
+          metadata: {
+            name: created.name,
+            licensePlate: created.licensePlate,
+            pricePerDay: created.pricePerDay,
+          },
+        },
+      });
+
+      return created;
+    });
+  },
+
+  updateVehicle(
+    id: string,
+    data: {
+      name?: string;
+      licensePlate?: string;
+      category?: string;
+      transmission?: string;
+      seatingCapacity?: number;
+      pricePerDay?: number;
+      brand?: string;
+      model?: string;
+      imageUrl?: string;
+      operationalStatus?: OperationalStatus;
+    },
+    actorId: string,
+  ) {
+    return db.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.findFirst({
+        where: { OR: [{ id }, { externalId: id }] },
+      });
+
+      if (!vehicle) {
+        throw new Error('VEHICLE_NOT_FOUND');
+      }
+
+      const updated = await tx.vehicle.update({
+        where: { id: vehicle.id },
+        data: {
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.licensePlate !== undefined ? { licensePlate: data.licensePlate } : {}),
+          ...(data.category !== undefined ? { category: data.category } : {}),
+          ...(data.transmission !== undefined ? { transmission: data.transmission } : {}),
+          ...(data.seatingCapacity !== undefined ? { seatingCapacity: data.seatingCapacity } : {}),
+          ...(data.pricePerDay !== undefined ? { pricePerDay: data.pricePerDay } : {}),
+          ...(data.brand !== undefined ? { brand: data.brand } : {}),
+          ...(data.model !== undefined ? { model: data.model } : {}),
+          ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+          ...(data.operationalStatus !== undefined
+            ? { operationalStatus: data.operationalStatus }
+            : {}),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'UPDATE_VEHICLE',
+          entityType: 'Vehicle',
+          entityId: updated.id,
+          metadata: {
+            fromPrice: vehicle.pricePerDay,
+            toPrice: updated.pricePerDay,
+            fromStatus: vehicle.operationalStatus,
+            toStatus: updated.operationalStatus,
+          },
+        },
+      });
+
+      return updated;
+    });
+  },
+
+  deleteVehicle(id: string, actorId: string) {
+    return db.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.findFirst({
+        where: { OR: [{ id }, { externalId: id }] },
+      });
+
+      if (!vehicle) {
+        throw new Error('VEHICLE_NOT_FOUND');
+      }
+
+      const activeBookings = await tx.booking.count({
+        where: {
+          vehicleId: vehicle.id,
+          status: { in: BLOCKING_BOOKING_STATUS },
+        },
+      });
+
+      if (activeBookings > 0) {
+        throw new Error('VEHICLE_HAS_ACTIVE_BOOKINGS');
+      }
+
+      const deleted = await tx.vehicle.delete({
+        where: { id: vehicle.id },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'DELETE_VEHICLE',
+          entityType: 'Vehicle',
+          entityId: vehicle.id,
+          metadata: {
+            name: vehicle.name,
+            licensePlate: vehicle.licensePlate,
+          },
+        },
+      });
+
+      return deleted;
     });
   },
 };

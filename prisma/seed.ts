@@ -39,6 +39,7 @@ const OFFICIAL_FLEET = [
     transmission: 'MANUAL',
     category: 'MPV',
     imageUrl: null,
+    pricePerDay: 400000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -51,6 +52,7 @@ const OFFICIAL_FLEET = [
     transmission: 'AUTOMATIC',
     category: 'SUV',
     imageUrl: null,
+    pricePerDay: 900000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -63,6 +65,7 @@ const OFFICIAL_FLEET = [
     transmission: 'MANUAL',
     category: 'PICKUP',
     imageUrl: null,
+    pricePerDay: 850000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -75,6 +78,7 @@ const OFFICIAL_FLEET = [
     transmission: 'AUTOMATIC',
     category: 'MPV',
     imageUrl: null,
+    pricePerDay: 600000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -87,6 +91,7 @@ const OFFICIAL_FLEET = [
     transmission: 'MANUAL',
     category: 'COMMERCIAL',
     imageUrl: null,
+    pricePerDay: 350000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -99,6 +104,7 @@ const OFFICIAL_FLEET = [
     transmission: 'MANUAL',
     category: 'SUV',
     imageUrl: null,
+    pricePerDay: 500000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -111,6 +117,7 @@ const OFFICIAL_FLEET = [
     transmission: 'AUTOMATIC',
     category: 'SUV',
     imageUrl: null,
+    pricePerDay: 500000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -123,6 +130,7 @@ const OFFICIAL_FLEET = [
     transmission: 'AUTOMATIC',
     category: 'MPV',
     imageUrl: null,
+    pricePerDay: 450000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -135,6 +143,7 @@ const OFFICIAL_FLEET = [
     transmission: 'AUTOMATIC',
     category: 'MPV',
     imageUrl: null,
+    pricePerDay: 550000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
 ];
@@ -207,6 +216,7 @@ async function main() {
         seatingCapacity: vehicle.seatingCapacity,
         transmission: vehicle.transmission,
         category: vehicle.category,
+        pricePerDay: vehicle.pricePerDay,
         operationalStatus: vehicle.operationalStatus,
       },
       create: vehicle,

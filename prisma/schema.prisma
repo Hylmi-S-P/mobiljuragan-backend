@@ -136,6 +136,7 @@ model Vehicle {
   transmission      String? // AUTOMATIC | MANUAL
   category          String? // MENANGANI isi referensi fleet (towncar/pickup/man)
   imageUrl          String?
+  pricePerDay       Int               @default(400000)
   operationalStatus OperationalStatus @default(AVAILABLE)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

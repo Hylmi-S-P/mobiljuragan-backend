@@ -40,4 +40,57 @@ export const adminVehicleController = {
       next(error);
     }
   },
+
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const staffUser = req.user!;
+      const created = await vehicleModel.createVehicle(req.body, staffUser.userId);
+      sendSuccess(res, created, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const staffUser = req.user!;
+      const updated = await vehicleModel.updateVehicle(id, req.body, staffUser.userId);
+      sendSuccess(res, updated);
+    } catch (error: any) {
+      if (error?.message === 'VEHICLE_NOT_FOUND') {
+        throw new AppError(
+          'VEHICLE_NOT_FOUND',
+          `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
+          404,
+        );
+      }
+      next(error);
+    }
+  },
+
+  async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const staffUser = req.user!;
+      const deleted = await vehicleModel.deleteVehicle(id, staffUser.userId);
+      sendSuccess(res, { deleted: true, id: deleted.id });
+    } catch (error: any) {
+      if (error?.message === 'VEHICLE_NOT_FOUND') {
+        throw new AppError(
+          'VEHICLE_NOT_FOUND',
+          `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
+          404,
+        );
+      }
+      if (error?.message === 'VEHICLE_HAS_ACTIVE_BOOKINGS') {
+        throw new AppError(
+          'VEHICLE_HAS_ACTIVE_BOOKINGS',
+          'Tidak dapat menghapus armada yang sedang memiliki pesanan sewa aktif.',
+          400,
+        );
+      }
+      next(error);
+    }
+  },
 };

@@ -1351,6 +1351,7 @@ export const VehicleScalarFieldEnum = {
   transmission: 'transmission',
   category: 'category',
   imageUrl: 'imageUrl',
+  pricePerDay: 'pricePerDay',
   operationalStatus: 'operationalStatus',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
