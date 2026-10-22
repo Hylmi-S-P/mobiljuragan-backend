@@ -769,7 +769,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     let primaryFailed = false;
     let failureReason = '';
