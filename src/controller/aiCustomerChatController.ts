@@ -98,7 +98,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     try {
       const apiRes = await fetch(targetUrl, {
