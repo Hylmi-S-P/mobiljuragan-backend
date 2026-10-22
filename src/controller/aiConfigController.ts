@@ -2,6 +2,10 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ensureAiDefaults } from '../services/aiKnowledgeSeed.js';
+import {
+  processMessageGuardrail,
+  GCA_SYSTEM_INSTRUCTION,
+} from '../services/aiGuardrailService.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as fs from 'node:fs';
@@ -680,6 +684,52 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
     const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
     const activeModel = config?.activeModel || 'gemini-2.5-flash';
+
+    // 0. Eksekusi Lapisan Pelindung & Klasifikasi Intent (Tier 2 Guardrail Protocol MJ-SGIP v1.0)
+    const guardrail = await processMessageGuardrail(prompt, {
+      userId: req.user?.userId,
+    });
+
+    if (guardrail.shouldBypassRag && guardrail.directResponse) {
+      const latencyMs = Date.now() - startTime;
+      const estimatedTokens = Math.max(30, Math.round(guardrail.directResponse.length / 4));
+      const tokensPerSec =
+        Math.round((estimatedTokens / Math.max(0.1, latencyMs / 1000)) * 10) / 10;
+
+      recordGatewayLog({
+        event: 'CHAT_COMPLETION',
+        model: `${activeModel} [Tier 2: ${guardrail.intent}]`,
+        status: 200,
+        latencyMs,
+        tokens: estimatedTokens,
+        tokensPerSecond: tokensPerSec,
+        details: `[Guardrail ${guardrail.intent}] "${prompt.slice(0, 30)}..." -> Bypassed RAG (${guardrail.source})`,
+      });
+
+      res.status(200).json({
+        status: 'ok',
+        data: {
+          reply: guardrail.directResponse,
+          modelUsed: activeModel,
+          tokens: estimatedTokens,
+          latencyMs,
+          tokensPerSecond: tokensPerSec,
+          ragDocumentsInjected: 0,
+          ragFaqsInjected: 0,
+          referencedDocuments: [],
+          isSimulationFallback: false,
+          isFallbackTriggered: false,
+          // Metadata Tier 2 Guardrail
+          intent: guardrail.intent,
+          confidence: guardrail.confidence,
+          reasoning: guardrail.reasoning,
+          guardrailSource: guardrail.source,
+          bypassedRag: true,
+        },
+      });
+      return;
+    }
+
     const systemPromptBase =
       reqPrompt !== undefined && String(reqPrompt).trim()
         ? String(reqPrompt).trim()
@@ -732,7 +782,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       }
     }
 
-    const fullSystemPrompt = `${systemPromptBase}${ragContextText}`;
+    const fullSystemPrompt = `${systemPromptBase}\n${GCA_SYSTEM_INSTRUCTION}${ragContextText}`;
 
     // 2. Susun pesan dengan format OpenAI
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -833,6 +883,12 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
             referencedDocuments,
             isSimulationFallback: false,
             isFallbackTriggered: false,
+            // Metadata Tier 2 Guardrail
+            intent: guardrail.intent,
+            confidence: guardrail.confidence,
+            reasoning: guardrail.reasoning,
+            guardrailSource: guardrail.source,
+            bypassedRag: false,
           },
         });
         return;
@@ -887,6 +943,12 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
           isFallbackTriggered: false,
           fallbackReason: failureReason,
           gatewayNotice: notice,
+          // Metadata Tier 2 Guardrail
+          intent: guardrail.intent,
+          confidence: guardrail.confidence,
+          reasoning: guardrail.reasoning,
+          guardrailSource: guardrail.source,
+          bypassedRag: false,
         },
       });
       return;

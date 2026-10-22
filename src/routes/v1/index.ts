@@ -16,6 +16,7 @@ import { adminFaqRouter } from './adminFaqs.js';
 import { paymentRouter } from './paymentRoutes.js';
 import { adminPaymentRouter } from './adminPaymentRoutes.js';
 import { ticketRouter } from './tickets.js';
+import { customerAiRouter } from './customerAiRoutes.js';
 
 export const v1Router: Router = Router();
 
@@ -69,4 +70,8 @@ v1Router.use('/faqs', faqRouter);
 
 // Tiket bantuan sisi pelanggan: /api/v1/tickets/*
 v1Router.use('/tickets', ticketRouter);
+
+// Asisten AI interaktif sisi pelanggan / mobile: /api/v1/ai/*
+v1Router.use('/ai', customerAiRouter);
+
 
