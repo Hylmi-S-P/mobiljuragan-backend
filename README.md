@@ -258,11 +258,26 @@ Berkas yang dikecualikan diatur di `.prettierignore` — antara lain `src/genera
 | **Booking Customer**| `GET` | `/api/v1/bookings` | Customer | Daftar riwayat pesanan milik pemesan |
 | **Booking Customer**| `GET` | `/api/v1/bookings/:id` | Customer | Detail pesanan sewa |
 | **Booking Customer**| `GET` | `/api/v1/bookings/:id/status` | Customer | Status terkini & timeline stepper pesanan |
+| **Pembayaran** | `POST` | `/api/v1/payments` | Customer | Inisiasi pembayaran pesanan |
+| **Pembayaran** | `GET` | `/api/v1/payments/:id` | Customer/Staff | Detail status pembayaran |
+| **Pembayaran** | `POST` | `/api/v1/payments/:id/proof` | Customer | Unggah bukti transfer manual |
+| **Pembayaran** | `GET` | `/api/v1/payments/booking/:bookingId` | Customer/Staff | Riwayat pembayaran per booking |
+| **Pembayaran** | `POST` | `/api/v1/payments/simulate-mutation` | Dev/Staff | Simulasi mutasi rekening bank masuk |
+| **Pembayaran** | `POST` | `/api/v1/payments/webhook/mutation` | Sistem | Webhook mutasi rekening otomatis |
+| **Tiket Bantuan** | `GET` | `/api/v1/tickets` | Customer | Riwayat tiket bantuan milik pelanggan |
+| **Tiket Bantuan** | `POST` | `/api/v1/tickets` | Customer | Buat tiket bantuan pelanggan baru |
+| **Tiket Bantuan** | `GET` | `/api/v1/tickets/:id` | Customer | Detail percakapan tiket bantuan pelanggan |
+| **Tiket Bantuan** | `POST` | `/api/v1/tickets/:id/messages` | Customer | Kirim pesan balasan pelanggan pada tiket |
+| **FAQ Publik** | `GET` | `/api/v1/faqs` | Publik | Daftar pertanyaan umum dan jawaban seputar rental |
 | **Operasional Admin**| `GET` | `/api/v1/admin/bookings` | Admin/Staff | Antrean pesanan masuk, filter & paginasi |
 | **Operasional Admin**| `GET` | `/api/v1/admin/bookings/:id` | Admin/Staff | Detail booking admin & link intent WhatsApp |
 | **Operasional Admin**| `PATCH`| `/api/v1/admin/bookings/:id/status`| Admin/Staff | Konfirmasi tarif & update status booking |
 | **Operasional Admin**| `PATCH`| `/api/v1/admin/bookings/:id/driver`| Admin/Staff | Tugaskan supir ke pesanan dengan supir |
 | **Armada Admin** | `GET` | `/api/v1/admin/fleet/calendar` | Admin/Staff | Matriks kalender timeline 9 armada |
+| **Armada Admin** | `POST` | `/api/v1/admin/vehicles` | Admin/Staff | Tambah data unit armada baru |
+| **Armada Admin** | `PUT` | `/api/v1/admin/vehicles/:id` | Admin/Staff | Perbarui spesifikasi lengkap unit armada |
+| **Armada Admin** | `PATCH`| `/api/v1/admin/vehicles/:id` | Admin/Staff | Ubah sebagian data unit armada |
+| **Armada Admin** | `DELETE`| `/api/v1/admin/vehicles/:id` | Admin/Staff | Hapus data unit armada |
 | **Armada Admin** | `PATCH`| `/api/v1/admin/vehicles/:id/status`| Admin/Staff | Update status fisik armada & audit log |
 | **Supir Admin** | `GET` | `/api/v1/admin/drivers` | Admin/Staff | Roster supir beserta penugasan aktifnya |
 | **Supir Admin** | `POST` | `/api/v1/admin/drivers` | Admin/Staff | Tambah supir baru ke roster |
@@ -270,16 +285,39 @@ Berkas yang dikecualikan diatur di `.prettierignore` — antara lain `src/genera
 | **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id` | Admin/Staff | Ubah data supir |
 | **Supir Admin** | `PATCH`| `/api/v1/admin/drivers/:id/readiness` | Admin/Staff | Sakelar kesiapan SIAGA atau LIBUR |
 | **Supir Admin** | `DELETE`| `/api/v1/admin/drivers/:id` | Admin/Staff | Nonaktifkan supir dari roster |
+| **Pembayaran Admin**| `GET` | `/api/v1/admin/payments` | Admin/Staff | Daftar transaksi pembayaran masuk |
+| **Pembayaran Admin**| `PATCH`| `/api/v1/admin/payments/:id/verify` | Admin/Staff | Verifikasi manual bukti pembayaran |
+| **Pembayaran Admin**| `PATCH`| `/api/v1/admin/payments/:id/reject` | Admin/Staff | Tolak verifikasi bukti pembayaran |
+| **Keuangan Admin** | `GET` | `/api/v1/admin/finance/summary` | Admin/Staff | Ringkasan pendapatan & metrik keuangan |
 | **Akun Admin** | `GET` | `/api/v1/admin/users` | Admin/Staff | Daftar akun staf & admin pengelola portal |
 | **Akun Admin** | `POST` | `/api/v1/admin/users` | Admin/Staff | Daftarkan akun staf/admin baru |
 | **Akun Admin** | `GET` | `/api/v1/admin/users/:id` | Admin/Staff | Detail satu akun staf/admin |
 | **Akun Admin** | `PATCH`| `/api/v1/admin/users/:id` | Admin/Staff | Ubah data, peran, status, atau sandi akun |
 | **Akun Admin** | `DELETE`| `/api/v1/admin/users/:id` | Admin/Staff | Hapus akun, ditolak bila masih terikat transaksi |
-| **Customer Care** | `GET` | `/api/v1/admin/tickets` | Admin/Staff | Daftar tiket bantuan pelanggan |
-| **Customer Care** | `POST` | `/api/v1/admin/tickets` | Admin/Staff | Buat tiket bantuan baru |
-| **Customer Care** | `GET` | `/api/v1/admin/tickets/:id` | Admin/Staff | Detail tiket beserta percakapan |
-| **Customer Care** | `PATCH`| `/api/v1/admin/tickets/:id/status` | Admin/Staff | Ubah status penanganan tiket |
-| **Customer Care** | `POST` | `/api/v1/admin/tickets/:id/messages` | Admin/Staff | Kirim balasan tim pada tiket |
+| **Customer Care Admin** | `GET` | `/api/v1/admin/tickets` | Admin/Staff | Daftar tiket bantuan pelanggan |
+| **Customer Care Admin** | `POST` | `/api/v1/admin/tickets` | Admin/Staff | Buat tiket bantuan baru dari admin |
+| **Customer Care Admin** | `GET` | `/api/v1/admin/tickets/:id` | Admin/Staff | Detail tiket beserta percakapan |
+| **Customer Care Admin** | `PATCH`| `/api/v1/admin/tickets/:id/status` | Admin/Staff | Ubah status penanganan tiket |
+| **Customer Care Admin** | `POST` | `/api/v1/admin/tickets/:id/messages` | Admin/Staff | Kirim balasan tim pada tiket |
+| **FAQ Admin** | `GET` | `/api/v1/admin/faqs` | Admin/Staff | Daftar seluruh tanya jawab FAQ |
+| **FAQ Admin** | `POST` | `/api/v1/admin/faqs` | Admin/Staff | Tambah FAQ baru |
+| **FAQ Admin** | `GET` | `/api/v1/admin/faqs/:id` | Admin/Staff | Detail satu FAQ |
+| **FAQ Admin** | `PUT` | `/api/v1/admin/faqs/:id` | Admin/Staff | Perbarui seluruh data FAQ |
+| **FAQ Admin** | `PATCH`| `/api/v1/admin/faqs/:id` | Admin/Staff | Perbarui sebagian data FAQ |
+| **FAQ Admin** | `DELETE`| `/api/v1/admin/faqs/:id` | Admin/Staff | Hapus item FAQ |
+| **FAQ Admin** | `PATCH`| `/api/v1/admin/faqs/:id/toggle` | Admin/Staff | Sakelar aktif/tampilkan FAQ |
+| **AI Admin** | `GET` | `/api/v1/admin/ai/health` | Admin/Staff | Status koneksi & kesehatan mesin AI |
+| **AI Admin** | `GET` | `/api/v1/admin/ai/models` | Admin/Staff | Daftar model AI yang didukung |
+| **AI Admin** | `GET` | `/api/v1/admin/ai/config` | Admin/Staff | Konfigurasi aktif asisten AI |
+| **AI Admin** | `PUT` | `/api/v1/admin/ai/config` | Admin/Staff | Simpan perubahan konfigurasi asisten AI |
+| **AI Admin** | `POST` | `/api/v1/admin/ai/chat/test` | Admin/Staff | Playground uji coba percakapan asisten AI |
+| **AI Admin** | `GET` | `/api/v1/admin/ai/documents` | Admin/Staff | Daftar dokumen basis pengetahuan (RAG) |
+| **AI Admin** | `POST` | `/api/v1/admin/ai/documents` | Admin/Staff | Tambah dokumen basis pengetahuan AI |
+| **AI Admin** | `PUT` | `/api/v1/admin/ai/documents/:id` | Admin/Staff | Perbarui dokumen basis pengetahuan AI |
+| **AI Admin** | `DELETE`| `/api/v1/admin/ai/documents/:id` | Admin/Staff | Hapus dokumen basis pengetahuan AI |
+| **AI Admin** | `POST` | `/api/v1/admin/ai/documents/parse-file` | Admin/Staff | Ekstrak teks berkas dokumen pengetahuan |
+| **AI Admin** | `GET` | `/api/v1/admin/ai/logs` | Admin/Staff | Riwayat interaksi percakapan AI |
+| **AI Admin** | `DELETE`| `/api/v1/admin/ai/logs` | Admin/Staff | Hapus riwayat log percakapan AI |
 
 **Catatan:** `GET /api/v1/auth/me` dan `POST /api/v1/auth/logout` belum ada di kode, sehingga tidak
 dicantumkan di tabel ini. Keduanya masih berupa rencana untuk modul profil pelanggan.

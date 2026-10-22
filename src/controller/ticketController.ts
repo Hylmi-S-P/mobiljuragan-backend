@@ -14,6 +14,36 @@ import { AppError, sendSuccess } from '../lib/response.js';
 const STATUS_VALUES = Object.values(TicketStatus);
 const CATEGORY_VALUES = Object.values(TicketCategory);
 
+const CATEGORY_MAP: Record<string, TicketCategory> = {
+  RESERVASI: TicketCategory.GENERAL,
+  PEMBAYARAN: TicketCategory.PAYMENT_CONFIRMATION,
+  KENDARAAN: TicketCategory.VEHICLE_ISSUE,
+  LAYANANSOPIR: TicketCategory.COMPLAINT,
+  LAYANAN_SOPIR: TicketCategory.COMPLAINT,
+  LAINNYA: TicketCategory.OTHER,
+  GENERAL: TicketCategory.GENERAL,
+  PAYMENT_CONFIRMATION: TicketCategory.PAYMENT_CONFIRMATION,
+  VEHICLE_ISSUE: TicketCategory.VEHICLE_ISSUE,
+  CANCELLATION: TicketCategory.CANCELLATION,
+  COMPLAINT: TicketCategory.COMPLAINT,
+  OTHER: TicketCategory.OTHER,
+};
+
+function parseTicketCategory(raw?: string): TicketCategory {
+  if (!raw) return TicketCategory.GENERAL;
+  const normalized = raw.trim().toUpperCase();
+  const mapped = CATEGORY_MAP[normalized];
+  if (mapped) return mapped;
+  if (CATEGORY_VALUES.includes(normalized as TicketCategory)) {
+    return normalized as TicketCategory;
+  }
+  throw new AppError(
+    'VALIDATION_ERROR',
+    `Kategori tiket tidak valid (pilih: ${CATEGORY_VALUES.join(', ')}).`,
+    400,
+  );
+}
+
 export const ticketController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -80,7 +110,7 @@ export const ticketController = {
   async addMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const body = (req.body?.body as string | undefined)?.trim();
+      const body = ((req.body?.body ?? req.body?.message) as string | undefined)?.trim();
       const actor = req.user!;
 
       if (!body) {
@@ -113,9 +143,8 @@ export const ticketController = {
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const title = (req.body?.title as string | undefined)?.trim();
-      const description = (req.body?.description as string | undefined)?.trim();
-      const rawCategory = (req.body?.category as string | undefined)?.toUpperCase();
+      const title = ((req.body?.title ?? req.body?.subject) as string | undefined)?.trim();
+      const description = ((req.body?.description ?? req.body?.message) as string | undefined)?.trim();
       const customerId = req.body?.customerId as string | undefined;
       const actor = req.user!;
 
@@ -125,21 +154,15 @@ export const ticketController = {
       if (!description) {
         throw new AppError('VALIDATION_ERROR', 'Deskripsi tiket wajib diisi.', 400);
       }
-      if (rawCategory && !CATEGORY_VALUES.includes(rawCategory as TicketCategory)) {
-        throw new AppError(
-          'VALIDATION_ERROR',
-          `Kategori tiket tidak valid (pilih: ${CATEGORY_VALUES.join(', ')}).`,
-          400,
-        );
-      }
 
+      const category = parseTicketCategory(req.body?.category as string | undefined);
       const ticketNumber = await ticketModel.nextTicketNumber(new Date());
 
       const created = await ticketModel.create({
         ticketNumber,
         title,
         description,
-        category: (rawCategory as TicketCategory) ?? TicketCategory.GENERAL,
+        category,
         // Tanpa customerId, tiket dicatat atas nama staf yang membuatnya.
         customer: { connect: { id: customerId ?? actor.userId } },
       });
@@ -207,9 +230,8 @@ export const ticketController = {
    */
   async createCustomerTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const title = (req.body?.title as string | undefined)?.trim();
-      const description = (req.body?.description as string | undefined)?.trim();
-      const rawCategory = (req.body?.category as string | undefined)?.toUpperCase();
+      const title = ((req.body?.title ?? req.body?.subject) as string | undefined)?.trim();
+      const description = ((req.body?.description ?? req.body?.message) as string | undefined)?.trim();
       const actor = req.user!;
 
       if (!title) {
@@ -218,21 +240,15 @@ export const ticketController = {
       if (!description) {
         throw new AppError('VALIDATION_ERROR', 'Deskripsi tiket wajib diisi.', 400);
       }
-      if (rawCategory && !CATEGORY_VALUES.includes(rawCategory as TicketCategory)) {
-        throw new AppError(
-          'VALIDATION_ERROR',
-          `Kategori tiket tidak valid (pilih: ${CATEGORY_VALUES.join(', ')}).`,
-          400,
-        );
-      }
 
+      const category = parseTicketCategory(req.body?.category as string | undefined);
       const ticketNumber = await ticketModel.nextTicketNumber(new Date());
 
       const created = await ticketModel.create({
         ticketNumber,
         title,
         description,
-        category: (rawCategory as TicketCategory) ?? TicketCategory.GENERAL,
+        category,
         customer: { connect: { id: actor.userId } },
         messages: {
           create: {
@@ -256,7 +272,7 @@ export const ticketController = {
   async addCustomerMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const body = (req.body?.body as string | undefined)?.trim();
+      const body = ((req.body?.body ?? req.body?.message) as string | undefined)?.trim();
       const actor = req.user!;
 
       if (!body) {

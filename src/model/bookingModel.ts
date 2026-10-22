@@ -137,10 +137,18 @@ export const bookingModel = {
     });
   },
 
-  /** Armada dicari lewat uuid atau externalId, karena pelanggan memakai slug. */
+  /** Armada dicari lewat uuid, externalId lengkap, atau awalan slug armada. */
   findVehicleByIdOrExternalId(id: string) {
     return db.vehicle.findFirst({
-      where: { OR: [{ id }, { externalId: id }] },
+      where: {
+        OR: [
+          { id },
+          { externalId: id },
+          { externalId: { startsWith: `${id}-` } },
+          { externalId: { startsWith: id } },
+          { externalId: { contains: id } },
+        ],
+      },
     });
   },
 

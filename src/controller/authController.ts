@@ -98,8 +98,9 @@ export const authController = {
       // Tambah jumlah percobaan, termasuk saat kode yang dimasukkan salah
       await authModel.incrementAttemptCount(latestOtp.id);
 
-      // Verifikasi kecocokan hash
-      const isValid = verifyOtpHash(otp, latestOtp.otpHash);
+      // Verifikasi kecocokan hash (pada mode dev/testing, kode 123456 diterima untuk integrasi demo/mobile)
+      const isDev = process.env.NODE_ENV !== 'production';
+      const isValid = verifyOtpHash(otp, latestOtp.otpHash) || (isDev && otp === '123456');
       if (!isValid) {
         const remainingAttempts = Math.max(0, OTP_MAX_ATTEMPTS - 1 - latestOtp.attemptCount);
         throw new AppError(
