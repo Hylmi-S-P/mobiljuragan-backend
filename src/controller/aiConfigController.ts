@@ -798,14 +798,46 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         primaryFailed = true;
         failureReason = `Gateway error (HTTP ${apiRes.status})`;
       } else {
-        const responseJson = (await apiRes.json()) as {
-          choices?: Array<{ message?: { content: string } }>;
-          usage?: { total_tokens?: number };
-        };
+        const rawText = await apiRes.text();
+        let replyContent = '';
+        let tokens: number | null = null;
 
-        const replyContent =
-          responseJson.choices?.[0]?.message?.content || 'Tidak ada balasan dari model.';
-        const tokens = responseJson.usage?.total_tokens || null;
+        const trimmed = rawText.trim();
+        if (trimmed.startsWith('{')) {
+          try {
+            const json = JSON.parse(trimmed);
+            replyContent = json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
+            tokens = json.usage?.total_tokens || null;
+          } catch {
+            // parse SSE
+          }
+        }
+
+        if (!replyContent) {
+          let accumulated = '';
+          for (const line of trimmed.split('\n')) {
+            const l = line.trim();
+            if (l.startsWith('data: ')) {
+              const dataStr = l.slice(6).trim();
+              if (dataStr === '[DONE]') continue;
+              try {
+                const chunk = JSON.parse(dataStr);
+                accumulated += chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
+                if (chunk.usage?.total_tokens) {
+                  tokens = chunk.usage.total_tokens;
+                }
+              } catch {
+                // ignore
+              }
+            }
+          }
+          replyContent = accumulated.trim();
+        }
+
+        if (!replyContent) {
+          replyContent = 'Tidak ada balasan dari model.';
+        }
+
         const tokensPerSecond =
           tokens && latencyMs > 0
             ? Math.round((tokens / (latencyMs / 1000)) * 10) / 10

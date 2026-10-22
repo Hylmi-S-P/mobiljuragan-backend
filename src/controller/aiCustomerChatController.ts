@@ -120,13 +120,40 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         throw new Error(`Upstream gateway mengembalikan status HTTP ${apiRes.status}`);
       }
 
-      const responseJson = (await apiRes.json()) as {
-        choices?: Array<{ message?: { content: string } }>;
-      };
+      const rawText = await apiRes.text();
+      let replyContent = '';
 
-      const replyContent =
-        responseJson.choices?.[0]?.message?.content ||
-        'Halo! Tim MobilJuragan Merauke siap melayani Anda. Silakan hubungi kami untuk informasi lebih lanjut.';
+      const trimmed = rawText.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          const json = JSON.parse(trimmed);
+          replyContent = json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
+        } catch {
+          // parse sebagai SSE
+        }
+      }
+
+      if (!replyContent) {
+        let accumulated = '';
+        for (const line of trimmed.split('\n')) {
+          const l = line.trim();
+          if (l.startsWith('data: ')) {
+            const dataStr = l.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const chunk = JSON.parse(dataStr);
+              accumulated += chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
+            } catch {
+              // ignore
+            }
+          }
+        }
+        replyContent = accumulated.trim();
+      }
+
+      if (!replyContent) {
+        replyContent = 'Halo! Tim MobilJuragan Merauke siap melayani Anda. Silakan hubungi kami untuk informasi lebih lanjut.';
+      }
 
       res.status(200).json({
         status: 'ok',
