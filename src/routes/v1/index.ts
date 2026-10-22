@@ -15,6 +15,7 @@ import { faqRouter } from './faqs.js';
 import { adminFaqRouter } from './adminFaqs.js';
 import { paymentRouter } from './paymentRoutes.js';
 import { adminPaymentRouter } from './adminPaymentRoutes.js';
+import { ticketRouter } from './tickets.js';
 
 export const v1Router: Router = Router();
 
@@ -65,4 +66,7 @@ v1Router.use('/bookings', bookingRouter);
 
 // Tanya jawab resmi dinamis (FAQ): /api/v1/faqs/*
 v1Router.use('/faqs', faqRouter);
+
+// Tiket bantuan sisi pelanggan: /api/v1/tickets/*
+v1Router.use('/tickets', ticketRouter);
 

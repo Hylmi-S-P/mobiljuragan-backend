@@ -21,6 +21,27 @@ export const ticketModel = {
     });
   },
 
+  /** Daftar tiket milik pelanggan tertentu beserta riwayat pesan. */
+  listForCustomer(customerId: string, filter?: { status?: TicketStatus }) {
+    return db.supportTicket.findMany({
+      where: {
+        customerId,
+        ...(filter?.status ? { status: filter.status } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        customer: { select: { id: true, fullName: true, phoneNumber: true } },
+        messages: {
+          orderBy: { sentAt: 'asc' },
+          include: {
+            sender: { select: { id: true, fullName: true, role: true } },
+          },
+        },
+        _count: { select: { messages: true } },
+      },
+    });
+  },
+
   findById(id: string) {
     return db.supportTicket.findUnique({
       where: { id },
