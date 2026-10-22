@@ -2,10 +2,6 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import {
-  processMessageGuardrail,
-  GCA_SYSTEM_INSTRUCTION,
-} from '../services/aiGuardrailService.js';
-import {
   generateConversationTraceId,
   resolveClientNetworkAffinity,
 } from './aiConfigController.js';
@@ -13,7 +9,6 @@ import * as crypto from 'node:crypto';
 
 /**
  * Controller Chat Pelanggan (Aplikasi Mobile & Web Pelanggan)
- * Menggunakan Tier 2 Semantic Guardrail (MJ-SGIP v1.0)
  */
 export async function handleCustomerAiChat(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
@@ -30,32 +25,11 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     }
 
     const prompt = rawPrompt.trim();
-    const userId = req.user?.userId;
 
-    // 1. Eksekusi Lapisan Pelindung & Klasifikasi Intent (Tier 2 Guardrail)
-    const guardrail = await processMessageGuardrail(prompt, { userId });
-
-    if (guardrail.shouldBypassRag && guardrail.directResponse) {
-      const latencyMs = Date.now() - startTime;
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          reply: guardrail.directResponse,
-          intent: guardrail.intent,
-          confidence: guardrail.confidence,
-          reasoning: guardrail.reasoning,
-          guardrailSource: guardrail.source,
-          bypassedRag: true,
-          latencyMs,
-        },
-      });
-      return;
-    }
-
-    // 2. Jika RENTAL_FAQ: Susun Konteks Pengetahuan Resmi (RAG)
+    // 1. Susun Konteks Pengetahuan Resmi (RAG)
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
     const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
-    const activeModel = config?.activeModel || 'MJ';
+    const activeModel = config?.activeModel || 'gemini-2.5-flash';
 
     const systemPromptBase =
       config?.systemPrompt ||
@@ -88,7 +62,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
     }
 
-    const fullSystemPrompt = `${systemPromptBase}\n${GCA_SYSTEM_INSTRUCTION}${ragContextText}\nJawab pertanyaan pelanggan secara akurat dan ramah sesuai standar G-C-A.`;
+    const fullSystemPrompt = `${systemPromptBase}${ragContextText}\nJawab pertanyaan pelanggan secara ramah, akurat, dan sopan sesuai standar MobilJuragan Merauke.`;
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: fullSystemPrompt },
@@ -104,7 +78,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
 
     messages.push({ role: 'user', content: prompt });
 
-    // 3. Eksekusi Inferensi LLM melalui 9Router Gateway
+    // 2. Eksekusi Inferensi LLM melalui 9Router Gateway
     const targetUrl = `${gatewayUrl}/chat/completions`;
     const traceId = generateConversationTraceId();
     const networkAffinity = resolveClientNetworkAffinity();
@@ -158,11 +132,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         status: 'ok',
         data: {
           reply: replyContent,
-          intent: guardrail.intent,
-          confidence: guardrail.confidence,
-          reasoning: guardrail.reasoning,
-          guardrailSource: guardrail.source,
-          bypassedRag: false,
           latencyMs,
         },
       });
@@ -178,11 +147,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         status: 'ok',
         data: {
           reply: `Halo Sobat Juragan! Terima kasih telah menghubungi MobilJuragan Merauke.\n\nSaat ini sistem asisten virtual kami sedang melakukan sinkronisasi otomatis. Seluruh layanan rental mobil dalam kota Merauke, rute Sota, dan Boven Digoel tetap beroperasi normal dengan armada prima (Innova Reborn, Fortuner, Avanza, Hilux 4x4).\n\nUntuk informasi ketersediaan unit dan pemesanan cepat, silakan langsung hubungi customer service kami via WhatsApp di +62 812-4800-2910. Tim kami siap melayani Anda!`,
-          intent: 'RENTAL_FAQ',
-          confidence: 0.5,
-          reasoning: 'Fallback graceful offline asisten virtual.',
-          guardrailSource: 'rule_fallback',
-          bypassedRag: false,
           latencyMs: Date.now() - startTime,
         },
       });
