@@ -354,7 +354,7 @@ model Payment {
   booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   baseAmount      Decimal        @db.Decimal(12, 2)
-  uniqueCode      Int            @default(0) // 1 s.d. 999 untuk pencocokan mutasi otomatis
+  uniqueCode      Int            @default(0) // 1 s.d. 100 untuk pencocokan mutasi otomatis
   totalAmount     Decimal        @db.Decimal(12, 2) // baseAmount + uniqueCode
 
   method          PaymentMethod  @default(QRIS)

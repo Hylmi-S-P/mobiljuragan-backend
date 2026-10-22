@@ -70,13 +70,22 @@ export interface WebhookMutationResult {
 }
 
 
+let paymentAllocationLock: Promise<unknown> = Promise.resolve();
+
+function withPaymentLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = paymentAllocationLock.then(fn, fn);
+  paymentAllocationLock = next.then(() => {}, () => {});
+  return next;
+}
+
 export const paymentService = {
   /**
-   * Pembuatan tagihan pembayaran baru dengan alokasi kode unik 3-digit (1-999) bebas bentrok
+   * Pembuatan tagihan pembayaran baru dengan alokasi kode unik (1-100) bebas bentrok
    * dan injeksi QRIS dinamis mandiri (EMVCo Tag 54).
    */
   async createPayment(params: CreatePaymentParams) {
-    return db.$transaction(async (tx) => {
+    return withPaymentLock(() =>
+      db.$transaction(async (tx) => {
       // 1. Cari booking berdasarkan ID atau bookingCode
       const booking = await tx.booking.findFirst({
         where: {
@@ -127,7 +136,7 @@ export const paymentService = {
 
       const baseAmount = Number(booking.quotedAmount);
 
-      // 2. Alokasi kode unik (1 s.d. 999) bebas bentrok di dalam transaksi
+      // 2. Alokasi kode unik (1 s.d. 100) bebas bentrok di dalam transaksi
       let uniqueCode = 0;
       let totalAmount = baseAmount;
 
@@ -144,12 +153,12 @@ export const paymentService = {
 
         const usedCodes = new Set(activePayments.map((p) => p.uniqueCode));
 
-        // Acak kandidat kode unik antara 1 dan 999
-        let candidate = Math.floor(Math.random() * 999) + 1;
+        // Acak kandidat kode unik antara 1 dan 100
+        let candidate = Math.floor(Math.random() * 100) + 1;
         if (usedCodes.has(candidate)) {
-          // Cari angka pertama yang belum terpakai dalam rentang 1..999
+          // Cari angka pertama yang belum terpakai dalam rentang 1..100
           candidate = 0;
-          for (let c = 1; c <= 999; c++) {
+          for (let c = 1; c <= 100; c++) {
             if (!usedCodes.has(c)) {
               candidate = c;
               break;
@@ -237,7 +246,8 @@ export const paymentService = {
       });
 
       return payment;
-    });
+      })
+    );
   },
 
   /**
