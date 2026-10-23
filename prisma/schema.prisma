@@ -192,6 +192,7 @@ model Booking {
   tariffStatus        TariffStatus       @default(PENDING_TEAM_CONFIRMATION)
   // Boleh null sampai tarif dikonfirmasi tim MobilJuragan.
   quotedAmount        Decimal?           @db.Decimal(12, 2)
+  surcharges          Json?
 
   status              BookingStatus      @default(CREATED)
   statusHistory       BookingStatusHistory[]

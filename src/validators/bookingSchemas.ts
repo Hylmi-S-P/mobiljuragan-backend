@@ -47,6 +47,15 @@ export const updateBookingStatusSchema = z.object({
     errorMap: () => ({ message: 'Status sewa tidak valid.' }),
   }),
   quotedAmount: z.number().nonnegative('Tarif sewa tidak boleh bernilai negatif.').optional(),
+  surcharges: z
+    .array(
+      z.object({
+        title: z.string().min(1, 'Judul penyesuaian biaya wajib diisi.'),
+        amount: z.number(),
+        note: z.string().optional(),
+      }),
+    )
+    .optional(),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 

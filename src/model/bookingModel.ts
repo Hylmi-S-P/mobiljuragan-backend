@@ -224,6 +224,7 @@ export const bookingModel = {
       },
       include: {
         vehicle: true,
+        driver: true,
         customer: bookingCustomerSummary,
         statusHistory: {
           orderBy: { changedAt: 'asc' },
@@ -275,6 +276,7 @@ export const bookingModel = {
     id: string;
     nextStatus: BookingStatus;
     quotedAmount: number | undefined;
+    surcharges?: Array<{ title: string; amount: number; note?: string }> | Prisma.InputJsonValue | undefined;
     note: string | null;
     actorUserId: string;
     actor: BookingStatusActor;
@@ -318,6 +320,10 @@ export const bookingModel = {
       if (input.quotedAmount !== undefined) {
         updateData.quotedAmount = input.quotedAmount;
         updateData.tariffStatus = TariffStatus.CONFIRMED;
+      }
+
+      if (input.surcharges !== undefined) {
+        updateData.surcharges = input.surcharges;
       }
 
       const updatedBooking = await tx.booking.update({

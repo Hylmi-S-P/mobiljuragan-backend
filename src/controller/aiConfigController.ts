@@ -783,6 +783,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
           messages,
           temperature,
           max_tokens: maxTokens,
+          stream: false,
         }),
         signal: controller.signal,
       });
@@ -797,14 +798,42 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         primaryFailed = true;
         failureReason = `Gateway error (HTTP ${apiRes.status})`;
       } else {
-        const responseJson = (await apiRes.json()) as {
-          choices?: Array<{ message?: { content: string } }>;
-          usage?: { total_tokens?: number };
-        };
+        const contentType = apiRes.headers.get('content-type') || '';
+        let replyContent = '';
+        let tokens: number | null = null;
 
-        const replyContent =
-          responseJson.choices?.[0]?.message?.content || 'Tidak ada balasan dari model.';
-        const tokens = responseJson.usage?.total_tokens || null;
+        if (contentType.includes('text/event-stream')) {
+          const rawText = await apiRes.text();
+          const lines = rawText.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const jsonStr = trimmed.slice(5).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) replyContent += delta;
+              const msgContent = parsed.choices?.[0]?.message?.content;
+              if (msgContent) replyContent += msgContent;
+              if (parsed.usage?.total_tokens) tokens = parsed.usage.total_tokens;
+            } catch {
+              // Abaikan potongan yang bukan format JSON
+            }
+          }
+        } else {
+          const responseJson = (await apiRes.json()) as {
+            choices?: Array<{ message?: { content: string } }>;
+            usage?: { total_tokens?: number };
+          };
+          replyContent =
+            responseJson.choices?.[0]?.message?.content || 'Tidak ada balasan dari model.';
+          tokens = responseJson.usage?.total_tokens || null;
+        }
+
+        if (!replyContent) {
+          replyContent = 'Tidak ada balasan teks dari model.';
+        }
         const tokensPerSecond =
           tokens && latencyMs > 0
             ? Math.round((tokens / (latencyMs / 1000)) * 10) / 10
@@ -840,7 +869,9 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     } catch (networkErr: unknown) {
       clearTimeout(timeout);
       primaryFailed = true;
-      failureReason = `Gateway ${gatewayUrl} tidak merespons (Offline)`;
+      const errMsg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+      logger.warn({ networkErr }, `Pengujian sandbox gagal ke gateway: ${errMsg}`);
+      failureReason = `Gateway ${gatewayUrl} tidak merespons (Offline: ${errMsg})`;
     }
 
     // 4. Penanganan Kegagalan Gateway (Offline / Kuota Habis)

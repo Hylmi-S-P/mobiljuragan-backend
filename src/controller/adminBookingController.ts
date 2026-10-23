@@ -156,6 +156,7 @@ export const adminBookingController = {
       const {
         status: nextStatus,
         quotedAmount,
+        surcharges,
         note,
       } = req.body as z.infer<typeof updateBookingStatusSchema>;
       const staffUser = req.user!;
@@ -164,6 +165,7 @@ export const adminBookingController = {
         id,
         nextStatus,
         quotedAmount,
+        surcharges,
         note: note ?? null,
         actorUserId: staffUser.userId,
         actor: actorOf(staffUser.role),
