@@ -388,7 +388,7 @@ model Payment {
   status          PaymentStatus  @default(UNPAID)
 
   qrisPayload     String?        @db.Text
-  proofImageUrl   String?        @db.Text
+  proofImageUrl   String?        @db.LongText
   bankName        String?
   senderAccount   String?
 

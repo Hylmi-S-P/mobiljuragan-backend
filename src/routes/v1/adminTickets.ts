@@ -16,3 +16,4 @@ adminTicketRouter.post('/', ticketController.create);
 adminTicketRouter.get('/:id', ticketController.detail);
 adminTicketRouter.patch('/:id/status', ticketController.updateStatus);
 adminTicketRouter.post('/:id/messages', ticketController.addMessage);
+adminTicketRouter.post('/:id/handover', ticketController.handover);

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ticketController } from '../../controller/ticketController.js';
 import { streamTicketEvents } from '../../controller/ticketEventController.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { ticketMessageRateLimiter } from '../../middleware/rateLimiter.js';
 
 /**
  * Tiket bantuan pelanggan: /api/v1/tickets/*
@@ -19,7 +20,7 @@ ticketRouter.post('/', ticketController.createCustomerTicket);
 ticketRouter.post('/ai-session', ticketController.createAiSession);
 
 ticketRouter.get('/:id', ticketController.detailCustomerTicket);
-ticketRouter.post('/:id/messages', ticketController.addCustomerMessage);
+ticketRouter.post('/:id/messages', ticketMessageRateLimiter, ticketController.addCustomerMessage);
 
 /* Dipanggil saat asisten AI menyerahkan tiket ke admin. */
 ticketRouter.post('/:id/handover', ticketController.handover);

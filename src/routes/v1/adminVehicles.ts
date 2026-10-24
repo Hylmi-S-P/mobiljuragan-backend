@@ -42,10 +42,8 @@ const updateVehicleSchema = z.object({
 
 const updateVehicleStatusSchema = z.object({
   status: z.nativeEnum(OperationalStatus, {
-    errorMap: () => ({
-      message:
-        'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE).',
-    }),
+    error:
+      'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE).',
   }),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });

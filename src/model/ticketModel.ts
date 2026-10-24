@@ -60,14 +60,23 @@ export const ticketModel = {
   /** Nomor tiket berurutan per hari, mis. TKT-20261006-0001. */
   async nextTicketNumber(now: Date): Promise<string> {
     const stamp = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
+    const prefix = `TKT-${stamp}-`;
 
-    const createdToday = await db.supportTicket.count({
-      where: { createdAt: { gte: startOfDay } },
+    const lastTicket = await db.supportTicket.findFirst({
+      where: { ticketNumber: { startsWith: prefix } },
+      orderBy: { ticketNumber: 'desc' },
+      select: { ticketNumber: true },
     });
 
-    return `TKT-${stamp}-${String(createdToday + 1).padStart(4, '0')}`;
+    let nextSeq = 1;
+    if (lastTicket?.ticketNumber) {
+      const match = lastTicket.ticketNumber.match(/(\d+)$/);
+      if (match) {
+        nextSeq = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
   },
 
   create(data: Prisma.SupportTicketCreateInput) {

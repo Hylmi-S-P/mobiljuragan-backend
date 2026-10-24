@@ -18,7 +18,7 @@ export const createAdminSchema = z.object({
   fullName: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.'),
   phoneNumber: z.string().trim().min(8, 'Nomor telepon/kontak minimal 8 digit.'),
   role: z.enum(['ADMIN', 'STAFF'], {
-    errorMap: () => ({ message: 'Peran harus bernilai ADMIN atau STAFF.' }),
+    error: 'Peran harus bernilai ADMIN atau STAFF.',
   }),
   password: z.string().min(8, 'Kata sandi minimal 8 karakter.'),
 });
