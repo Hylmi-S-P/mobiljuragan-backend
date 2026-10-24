@@ -68,6 +68,7 @@ const adminBookingDetailInclude = {
     },
   },
   vehicle: true,
+  driver: true,
   statusHistory: {
     orderBy: { changedAt: 'asc' as const },
   },
@@ -176,6 +177,7 @@ export const bookingModel = {
       orderBy: { createdAt: 'desc' },
       include: {
         vehicle: bookingVehicleSummary,
+        driver: true,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -200,6 +202,7 @@ export const bookingModel = {
         startDateTime: true,
         endDateTime: true,
         createdAt: true,
+        driver: true,
         statusHistory: {
           orderBy: { changedAt: 'asc' },
           select: {
@@ -249,6 +252,7 @@ export const bookingModel = {
       include: {
         customer: bookingCustomerSummary,
         vehicle: bookingVehicleSummary,
+        driver: true,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -443,6 +447,8 @@ export const bookingModel = {
         return { kind: 'driver_already_assigned' as const, booking, driver, clashingBooking };
       }
 
+      const previousDriverId = booking.driverId;
+
       const updatedBooking = await tx.booking.update({
         where: { id: booking.id },
         data: { driverId: driver.id },
@@ -454,6 +460,25 @@ export const bookingModel = {
         where: { id: driver.id },
         data: { readiness: DriverReadiness.SEDANG_TUGAS },
       });
+
+      /* Jika sebelumnya sudah ada supir lain pada pesanan ini, lepaskan kembali ke SIAGA
+         apabila supir lama tersebut tidak sedang terikat pada pesanan aktif lainnya. */
+      if (previousDriverId && previousDriverId !== driver.id) {
+        const otherActiveBookings = await tx.booking.count({
+          where: {
+            driverId: previousDriverId,
+            id: { not: booking.id },
+            status: { notIn: CLOSED_BOOKING_STATUSES },
+          },
+        });
+
+        if (otherActiveBookings === 0) {
+          await tx.driver.update({
+            where: { id: previousDriverId },
+            data: { readiness: DriverReadiness.SIAGA },
+          });
+        }
+      }
 
       await tx.bookingStatusHistory.create({
         data: {
