@@ -18,9 +18,10 @@ import { UserRole } from '../../generated/prisma/client.js';
 
 export const adminAiRouter: Router = Router();
 
-// Seluruh endpoint AI & RAG Hub dibatasi khusus STAFF dan ADMIN
+// Seluruh endpoint AI & RAG Hub dibatasi ADMIN saja. STAFF sebelumnya ikut
+// diizinkan, padahal halaman ini memuat kunci gateway dan pengaturan model.
 adminAiRouter.use(requireAuth);
-adminAiRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminAiRouter.use(requireRole(UserRole.ADMIN));
 
 // Konfigurasi & Health Monitoring Gateway
 adminAiRouter.get('/config', getAiConfig);
