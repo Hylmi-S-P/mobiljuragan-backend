@@ -191,6 +191,8 @@ export const SupportTicketScalarFieldEnum = {
   category: 'category',
   description: 'description',
   status: 'status',
+  handledBy: 'handledBy',
+  handoverAt: 'handoverAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -204,6 +206,7 @@ export const TicketMessageScalarFieldEnum = {
   senderId: 'senderId',
   body: 'body',
   isCustomer: 'isCustomer',
+  isAi: 'isAi',
   sentAt: 'sentAt'
 } as const
 

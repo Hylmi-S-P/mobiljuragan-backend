@@ -30,6 +30,7 @@ export type TicketMessageMinAggregateOutputType = {
   senderId: string | null
   body: string | null
   isCustomer: boolean | null
+  isAi: boolean | null
   sentAt: Date | null
 }
 
@@ -39,6 +40,7 @@ export type TicketMessageMaxAggregateOutputType = {
   senderId: string | null
   body: string | null
   isCustomer: boolean | null
+  isAi: boolean | null
   sentAt: Date | null
 }
 
@@ -48,6 +50,7 @@ export type TicketMessageCountAggregateOutputType = {
   senderId: number
   body: number
   isCustomer: number
+  isAi: number
   sentAt: number
   _all: number
 }
@@ -59,6 +62,7 @@ export type TicketMessageMinAggregateInputType = {
   senderId?: true
   body?: true
   isCustomer?: true
+  isAi?: true
   sentAt?: true
 }
 
@@ -68,6 +72,7 @@ export type TicketMessageMaxAggregateInputType = {
   senderId?: true
   body?: true
   isCustomer?: true
+  isAi?: true
   sentAt?: true
 }
 
@@ -77,6 +82,7 @@ export type TicketMessageCountAggregateInputType = {
   senderId?: true
   body?: true
   isCustomer?: true
+  isAi?: true
   sentAt?: true
   _all?: true
 }
@@ -156,9 +162,10 @@ export type TicketMessageGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 export type TicketMessageGroupByOutputType = {
   id: string
   ticketId: string
-  senderId: string
+  senderId: string | null
   body: string
   isCustomer: boolean
+  isAi: boolean
   sentAt: Date
   _count: TicketMessageCountAggregateOutputType | null
   _min: TicketMessageMinAggregateOutputType | null
@@ -186,20 +193,22 @@ export type TicketMessageWhereInput = {
   NOT?: Prisma.TicketMessageWhereInput | Prisma.TicketMessageWhereInput[]
   id?: Prisma.StringFilter<"TicketMessage"> | string
   ticketId?: Prisma.StringFilter<"TicketMessage"> | string
-  senderId?: Prisma.StringFilter<"TicketMessage"> | string
+  senderId?: Prisma.StringNullableFilter<"TicketMessage"> | string | null
   body?: Prisma.StringFilter<"TicketMessage"> | string
   isCustomer?: Prisma.BoolFilter<"TicketMessage"> | boolean
+  isAi?: Prisma.BoolFilter<"TicketMessage"> | boolean
   sentAt?: Prisma.DateTimeFilter<"TicketMessage"> | Date | string
   ticket?: Prisma.XOR<Prisma.SupportTicketScalarRelationFilter, Prisma.SupportTicketWhereInput>
-  sender?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  sender?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type TicketMessageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   ticketId?: Prisma.SortOrder
-  senderId?: Prisma.SortOrder
+  senderId?: Prisma.SortOrderInput | Prisma.SortOrder
   body?: Prisma.SortOrder
   isCustomer?: Prisma.SortOrder
+  isAi?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   ticket?: Prisma.SupportTicketOrderByWithRelationInput
   sender?: Prisma.UserOrderByWithRelationInput
@@ -212,20 +221,22 @@ export type TicketMessageWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.TicketMessageWhereInput[]
   NOT?: Prisma.TicketMessageWhereInput | Prisma.TicketMessageWhereInput[]
   ticketId?: Prisma.StringFilter<"TicketMessage"> | string
-  senderId?: Prisma.StringFilter<"TicketMessage"> | string
+  senderId?: Prisma.StringNullableFilter<"TicketMessage"> | string | null
   body?: Prisma.StringFilter<"TicketMessage"> | string
   isCustomer?: Prisma.BoolFilter<"TicketMessage"> | boolean
+  isAi?: Prisma.BoolFilter<"TicketMessage"> | boolean
   sentAt?: Prisma.DateTimeFilter<"TicketMessage"> | Date | string
   ticket?: Prisma.XOR<Prisma.SupportTicketScalarRelationFilter, Prisma.SupportTicketWhereInput>
-  sender?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  sender?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }, "id">
 
 export type TicketMessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   ticketId?: Prisma.SortOrder
-  senderId?: Prisma.SortOrder
+  senderId?: Prisma.SortOrderInput | Prisma.SortOrder
   body?: Prisma.SortOrder
   isCustomer?: Prisma.SortOrder
+  isAi?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   _count?: Prisma.TicketMessageCountOrderByAggregateInput
   _max?: Prisma.TicketMessageMaxOrderByAggregateInput
@@ -238,9 +249,10 @@ export type TicketMessageScalarWhereWithAggregatesInput = {
   NOT?: Prisma.TicketMessageScalarWhereWithAggregatesInput | Prisma.TicketMessageScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"TicketMessage"> | string
   ticketId?: Prisma.StringWithAggregatesFilter<"TicketMessage"> | string
-  senderId?: Prisma.StringWithAggregatesFilter<"TicketMessage"> | string
+  senderId?: Prisma.StringNullableWithAggregatesFilter<"TicketMessage"> | string | null
   body?: Prisma.StringWithAggregatesFilter<"TicketMessage"> | string
   isCustomer?: Prisma.BoolWithAggregatesFilter<"TicketMessage"> | boolean
+  isAi?: Prisma.BoolWithAggregatesFilter<"TicketMessage"> | boolean
   sentAt?: Prisma.DateTimeWithAggregatesFilter<"TicketMessage"> | Date | string
 }
 
@@ -248,17 +260,19 @@ export type TicketMessageCreateInput = {
   id?: string
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
   ticket: Prisma.SupportTicketCreateNestedOneWithoutMessagesInput
-  sender: Prisma.UserCreateNestedOneWithoutSentMessagesInput
+  sender?: Prisma.UserCreateNestedOneWithoutSentMessagesInput
 }
 
 export type TicketMessageUncheckedCreateInput = {
   id?: string
   ticketId: string
-  senderId: string
+  senderId?: string | null
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -266,26 +280,29 @@ export type TicketMessageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ticket?: Prisma.SupportTicketUpdateOneRequiredWithoutMessagesNestedInput
-  sender?: Prisma.UserUpdateOneRequiredWithoutSentMessagesNestedInput
+  sender?: Prisma.UserUpdateOneWithoutSentMessagesNestedInput
 }
 
 export type TicketMessageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ticketId?: Prisma.StringFieldUpdateOperationsInput | string
-  senderId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TicketMessageCreateManyInput = {
   id?: string
   ticketId: string
-  senderId: string
+  senderId?: string | null
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -293,15 +310,17 @@ export type TicketMessageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TicketMessageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ticketId?: Prisma.StringFieldUpdateOperationsInput | string
-  senderId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -327,6 +346,7 @@ export type TicketMessageCountOrderByAggregateInput = {
   senderId?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isCustomer?: Prisma.SortOrder
+  isAi?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
 }
 
@@ -336,6 +356,7 @@ export type TicketMessageMaxOrderByAggregateInput = {
   senderId?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isCustomer?: Prisma.SortOrder
+  isAi?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
 }
 
@@ -345,6 +366,7 @@ export type TicketMessageMinOrderByAggregateInput = {
   senderId?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isCustomer?: Prisma.SortOrder
+  isAi?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
 }
 
@@ -436,6 +458,7 @@ export type TicketMessageCreateWithoutSenderInput = {
   id?: string
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
   ticket: Prisma.SupportTicketCreateNestedOneWithoutMessagesInput
 }
@@ -445,6 +468,7 @@ export type TicketMessageUncheckedCreateWithoutSenderInput = {
   ticketId: string
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -480,9 +504,10 @@ export type TicketMessageScalarWhereInput = {
   NOT?: Prisma.TicketMessageScalarWhereInput | Prisma.TicketMessageScalarWhereInput[]
   id?: Prisma.StringFilter<"TicketMessage"> | string
   ticketId?: Prisma.StringFilter<"TicketMessage"> | string
-  senderId?: Prisma.StringFilter<"TicketMessage"> | string
+  senderId?: Prisma.StringNullableFilter<"TicketMessage"> | string | null
   body?: Prisma.StringFilter<"TicketMessage"> | string
   isCustomer?: Prisma.BoolFilter<"TicketMessage"> | boolean
+  isAi?: Prisma.BoolFilter<"TicketMessage"> | boolean
   sentAt?: Prisma.DateTimeFilter<"TicketMessage"> | Date | string
 }
 
@@ -490,15 +515,17 @@ export type TicketMessageCreateWithoutTicketInput = {
   id?: string
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
-  sender: Prisma.UserCreateNestedOneWithoutSentMessagesInput
+  sender?: Prisma.UserCreateNestedOneWithoutSentMessagesInput
 }
 
 export type TicketMessageUncheckedCreateWithoutTicketInput = {
   id?: string
-  senderId: string
+  senderId?: string | null
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -533,6 +560,7 @@ export type TicketMessageCreateManySenderInput = {
   ticketId: string
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -540,6 +568,7 @@ export type TicketMessageUpdateWithoutSenderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ticket?: Prisma.SupportTicketUpdateOneRequiredWithoutMessagesNestedInput
 }
@@ -549,6 +578,7 @@ export type TicketMessageUncheckedUpdateWithoutSenderInput = {
   ticketId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -557,14 +587,16 @@ export type TicketMessageUncheckedUpdateManyWithoutSenderInput = {
   ticketId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TicketMessageCreateManyTicketInput = {
   id?: string
-  senderId: string
+  senderId?: string | null
   body: string
   isCustomer: boolean
+  isAi?: boolean
   sentAt?: Date | string
 }
 
@@ -572,23 +604,26 @@ export type TicketMessageUpdateWithoutTicketInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sender?: Prisma.UserUpdateOneRequiredWithoutSentMessagesNestedInput
+  sender?: Prisma.UserUpdateOneWithoutSentMessagesNestedInput
 }
 
 export type TicketMessageUncheckedUpdateWithoutTicketInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  senderId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TicketMessageUncheckedUpdateManyWithoutTicketInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  senderId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isCustomer?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isAi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -600,9 +635,10 @@ export type TicketMessageSelect<ExtArgs extends runtime.Types.Extensions.Interna
   senderId?: boolean
   body?: boolean
   isCustomer?: boolean
+  isAi?: boolean
   sentAt?: boolean
   ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  sender?: boolean | Prisma.TicketMessage$senderArgs<ExtArgs>
 }, ExtArgs["result"]["ticketMessage"]>
 
 
@@ -613,27 +649,37 @@ export type TicketMessageSelectScalar = {
   senderId?: boolean
   body?: boolean
   isCustomer?: boolean
+  isAi?: boolean
   sentAt?: boolean
 }
 
-export type TicketMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketId" | "senderId" | "body" | "isCustomer" | "sentAt", ExtArgs["result"]["ticketMessage"]>
+export type TicketMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketId" | "senderId" | "body" | "isCustomer" | "isAi" | "sentAt", ExtArgs["result"]["ticketMessage"]>
 export type TicketMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ticket?: boolean | Prisma.SupportTicketDefaultArgs<ExtArgs>
-  sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  sender?: boolean | Prisma.TicketMessage$senderArgs<ExtArgs>
 }
 
 export type $TicketMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "TicketMessage"
   objects: {
     ticket: Prisma.$SupportTicketPayload<ExtArgs>
-    sender: Prisma.$UserPayload<ExtArgs>
+    sender: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     ticketId: string
-    senderId: string
+    /**
+     * Kosong untuk pesan yang dibuat asisten AI, karena tidak ada pengguna yang
+     * mengirimnya. Pesan dari pelanggan maupun tim selalu terisi.
+     */
+    senderId: string | null
     body: string
     isCustomer: boolean
+    /**
+     * Menandai balasan yang dihasilkan asisten AI, supaya riwayat percakapan bisa
+     * dibaca admin tanpa menebak mana yang dijawab mesin.
+     */
+    isAi: boolean
     sentAt: Date
   }, ExtArgs["result"]["ticketMessage"]>
   composites: {}
@@ -976,7 +1022,7 @@ readonly fields: TicketMessageFieldRefs;
 export interface Prisma__TicketMessageClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ticket<T extends Prisma.SupportTicketDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SupportTicketDefaultArgs<ExtArgs>>): Prisma.Prisma__SupportTicketClient<runtime.Types.Result.GetResult<Prisma.$SupportTicketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  sender<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  sender<T extends Prisma.TicketMessage$senderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TicketMessage$senderArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1011,6 +1057,7 @@ export interface TicketMessageFieldRefs {
   readonly senderId: Prisma.FieldRef<"TicketMessage", 'String'>
   readonly body: Prisma.FieldRef<"TicketMessage", 'String'>
   readonly isCustomer: Prisma.FieldRef<"TicketMessage", 'Boolean'>
+  readonly isAi: Prisma.FieldRef<"TicketMessage", 'Boolean'>
   readonly sentAt: Prisma.FieldRef<"TicketMessage", 'DateTime'>
 }
     
@@ -1357,6 +1404,25 @@ export type TicketMessageDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many TicketMessages to delete.
    */
   limit?: number
+}
+
+/**
+ * TicketMessage.sender
+ */
+export type TicketMessage$senderArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

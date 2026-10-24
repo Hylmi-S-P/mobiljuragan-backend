@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { TicketCategory, TicketStatus, UserRole } from '../generated/prisma/client.js';
+import { TicketCategory, TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
 import { ticketModel } from '../model/ticketModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 
@@ -120,6 +120,19 @@ export const ticketController = {
       const existing = await ticketModel.findById(id);
       if (!existing) {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      /* Selama tiket masih dipegang asisten AI, admin hanya boleh membaca.
+         Pemeriksaan ini ada di backend, bukan hanya di tampilan, supaya tidak bisa
+         dilewati dengan memanggil API langsung. Penyerahan ke admin terjadi saat
+         asisten AI memberi flag handover, dan itu mengubah handledBy menjadi HUMAN
+         sekaligus mengisi handoverAt. */
+      if (existing.handledBy === TicketHandler.AI) {
+        throw new AppError(
+          'TICKET_STILL_WITH_AI',
+          'Tiket ini masih ditangani asisten AI. Admin baru bisa membalas setelah AI menyerahkannya.',
+          409,
+        );
       }
 
       const message = await ticketModel.createMessage({
@@ -266,6 +279,54 @@ export const ticketController = {
   },
 
   /**
+   * POST /api/v1/tickets/ai-session
+   *
+   * Membuat tiket dari percakapan dengan asisten AI, atau mengembalikan tiket sesi
+   * yang masih berjalan.
+   *
+   * Satu tiket mewakili satu sesi percakapan, bukan satu pesan. Pelanggan yang
+   * bertanya dua puluh kali tetap memakai tiket yang sama sampai sesi itu ditutup.
+   * Tanpa aturan ini daftar Customer Care akan penuh tiket sebaris pertanyaan.
+   *
+   * Tiket baru selalu mulai dipegang AI (`handledBy = AI`), sehingga admin hanya
+   * bisa membaca sampai asisten menyerahkannya.
+   */
+  async createAiSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const actor = req.user!;
+      const judulAwal =
+        ((req.body?.title as string | undefined)?.trim() || 'Percakapan dengan asisten AI').slice(
+          0,
+          120,
+        );
+
+      // Sesi yang masih berjalan dipakai ulang, supaya tidak menumpuk tiket baru
+      // setiap kali pelanggan mengirim satu pertanyaan.
+      const sesiBerjalan = await ticketModel.findOpenAiSession(actor.userId);
+      if (sesiBerjalan) {
+        sendSuccess(res, { ...sesiBerjalan, dipakaiUlang: true }, 200);
+        return;
+      }
+
+      const ticketNumber = await ticketModel.nextTicketNumber(new Date());
+      const category = parseTicketCategory(req.body?.category as string | undefined);
+
+      const created = await ticketModel.create({
+        ticketNumber,
+        title: judulAwal,
+        description: 'Percakapan pelanggan dengan asisten AI MobilJuragan.',
+        category,
+        customer: { connect: { id: actor.userId } },
+        handledBy: TicketHandler.AI,
+      });
+
+      sendSuccess(res, { ...created, dipakaiUlang: false }, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * POST /api/v1/tickets/:id/messages
    * Mengirim pesan balasan pelanggan pada thread tiket.
    */
@@ -304,6 +365,41 @@ export const ticketController = {
       }
 
       sendSuccess(res, message, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Menyerahkan tiket dari asisten AI ke admin.
+   *
+   * Dipanggil ketika asisten memutuskan pertanyaan pelanggan butuh manusia. Setelah
+   * ini admin boleh membalas. Pemanggilan berulang tidak mengubah waktu penyerahan
+   * yang sudah tercatat.
+   */
+  async handover(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const actor = req.user!;
+
+      const existing = await ticketModel.findById(id);
+      if (!existing) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      // Hanya pemilik tiket yang boleh menyerahkan tiketnya sendiri.
+      if (existing.customerId !== actor.userId && actor.role === UserRole.CUSTOMER) {
+        throw new AppError('FORBIDDEN', 'Anda tidak memiliki hak akses untuk tiket ini.', 403);
+      }
+
+      const berubah = await ticketModel.handoverToHuman(id, new Date());
+
+      sendSuccess(res, {
+        ticketId: id,
+        handledBy: TicketHandler.HUMAN,
+        baruDiserahkan: berubah,
+        handoverAt: existing.handoverAt ?? new Date(),
+      });
     } catch (error) {
       next(error);
     }

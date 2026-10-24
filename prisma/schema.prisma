@@ -242,6 +242,13 @@ model OtpVerification {
   @@map("otp_verifications")
 }
 
+/// Penangan tiket. Tiket dari percakapan AI mulai dipegang AI; admin hanya boleh
+/// membalas setelah AI menyerahkannya.
+enum TicketHandler {
+  AI
+  HUMAN
+}
+
 model SupportTicket {
   id          String         @id @default(uuid())
   ticketNumber String        @unique
@@ -251,12 +258,23 @@ model SupportTicket {
   category    TicketCategory
   description String
   status      TicketStatus   @default(OPEN)
+
+  /// Tiket yang lahir dari percakapan AI dimulai dengan penangan AI. Tiket yang
+  /// dibuat pelanggan langsung lewat formulir bantuan dimulai dengan penangan
+  /// manusia, supaya alur lama tidak berubah.
+  handledBy   TicketHandler  @default(HUMAN)
+
+  /// Diisi saat AI menyerahkan tiket ke admin. Null berarti belum pernah
+  /// diserahkan, dan selama itu balasan admin ditolak.
+  handoverAt  DateTime?
+
   messages    TicketMessage[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   @@index([customerId])
   @@index([status])
+  @@index([handledBy])
   @@map("support_tickets")
 }
 
@@ -264,10 +282,19 @@ model TicketMessage {
   id          String        @id @default(uuid())
   ticketId    String
   ticket      SupportTicket @relation(fields: [ticketId], references: [id])
-  senderId    String
-  sender      User          @relation(fields: [senderId], references: [id])
+
+  /// Kosong untuk pesan yang dibuat asisten AI, karena tidak ada pengguna yang
+  /// mengirimnya. Pesan dari pelanggan maupun tim selalu terisi.
+  senderId    String?
+  sender      User?         @relation(fields: [senderId], references: [id])
+
   body        String
   isCustomer  Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
+
+  /// Menandai balasan yang dihasilkan asisten AI, supaya riwayat percakapan bisa
+  /// dibaca admin tanpa menebak mana yang dijawab mesin.
+  isAi        Boolean       @default(false)
+
   sentAt      DateTime      @default(now())
 
   @@index([ticketId])
