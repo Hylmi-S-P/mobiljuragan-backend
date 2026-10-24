@@ -18,7 +18,7 @@ export const createAdminSchema = z.object({
   fullName: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.'),
   phoneNumber: z.string().trim().min(8, 'Nomor telepon/kontak minimal 8 digit.'),
   role: z.enum(['ADMIN', 'STAFF'], {
-    errorMap: () => ({ message: 'Peran harus bernilai ADMIN atau STAFF.' }),
+    error: 'Peran harus bernilai ADMIN atau STAFF.',
   }),
   password: z.string().min(8, 'Kata sandi minimal 8 karakter.'),
 });
@@ -99,6 +99,44 @@ export const adminUserController = {
       const existing = await userModel.findById(id);
       if (!existing) {
         throw new AppError('USER_NOT_FOUND', `Akun dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      // Akun yang sedang dipakai tidak boleh menurunkan perannya sendiri.
+      // Tanpa penjagaan ini, seorang admin bisa melepas hak aksesnya lalu terkunci
+      // di luar portal tanpa jalur pemulihan lewat antarmuka.
+      if (existing.id === actorUser.userId && role && role !== existing.role) {
+        throw new AppError(
+          'CANNOT_CHANGE_OWN_ROLE',
+          'Peran akun yang sedang dipakai untuk masuk tidak dapat diubah sendiri.',
+          409,
+        );
+      }
+
+      // Akun yang sedang dipakai tidak boleh menonaktifkan dirinya sendiri.
+      if (existing.id === actorUser.userId && isActive === false) {
+        throw new AppError(
+          'CANNOT_DEACTIVATE_SELF',
+          'Akun yang sedang dipakai untuk masuk tidak dapat dinonaktifkan.',
+          409,
+        );
+      }
+
+      // Portal harus selalu menyisakan minimal satu admin aktif. Pemeriksaan ini
+      // menutup celah dua admin yang saling menurunkan sampai tersisa nol admin.
+      const willStopBeingActiveAdmin =
+        existing.role === UserRole.ADMIN &&
+        existing.isActive &&
+        ((role && role !== UserRole.ADMIN) || isActive === false);
+
+      if (willStopBeingActiveAdmin) {
+        const activeAdminCount = await userModel.countActiveAdmins();
+        if (activeAdminCount <= 1) {
+          throw new AppError(
+            'LAST_ADMIN_PROTECTED',
+            'Akun admin aktif terakhir tidak dapat diturunkan atau dinonaktifkan. Buat admin lain lebih dulu.',
+            409,
+          );
+        }
       }
 
       const updateData: Prisma.UserUpdateInput = {};

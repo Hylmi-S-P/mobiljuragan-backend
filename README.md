@@ -56,8 +56,8 @@ Berikut adalah file dan direktori utama yang mengelola logika sistem:
 mobiljuragan-backend/
 ├── database.sql             # Struktur tabel + data awal, bisa diimpor ke database kosong
 ├── .env.example             # Contoh konfigurasi environment (salin jadi .env)
-├── docs/
-│   └── README.md            # Dokumentasi lengkap seluruh endpoint & payload REST API
+├── openapi.yaml             # Spesifikasi kontrak OpenAPI 3.0 seluruh endpoint API
+
 ├── prisma/
 │   ├── schema.prisma        # Definisi model relasional database MariaDB
 │   ├── seed.ts              # Seeding 9 armada resmi Merauke & akun admin/staf default
@@ -351,7 +351,7 @@ Seluruh endpoint REST API menggunakan format respons terstandarisasi yang konsis
 
 ## 7. Dokumentasi Lengkap
 Untuk panduan detail mengenai format payload JSON, query parameter, dan contoh respons tiap endpoint, silakan buka dokumen:
-👉 **[`docs/README.md`](docs/README.md)**
+👉 **[`openapi.yaml`](openapi.yaml)** (serta arsip referensi di `experimental/docs dari backend/`)
 
 ---
 

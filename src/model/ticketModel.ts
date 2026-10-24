@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { TicketStatus, type Prisma } from '../generated/prisma/client.js';
+import { TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
 
 /**
  * Lapisan model untuk tabel `support_tickets` dan `ticket_messages`.
@@ -60,14 +60,23 @@ export const ticketModel = {
   /** Nomor tiket berurutan per hari, mis. TKT-20261006-0001. */
   async nextTicketNumber(now: Date): Promise<string> {
     const stamp = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
+    const prefix = `TKT-${stamp}-`;
 
-    const createdToday = await db.supportTicket.count({
-      where: { createdAt: { gte: startOfDay } },
+    const lastTicket = await db.supportTicket.findFirst({
+      where: { ticketNumber: { startsWith: prefix } },
+      orderBy: { ticketNumber: 'desc' },
+      select: { ticketNumber: true },
     });
 
-    return `TKT-${stamp}-${String(createdToday + 1).padStart(4, '0')}`;
+    let nextSeq = 1;
+    if (lastTicket?.ticketNumber) {
+      const match = lastTicket.ticketNumber.match(/(\d+)$/);
+      if (match) {
+        nextSeq = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
   },
 
   create(data: Prisma.SupportTicketCreateInput) {
@@ -80,5 +89,55 @@ export const ticketModel = {
 
   createMessage(data: Prisma.TicketMessageCreateInput) {
     return db.ticketMessage.create({ data });
+  },
+
+  /**
+   * Mencari sesi percakapan AI yang masih terbuka untuk satu pelanggan.
+   *
+   * Dipakai supaya pertanyaan berikutnya memakai tiket yang sama, bukan membuat
+   * tiket baru. Sesi dianggap selesai ketika tiket sudah RESOLVED atau CLOSED.
+   */
+  findOpenAiSession(customerId: string) {
+    return db.supportTicket.findFirst({
+      where: {
+        customerId,
+        handledBy: TicketHandler.AI,
+        status: { notIn: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  },
+
+  /**
+   * Menyimpan satu balasan asisten AI pada tiket.
+   *
+   * Pesan AI tidak punya pengirim manusia, jadi `senderId` sengaja dikosongkan dan
+   * `isAi` diisi true. Dengan begitu riwayat bisa dibaca admin tanpa menebak mana
+   * yang dijawab mesin.
+   */
+  createAiMessage(ticketId: string, body: string) {
+    return db.ticketMessage.create({
+      data: {
+        ticket: { connect: { id: ticketId } },
+        body,
+        isCustomer: false,
+        isAi: true,
+      },
+    });
+  },
+
+  /**
+   * Menyerahkan tiket dari asisten AI ke admin.
+   *
+   * Hanya berlaku untuk tiket yang masih dipegang AI. Kalau dipanggil dua kali,
+   * panggilan kedua tidak mengubah apa pun, sehingga waktu penyerahan yang
+   * tercatat tetap yang pertama.
+   */
+  async handoverToHuman(ticketId: string, at: Date) {
+    const hasil = await db.supportTicket.updateMany({
+      where: { id: ticketId, handledBy: TicketHandler.AI },
+      data: { handledBy: TicketHandler.HUMAN, handoverAt: at },
+    });
+    return hasil.count > 0;
   },
 };

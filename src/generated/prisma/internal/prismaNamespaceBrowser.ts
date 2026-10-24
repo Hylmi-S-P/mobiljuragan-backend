@@ -191,6 +191,8 @@ export const SupportTicketScalarFieldEnum = {
   category: 'category',
   description: 'description',
   status: 'status',
+  handledBy: 'handledBy',
+  handoverAt: 'handoverAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -204,6 +206,7 @@ export const TicketMessageScalarFieldEnum = {
   senderId: 'senderId',
   body: 'body',
   isCustomer: 'isCustomer',
+  isAi: 'isAi',
   sentAt: 'sentAt'
 } as const
 
@@ -287,6 +290,8 @@ export const PaymentScalarFieldEnum = {
   senderAccount: 'senderAccount',
   verifiedAt: 'verifiedAt',
   verifiedBy: 'verifiedBy',
+  acknowledgedAt: 'acknowledgedAt',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
@@ -483,6 +488,7 @@ export const PaymentOrderByRelevanceFieldEnum = {
   bankName: 'bankName',
   senderAccount: 'senderAccount',
   verifiedBy: 'verifiedBy',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes'
 } as const
 

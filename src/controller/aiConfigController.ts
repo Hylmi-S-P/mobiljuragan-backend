@@ -2,10 +2,6 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ensureAiDefaults } from '../services/aiKnowledgeSeed.js';
-import {
-  processMessageGuardrail,
-  GCA_SYSTEM_INSTRUCTION,
-} from '../services/aiGuardrailService.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as fs from 'node:fs';
@@ -685,51 +681,6 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
     const activeModel = config?.activeModel || 'gemini-2.5-flash';
 
-    // 0. Eksekusi Lapisan Pelindung & Klasifikasi Intent (Tier 2 Guardrail Protocol MJ-SGIP v1.0)
-    const guardrail = await processMessageGuardrail(prompt, {
-      userId: req.user?.userId,
-    });
-
-    if (guardrail.shouldBypassRag && guardrail.directResponse) {
-      const latencyMs = Date.now() - startTime;
-      const estimatedTokens = Math.max(30, Math.round(guardrail.directResponse.length / 4));
-      const tokensPerSec =
-        Math.round((estimatedTokens / Math.max(0.1, latencyMs / 1000)) * 10) / 10;
-
-      recordGatewayLog({
-        event: 'CHAT_COMPLETION',
-        model: `${activeModel} [Tier 2: ${guardrail.intent}]`,
-        status: 200,
-        latencyMs,
-        tokens: estimatedTokens,
-        tokensPerSecond: tokensPerSec,
-        details: `[Guardrail ${guardrail.intent}] "${prompt.slice(0, 30)}..." -> Bypassed RAG (${guardrail.source})`,
-      });
-
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          reply: guardrail.directResponse,
-          modelUsed: activeModel,
-          tokens: estimatedTokens,
-          latencyMs,
-          tokensPerSecond: tokensPerSec,
-          ragDocumentsInjected: 0,
-          ragFaqsInjected: 0,
-          referencedDocuments: [],
-          isSimulationFallback: false,
-          isFallbackTriggered: false,
-          // Metadata Tier 2 Guardrail
-          intent: guardrail.intent,
-          confidence: guardrail.confidence,
-          reasoning: guardrail.reasoning,
-          guardrailSource: guardrail.source,
-          bypassedRag: true,
-        },
-      });
-      return;
-    }
-
     const systemPromptBase =
       reqPrompt !== undefined && String(reqPrompt).trim()
         ? String(reqPrompt).trim()
@@ -782,7 +733,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       }
     }
 
-    const fullSystemPrompt = `${systemPromptBase}\n${GCA_SYSTEM_INSTRUCTION}${ragContextText}`;
+    const fullSystemPrompt = `${systemPromptBase}${ragContextText}`;
 
     // 2. Susun pesan dengan format OpenAI
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -847,14 +798,46 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         primaryFailed = true;
         failureReason = `Gateway error (HTTP ${apiRes.status})`;
       } else {
-        const responseJson = (await apiRes.json()) as {
-          choices?: Array<{ message?: { content: string } }>;
-          usage?: { total_tokens?: number };
-        };
+        const rawText = await apiRes.text();
+        let replyContent = '';
+        let tokens: number | null = null;
 
-        const replyContent =
-          responseJson.choices?.[0]?.message?.content || 'Tidak ada balasan dari model.';
-        const tokens = responseJson.usage?.total_tokens || null;
+        const trimmed = rawText.trim();
+        if (trimmed.startsWith('{')) {
+          try {
+            const json = JSON.parse(trimmed);
+            replyContent = json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
+            tokens = json.usage?.total_tokens || null;
+          } catch {
+            // parse SSE
+          }
+        }
+
+        if (!replyContent) {
+          let accumulated = '';
+          for (const line of trimmed.split('\n')) {
+            const l = line.trim();
+            if (l.startsWith('data: ')) {
+              const dataStr = l.slice(6).trim();
+              if (dataStr === '[DONE]') continue;
+              try {
+                const chunk = JSON.parse(dataStr);
+                accumulated += chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
+                if (chunk.usage?.total_tokens) {
+                  tokens = chunk.usage.total_tokens;
+                }
+              } catch {
+                // ignore
+              }
+            }
+          }
+          replyContent = accumulated.trim();
+        }
+
+        if (!replyContent) {
+          replyContent = 'Tidak ada balasan dari model.';
+        }
+
         const tokensPerSecond =
           tokens && latencyMs > 0
             ? Math.round((tokens / (latencyMs / 1000)) * 10) / 10
@@ -883,12 +866,6 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
             referencedDocuments,
             isSimulationFallback: false,
             isFallbackTriggered: false,
-            // Metadata Tier 2 Guardrail
-            intent: guardrail.intent,
-            confidence: guardrail.confidence,
-            reasoning: guardrail.reasoning,
-            guardrailSource: guardrail.source,
-            bypassedRag: false,
           },
         });
         return;
@@ -943,12 +920,6 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
           isFallbackTriggered: false,
           fallbackReason: failureReason,
           gatewayNotice: notice,
-          // Metadata Tier 2 Guardrail
-          intent: guardrail.intent,
-          confidence: guardrail.confidence,
-          reasoning: guardrail.reasoning,
-          guardrailSource: guardrail.source,
-          bypassedRag: false,
         },
       });
       return;

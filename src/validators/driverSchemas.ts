@@ -43,7 +43,7 @@ export const createDriverSchema = z.object({
   phoneNumber: phoneSchema,
   licenseNumber: licenseSchema,
   routeScope: z.nativeEnum(DriverRoute, {
-    errorMap: () => ({ message: 'Rute penugasan tidak valid (pilih: DALAM_KOTA atau LUAR_KOTA).' }),
+    error: 'Rute penugasan tidak valid (pilih: DALAM_KOTA atau LUAR_KOTA).',
   }),
 });
 
@@ -51,9 +51,7 @@ export const updateDriverSchema = createDriverSchema.partial();
 
 export const readinessSchema = z.object({
   readiness: z.nativeEnum(DriverReadiness, {
-    errorMap: () => ({
-      message: 'Status kesiapan tidak valid (pilih: SIAGA, LIBUR, atau SEDANG_TUGAS).',
-    }),
+    error: 'Status kesiapan tidak valid (pilih: SIAGA, LIBUR, atau SEDANG_TUGAS).',
   }),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });

@@ -19,7 +19,7 @@ export const createBookingSchema = z
       message: 'endDateTime harus berformat ISO 8601 (contoh: 2026-10-03T18:00:00Z).',
     }),
     rentalType: z.nativeEnum(RentalType, {
-      errorMap: () => ({ message: 'rentalType harus bernilai WITH_DRIVER atau WITHOUT_DRIVER.' }),
+      error: 'rentalType harus bernilai WITH_DRIVER atau WITHOUT_DRIVER.',
     }),
     pickupLocation: z.string().max(255).optional(),
     customerRequest: z.string().max(1000).optional(),
@@ -44,7 +44,7 @@ export const adminBookingQuerySchema = z.object({
 
 export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus, {
-    errorMap: () => ({ message: 'Status sewa tidak valid.' }),
+    error: 'Status sewa tidak valid.',
   }),
   quotedAmount: z.number().nonnegative('Tarif sewa tidak boleh bernilai negatif.').optional(),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),

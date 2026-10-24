@@ -23,29 +23,13 @@ export interface UploadProofParams {
   actorUserId?: string;
 }
 
-export interface WebhookMutationParams {
-  amount: number;
-  sender?: string;
-  referenceNo?: string;
-  bank?: string;
-  type?: 'CR' | 'DB';
-  description?: string;
-}
-
-export interface SimulateMutationParams {
-  paymentId?: string;
-  bookingId?: string;
-  amount?: number;
-  sender?: string;
-  referenceNo?: string;
-  bank?: string;
-}
-
 export interface AdminVerifyParams {
   action: 'APPROVE' | 'REJECT';
   notes?: string;
   verifierUserId: string;
   verifierName?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: Date;
 }
 
 export type PaymentWithRelations = Prisma.PaymentGetPayload<{
@@ -60,14 +44,6 @@ export type PaymentWithRelations = Prisma.PaymentGetPayload<{
     };
   };
 }>;
-
-export interface WebhookMutationResult {
-  matched: boolean;
-  ignored?: boolean;
-  message?: string;
-  paymentId?: string;
-  payment?: PaymentWithRelations;
-}
 
 
 let paymentAllocationLock: Promise<unknown> = Promise.resolve();
@@ -181,7 +157,7 @@ export const paymentService = {
       let qrisPayload: string | null = null;
       let bankName = params.method === PaymentMethod.QRIS ? 'GOPAY' : null;
       if (params.method === PaymentMethod.BANK_TRANSFER) {
-        bankName = 'BCA / MANDIRI';
+        bankName = 'BRI';
       }
 
       if (params.method === PaymentMethod.QRIS) {
@@ -389,136 +365,6 @@ export const paymentService = {
   },
 
   /**
-   * Webhook mutasi rekening otomatis (auto-matcher).
-   * Mencocokkan nominal uang masuk (CR) dengan tagihan UNPAID/PENDING_VERIFICATION secara atomik.
-   */
-  async handleWebhookMutation(params: WebhookMutationParams): Promise<WebhookMutationResult> {
-    if (params.type === 'DB') {
-      return {
-        matched: false,
-        ignored: true,
-        message: 'Mutasi debet (uang keluar) diabaikan.',
-      };
-    }
-
-    return db.$transaction(async (tx) => {
-      // Cari pembayaran aktif dengan nominal totalAmount yang cocok persis
-      const payment = await tx.payment.findFirst({
-        where: {
-          totalAmount: params.amount,
-          status: { in: [PaymentStatus.UNPAID, PaymentStatus.PENDING_VERIFICATION] },
-        },
-        orderBy: { createdAt: 'asc' },
-        include: { booking: true },
-      });
-
-      if (!payment) {
-        return {
-          matched: false,
-          message: `Nominal mutasi Rp ${params.amount} tidak cocok dengan tagihan aktif manapun.`,
-        };
-      }
-
-      // Update pembayaran menjadi PAID
-      const updatedPayment = await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: PaymentStatus.PAID,
-          verifiedAt: new Date(),
-          verifiedBy: 'SYSTEM_MUTATION_WEBHOOK',
-          senderAccount: params.sender || payment.senderAccount,
-          notes: payment.notes
-            ? `${payment.notes} | Mutasi otomatis ${params.bank || 'GOPAY'} Ref: ${params.referenceNo || '-'}`
-            : `Mutasi otomatis ${params.bank || 'GOPAY'} Ref: ${params.referenceNo || '-'}`,
-        },
-        include: {
-          booking: {
-            include: {
-              vehicle: true,
-              customer: {
-                select: { id: true, fullName: true, phoneNumber: true },
-              },
-            },
-          },
-        },
-      });
-
-      // Catat di riwayat status booking
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId: payment.bookingId,
-          fromStatus: payment.booking.status,
-          toStatus: payment.booking.status,
-          actor: BookingStatusActor.SYSTEM,
-          note: `Pembayaran lunas terverifikasi via mutasi ${params.bank || 'GOPAY'} (Rp ${params.amount.toLocaleString('id-ID')}, Ref: ${params.referenceNo || '-'}).`,
-        },
-      });
-
-      // Catat di audit log
-      await tx.auditLog.create({
-        data: {
-          action: 'PAYMENT_MUTATION_MATCHED',
-          entityType: 'Payment',
-          entityId: payment.id,
-          metadata: {
-            bookingCode: payment.booking.bookingCode,
-            amount: params.amount,
-            referenceNo: params.referenceNo,
-            sender: params.sender,
-          },
-        },
-      });
-
-      return {
-        matched: true,
-        paymentId: payment.id,
-        payment: updatedPayment,
-      };
-    });
-  },
-
-  /**
-   * Simulasi mutasi untuk pengujian lokal, demo, dan E2E test tanpa dependensi mutasi bank riil.
-   */
-  async simulateMutation(params: SimulateMutationParams): Promise<WebhookMutationResult> {
-    let targetAmount = params.amount;
-
-    // Jika paymentId atau bookingId disediakan, ambil totalAmount dari database
-    if (params.paymentId || params.bookingId) {
-      const existing = await db.payment.findFirst({
-        where: {
-          OR: [
-            ...(params.paymentId ? [{ id: params.paymentId }] : []),
-            ...(params.bookingId
-              ? [{ bookingId: params.bookingId }, { booking: { bookingCode: params.bookingId } }]
-              : []),
-          ],
-        },
-      });
-
-      if (existing) {
-        targetAmount = Number(existing.totalAmount);
-      }
-    }
-
-    if (!targetAmount || targetAmount <= 0) {
-      throw new AppError(
-        'INVALID_SIMULATION_AMOUNT',
-        'Nominal mutasi simulasi tidak valid atau pembayaran tidak ditemukan.',
-        400
-      );
-    }
-
-    return this.handleWebhookMutation({
-      amount: targetAmount,
-      sender: params.sender || 'PENGUJI_SIMULASI_E2E',
-      referenceNo: params.referenceNo || `SIM-${Date.now()}`,
-      bank: params.bank || 'GOPAY',
-      type: 'CR',
-    });
-  },
-
-  /**
    * Antrean verifikasi pembayaran untuk admin portal.
    */
   async adminListPayments(params: {
@@ -609,13 +455,51 @@ export const paymentService = {
         );
       }
 
+      // Penjagaan status: verifikasi bersifat final dan tidak dapat dibatalkan.
+      // Tanpa pemeriksaan ini, pembayaran yang sudah lunas masih bisa disetujui
+      // ulang (menimpa jejak verifikator pertama) atau bahkan ditolak sehingga
+      // dana yang sudah masuk tercatat gagal.
+      if (payment.status === PaymentStatus.PAID) {
+        throw new AppError(
+          'PAYMENT_ALREADY_SETTLED',
+          'Pembayaran ini sudah lunas dan terverifikasi. Status final tidak dapat diubah.',
+          409,
+        );
+      }
+
+      // Hanya tagihan yang masih berjalan yang boleh diverifikasi. FAILED dan
+      // REFUNDED sengaja ditolak: menandainya lunas akan menutupi riwayat
+      // penolakan atau pengembalian dana yang sudah tercatat.
+      // UNPAID tetap diizinkan karena pembayaran tunai (CASH) tidak pernah
+      // melewati tahap unggah bukti, sehingga admin menandainya langsung.
+      const verifiableStatuses: PaymentStatus[] = [
+        PaymentStatus.UNPAID,
+        PaymentStatus.PENDING_VERIFICATION,
+      ];
+      if (!verifiableStatuses.includes(payment.status)) {
+        throw new AppError(
+          'PAYMENT_NOT_VERIFIABLE',
+          `Pembayaran berstatus ${payment.status} tidak dapat diverifikasi.`,
+          409,
+        );
+      }
+
       if (params.action === 'APPROVE') {
+        const now = params.acknowledgedAt ?? new Date();
+        const acknowledgedBy =
+          params.acknowledgedBy ??
+          (params.verifierName
+            ? `${params.verifierName} (${params.verifierUserId})`
+            : params.verifierUserId);
+
         const updated = await tx.payment.update({
           where: { id: paymentId },
           data: {
             status: PaymentStatus.PAID,
-            verifiedAt: new Date(),
+            verifiedAt: now,
             verifiedBy: params.verifierUserId,
+            acknowledgedAt: now,
+            acknowledgedBy,
             notes: params.notes ? `${payment.notes ? payment.notes + ' | ' : ''}${params.notes}` : payment.notes,
           },
           include: {
@@ -651,6 +535,8 @@ export const paymentService = {
               bookingCode: payment.booking.bookingCode,
               totalAmount: payment.totalAmount,
               notes: params.notes,
+              acknowledgedBy,
+              acknowledgedAt: now.toISOString(),
             },
           },
         });

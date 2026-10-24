@@ -125,3 +125,11 @@ export const PaymentMethod = {
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
+
+
+export const TicketHandler = {
+  AI: 'AI',
+  HUMAN: 'HUMAN'
+} as const
+
+export type TicketHandler = (typeof TicketHandler)[keyof typeof TicketHandler]

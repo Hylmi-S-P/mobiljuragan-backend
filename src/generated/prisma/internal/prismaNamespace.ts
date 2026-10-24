@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.10.0
- * Query Engine version: 0edf323efd1d98336f3f0a68684b56f689b900d3
+ * Prisma Client JS version: 7.10.1
+ * Query Engine version: d1b3f377ca835d73fd50954a5e22128b9ebdd6b8
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.10.0",
-  engine: "0edf323efd1d98336f3f0a68684b56f689b900d3"
+  client: "7.10.1",
+  engine: "d1b3f377ca835d73fd50954a5e22128b9ebdd6b8"
 }
 
 /**
@@ -1435,6 +1435,8 @@ export const SupportTicketScalarFieldEnum = {
   category: 'category',
   description: 'description',
   status: 'status',
+  handledBy: 'handledBy',
+  handoverAt: 'handoverAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1448,6 +1450,7 @@ export const TicketMessageScalarFieldEnum = {
   senderId: 'senderId',
   body: 'body',
   isCustomer: 'isCustomer',
+  isAi: 'isAi',
   sentAt: 'sentAt'
 } as const
 
@@ -1531,6 +1534,8 @@ export const PaymentScalarFieldEnum = {
   senderAccount: 'senderAccount',
   verifiedAt: 'verifiedAt',
   verifiedBy: 'verifiedBy',
+  acknowledgedAt: 'acknowledgedAt',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
@@ -1727,6 +1732,7 @@ export const PaymentOrderByRelevanceFieldEnum = {
   bankName: 'bankName',
   senderAccount: 'senderAccount',
   verifiedBy: 'verifiedBy',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes'
 } as const
 
@@ -1841,6 +1847,13 @@ export type EnumTicketCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'TicketStatus'
  */
 export type EnumTicketStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TicketStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'TicketHandler'
+ */
+export type EnumTicketHandlerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TicketHandler'>
     
 
 

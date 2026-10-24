@@ -1,14 +1,11 @@
-import crypto from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
-import { AppError, sendSuccess } from '../lib/response.js';
+import { sendSuccess } from '../lib/response.js';
 import { paymentService } from '../services/payment.service.js';
 import {
   adminVerifyPaymentSchema,
   createPaymentSchema,
   listPaymentQuerySchema,
-  simulateMutationSchema,
   uploadPaymentProofSchema,
-  webhookMutationSchema,
 } from '../validators/paymentSchemas.js';
 
 export const paymentController = {
@@ -86,71 +83,6 @@ export const paymentController = {
   },
 
   /**
-   * POST /api/v1/payments/webhook/mutation
-   * Endpoint publik penerima mutasi rekening masuk.
-   * Dilindungi verifikasi header X-Webhook-Secret menggunakan perbandingan konstan (anti timing-attack).
-   */
-  async handleWebhookMutation(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const secretHeader = (req.headers['x-webhook-secret'] as string) || '';
-      const configuredSecret = process.env.PAYMENT_WEBHOOK_SECRET || 'mobiljuragan-payment-secret-2026';
-
-      let isSecretValid = false;
-      if (secretHeader && configuredSecret) {
-        const a = Buffer.from(secretHeader);
-        const b = Buffer.from(configuredSecret);
-        if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
-          isSecretValid = true;
-        }
-      }
-
-      if (!isSecretValid) {
-        throw new AppError(
-          'INVALID_WEBHOOK_SECRET',
-          'Kredensial atau secret webhook mutasi tidak valid.',
-          401
-        );
-      }
-
-      const body = webhookMutationSchema.parse(req.body);
-      const result = await paymentService.handleWebhookMutation(body);
-
-      res.status(200).json({
-        status: 'ok',
-        success: true,
-        matched: result.matched,
-        paymentId: result.paymentId,
-        data: result.payment,
-        message: result.message,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * POST /api/v1/payments/simulate-mutation
-   * Endpoint simulasi mutasi untuk demo lokal dan automated E2E testing.
-   */
-  async simulateMutation(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const body = simulateMutationSchema.parse(req.body);
-      const result = await paymentService.simulateMutation(body);
-
-      res.status(200).json({
-        status: 'ok',
-        success: true,
-        matched: result.matched,
-        paymentId: result.paymentId,
-        data: result.payment,
-        message: result.message,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
    * GET /api/v1/admin/payments
    * Antrean verifikasi pembayaran admin portal dengan filter tab & pagination.
    */
@@ -181,12 +113,17 @@ export const paymentController = {
       const body = adminVerifyPaymentSchema.parse(req.body);
       const verifierUserId = req.user?.userId || 'ADMIN_USER';
       const verifierName = req.user?.fullName || 'Admin MobilJuragan';
+      const acknowledgedBy = req.user?.fullName
+        ? `${req.user.fullName} (${verifierUserId})`
+        : verifierUserId;
 
       const updated = await paymentService.adminVerifyPayment(id, {
         action: body.action,
         notes: body.notes,
         verifierUserId,
         verifierName,
+        acknowledgedBy,
+        acknowledgedAt: new Date(),
       });
 
       sendSuccess(res, updated);

@@ -12,25 +12,47 @@ export const listFaqQuerySchema = z.object({
 
 export const createFaqSchema = z.object({
   question: z
-    .string({ required_error: 'Pertanyaan wajib diisi.' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'Pertanyaan wajib diisi.' : 'Pertanyaan harus berupa teks.',
+    })
     .trim()
     .min(3, 'Pertanyaan minimal 3 karakter.')
     .max(1000, 'Pertanyaan maksimal 1000 karakter.'),
   answer: z
-    .string({ required_error: 'Jawaban wajib diisi.' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'Jawaban wajib diisi.' : 'Jawaban harus berupa teks.',
+    })
     .trim()
-    .min(3, 'Jawaban minimal 3 karakter.'),
+    .min(3, 'Jawaban minimal 3 karakter.')
+    .max(5000, 'Jawaban maksimal 5000 karakter.'),
   category: z
-    .string({ required_error: 'Kategori wajib diisi.' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'Kategori wajib diisi.' : 'Kategori harus berupa teks.',
+    })
     .trim()
     .min(1, 'Kategori wajib diisi.')
     .max(100, 'Kategori maksimal 100 karakter.'),
   orderIndex: z
-    .number({ invalid_type_error: 'Urutan prioritas harus berupa angka.' })
+    .number({
+      error: (issue) =>
+        issue.input === undefined
+          ? 'Urutan prioritas wajib diisi.'
+          : 'Urutan prioritas harus berupa angka.',
+    })
     .int('Urutan prioritas harus berupa bilangan bulat.')
     .min(0, 'Urutan prioritas minimal 0.')
     .optional(),
-  isActive: z.boolean({ invalid_type_error: 'Status aktif harus berupa boolean.' }).optional(),
+  isActive: z
+    .boolean({
+      error: (issue) =>
+        issue.input === undefined
+          ? 'Status aktif wajib diisi.'
+          : 'Status aktif harus berupa boolean.',
+    })
+    .optional(),
 });
 
 export const updateFaqSchema = createFaqSchema.partial();
