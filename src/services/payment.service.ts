@@ -157,7 +157,7 @@ export const paymentService = {
       let qrisPayload: string | null = null;
       let bankName = params.method === PaymentMethod.QRIS ? 'GOPAY' : null;
       if (params.method === PaymentMethod.BANK_TRANSFER) {
-        bankName = 'BCA / MANDIRI';
+        bankName = 'BRI';
       }
 
       if (params.method === PaymentMethod.QRIS) {
