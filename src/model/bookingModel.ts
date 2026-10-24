@@ -71,6 +71,7 @@ const adminBookingDetailInclude = {
   statusHistory: {
     orderBy: { changedAt: 'asc' as const },
   },
+  payment: true,
 } as const;
 
 /**
@@ -251,6 +252,15 @@ export const bookingModel = {
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
+        },
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            proofImageUrl: true,
+            method: true,
+            totalAmount: true,
+          },
         },
       },
     });
