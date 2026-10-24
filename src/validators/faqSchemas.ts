@@ -19,7 +19,8 @@ export const createFaqSchema = z.object({
   answer: z
     .string({ required_error: 'Jawaban wajib diisi.' })
     .trim()
-    .min(3, 'Jawaban minimal 3 karakter.'),
+    .min(3, 'Jawaban minimal 3 karakter.')
+    .max(5000, 'Jawaban maksimal 5000 karakter.'),
   category: z
     .string({ required_error: 'Kategori wajib diisi.' })
     .trim()
