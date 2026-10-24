@@ -113,12 +113,17 @@ export const paymentController = {
       const body = adminVerifyPaymentSchema.parse(req.body);
       const verifierUserId = req.user?.userId || 'ADMIN_USER';
       const verifierName = req.user?.fullName || 'Admin MobilJuragan';
+      const acknowledgedBy = req.user?.fullName
+        ? `${req.user.fullName} (${verifierUserId})`
+        : verifierUserId;
 
       const updated = await paymentService.adminVerifyPayment(id, {
         action: body.action,
         notes: body.notes,
         verifierUserId,
         verifierName,
+        acknowledgedBy,
+        acknowledgedAt: new Date(),
       });
 
       sendSuccess(res, updated);

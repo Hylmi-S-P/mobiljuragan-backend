@@ -28,6 +28,8 @@ export interface AdminVerifyParams {
   notes?: string;
   verifierUserId: string;
   verifierName?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: Date;
 }
 
 export type PaymentWithRelations = Prisma.PaymentGetPayload<{
@@ -483,12 +485,21 @@ export const paymentService = {
       }
 
       if (params.action === 'APPROVE') {
+        const now = params.acknowledgedAt ?? new Date();
+        const acknowledgedBy =
+          params.acknowledgedBy ??
+          (params.verifierName
+            ? `${params.verifierName} (${params.verifierUserId})`
+            : params.verifierUserId);
+
         const updated = await tx.payment.update({
           where: { id: paymentId },
           data: {
             status: PaymentStatus.PAID,
-            verifiedAt: new Date(),
+            verifiedAt: now,
             verifiedBy: params.verifierUserId,
+            acknowledgedAt: now,
+            acknowledgedBy,
             notes: params.notes ? `${payment.notes ? payment.notes + ' | ' : ''}${params.notes}` : payment.notes,
           },
           include: {
@@ -524,6 +535,8 @@ export const paymentService = {
               bookingCode: payment.booking.bookingCode,
               totalAmount: payment.totalAmount,
               notes: params.notes,
+              acknowledgedBy,
+              acknowledgedAt: now.toISOString(),
             },
           },
         });

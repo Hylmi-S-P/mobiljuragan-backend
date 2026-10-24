@@ -290,6 +290,8 @@ export const PaymentScalarFieldEnum = {
   senderAccount: 'senderAccount',
   verifiedAt: 'verifiedAt',
   verifiedBy: 'verifiedBy',
+  acknowledgedAt: 'acknowledgedAt',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
@@ -486,6 +488,7 @@ export const PaymentOrderByRelevanceFieldEnum = {
   bankName: 'bankName',
   senderAccount: 'senderAccount',
   verifiedBy: 'verifiedBy',
+  acknowledgedBy: 'acknowledgedBy',
   notes: 'notes'
 } as const
 

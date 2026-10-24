@@ -394,6 +394,8 @@ model Payment {
 
   verifiedAt      DateTime?
   verifiedBy      String?
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
   notes           String?        @db.Text
   expiresAt       DateTime?
 
