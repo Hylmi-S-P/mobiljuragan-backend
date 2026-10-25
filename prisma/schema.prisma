@@ -188,6 +188,7 @@ model Booking {
   pickupLocation      String?
   customerRequest     String?
   numberGuests        Int?
+  surcharges          Json?
 
   tariffStatus        TariffStatus       @default(PENDING_TEAM_CONFIRMATION)
   // Boleh null sampai tarif dikonfirmasi tim MobilJuragan.

@@ -144,6 +144,7 @@ export const BookingScalarFieldEnum = {
   pickupLocation: 'pickupLocation',
   customerRequest: 'customerRequest',
   numberGuests: 'numberGuests',
+  surcharges: 'surcharges',
   tariffStatus: 'tariffStatus',
   quotedAmount: 'quotedAmount',
   status: 'status',
@@ -361,6 +362,23 @@ export const DriverOrderByRelevanceFieldEnum = {
 export type DriverOrderByRelevanceFieldEnum = (typeof DriverOrderByRelevanceFieldEnum)[keyof typeof DriverOrderByRelevanceFieldEnum]
 
 
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
 export const BookingOrderByRelevanceFieldEnum = {
   id: 'id',
   bookingCode: 'bookingCode',
@@ -414,23 +432,6 @@ export const TicketMessageOrderByRelevanceFieldEnum = {
 } as const
 
 export type TicketMessageOrderByRelevanceFieldEnum = (typeof TicketMessageOrderByRelevanceFieldEnum)[keyof typeof TicketMessageOrderByRelevanceFieldEnum]
-
-
-export const JsonNullValueFilter = {
-  DbNull: DbNull,
-  JsonNull: JsonNull,
-  AnyNull: AnyNull
-} as const
-
-export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-export const QueryMode = {
-  default: 'default',
-  insensitive: 'insensitive'
-} as const
-
-export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
 export const AuditLogOrderByRelevanceFieldEnum = {

@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import {
   BookingStatus,
   BookingStatusActor,
+  DriverReadiness,
   PaymentMethod,
   PaymentStatus,
   type Prisma,
@@ -164,8 +165,8 @@ export const paymentService = {
         qrisPayload = generateDynamicQris(totalAmount);
       }
 
-      // Batas waktu pembayaran 2 jam dari sekarang
-      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      // Batas waktu pembayaran 12 jam dari sekarang
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
 
       // 4. Buat record pembayaran
       const payment = await tx.payment.create({
@@ -227,9 +228,132 @@ export const paymentService = {
   },
 
   /**
+   * Memeriksa dan membatalkan otomatis seluruh pembayaran UNPAID yang telah melewati batas 12 jam (expiresAt).
+   * Status pembayaran diubah menjadi FAILED, status booking diubah menjadi CANCELLED,
+   * dan kesiapan supir (jika ada) dikembalikan ke SIAGA.
+   */
+  async expireOverduePayments(): Promise<number> {
+    try {
+      const now = new Date();
+      const overduePayments = await db.payment.findMany({
+        where: {
+          status: PaymentStatus.UNPAID,
+          expiresAt: {
+            lt: now,
+          },
+        },
+        include: {
+          booking: {
+            include: {
+              vehicle: true,
+            },
+          },
+        },
+      });
+
+      if (overduePayments.length === 0) return 0;
+
+      let expiredCount = 0;
+      for (const payment of overduePayments) {
+        await db.$transaction(async (tx) => {
+          const current = await tx.payment.findUnique({
+            where: { id: payment.id },
+            include: { booking: true },
+          });
+
+          if (!current || current.status !== PaymentStatus.UNPAID || !current.expiresAt || current.expiresAt >= now) {
+            return;
+          }
+
+          // 1. Update status pembayaran menjadi FAILED
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: PaymentStatus.FAILED,
+              notes: current.notes
+                ? `${current.notes} | Kedaluwarsa otomatis: Melewati batas waktu pembayaran 12 jam.`
+                : 'Kedaluwarsa otomatis: Melewati batas waktu pembayaran 12 jam.',
+            },
+          });
+
+          // 2. Update status booking menjadi CANCELLED jika masih CONFIRMED / PENDING_CONFIRMATION / CREATED
+          if (
+            current.booking.status === BookingStatus.CONFIRMED ||
+            current.booking.status === BookingStatus.PENDING_CONFIRMATION ||
+            current.booking.status === BookingStatus.CREATED
+          ) {
+            await tx.booking.update({
+              where: { id: current.booking.id },
+              data: {
+                status: BookingStatus.CANCELLED,
+              },
+            });
+
+            await tx.bookingStatusHistory.create({
+              data: {
+                bookingId: current.booking.id,
+                fromStatus: current.booking.status,
+                toStatus: BookingStatus.CANCELLED,
+                actor: BookingStatusActor.SYSTEM,
+                note: 'Pesanan dibatalkan otomatis oleh sistem karena batas waktu pembayaran 12 jam telah terlewati.',
+              },
+            });
+
+            // Lepas supir kembali ke SIAGA jika ada dan tidak memegang booking aktif lain
+            if (current.booking.driverId) {
+              const otherActive = await tx.booking.count({
+                where: {
+                  driverId: current.booking.driverId,
+                  id: { not: current.booking.id },
+                  status: {
+                    in: [
+                      BookingStatus.CONFIRMED,
+                      BookingStatus.IN_PROGRESS,
+                    ],
+                  },
+                },
+              });
+              if (otherActive === 0) {
+                await tx.driver.update({
+                  where: { id: current.booking.driverId },
+                  data: { readiness: DriverReadiness.SIAGA },
+                });
+              }
+            }
+
+            await tx.auditLog.create({
+              data: {
+                action: 'AUTO_CANCEL_EXPIRED_PAYMENT',
+                entityType: 'Booking',
+                entityId: current.booking.id,
+                metadata: {
+                  bookingCode: current.booking.bookingCode,
+                  paymentId: payment.id,
+                  expiredAt: current.expiresAt.toISOString(),
+                  reason: '12_HOURS_EXPIRED',
+                },
+              },
+            });
+          }
+
+          expiredCount++;
+        });
+      }
+
+      return expiredCount;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[PaymentService] Error expiring overdue payments:', err);
+      return 0;
+    }
+  },
+
+  /**
    * Mengambil detail pembayaran berdasarkan bookingId atau bookingCode.
    */
   async getPaymentByBookingId(bookingId: string) {
+    await this.expireOverduePayments();
+
     const payment = await db.payment.findFirst({
       where: {
         OR: [
@@ -264,6 +388,8 @@ export const paymentService = {
    * Mengambil pembayaran berdasarkan payment ID.
    */
   async getPaymentById(paymentId: string) {
+    await this.expireOverduePayments();
+
     const payment = await db.payment.findUnique({
       where: { id: paymentId },
       include: {
@@ -374,6 +500,8 @@ export const paymentService = {
     page: number;
     limit: number;
   }) {
+    await this.expireOverduePayments();
+
     const skip = (params.page - 1) * params.limit;
     const where: Prisma.PaymentWhereInput = {};
 

@@ -86,6 +86,7 @@ export type BookingCountAggregateOutputType = {
   pickupLocation: number
   customerRequest: number
   numberGuests: number
+  surcharges: number
   tariffStatus: number
   quotedAmount: number
   status: number
@@ -155,6 +156,7 @@ export type BookingCountAggregateInputType = {
   pickupLocation?: true
   customerRequest?: true
   numberGuests?: true
+  surcharges?: true
   tariffStatus?: true
   quotedAmount?: true
   status?: true
@@ -261,6 +263,7 @@ export type BookingGroupByOutputType = {
   pickupLocation: string | null
   customerRequest: string | null
   numberGuests: number | null
+  surcharges: runtime.JsonValue | null
   tariffStatus: $Enums.TariffStatus
   quotedAmount: runtime.Decimal | null
   status: $Enums.BookingStatus
@@ -303,6 +306,7 @@ export type BookingWhereInput = {
   pickupLocation?: Prisma.StringNullableFilter<"Booking"> | string | null
   customerRequest?: Prisma.StringNullableFilter<"Booking"> | string | null
   numberGuests?: Prisma.IntNullableFilter<"Booking"> | number | null
+  surcharges?: Prisma.JsonNullableFilter<"Booking">
   tariffStatus?: Prisma.EnumTariffStatusFilter<"Booking"> | $Enums.TariffStatus
   quotedAmount?: Prisma.DecimalNullableFilter<"Booking"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
@@ -327,6 +331,7 @@ export type BookingOrderByWithRelationInput = {
   pickupLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   customerRequest?: Prisma.SortOrderInput | Prisma.SortOrder
   numberGuests?: Prisma.SortOrderInput | Prisma.SortOrder
+  surcharges?: Prisma.SortOrderInput | Prisma.SortOrder
   tariffStatus?: Prisma.SortOrder
   quotedAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -355,6 +360,7 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   pickupLocation?: Prisma.StringNullableFilter<"Booking"> | string | null
   customerRequest?: Prisma.StringNullableFilter<"Booking"> | string | null
   numberGuests?: Prisma.IntNullableFilter<"Booking"> | number | null
+  surcharges?: Prisma.JsonNullableFilter<"Booking">
   tariffStatus?: Prisma.EnumTariffStatusFilter<"Booking"> | $Enums.TariffStatus
   quotedAmount?: Prisma.DecimalNullableFilter<"Booking"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
@@ -379,6 +385,7 @@ export type BookingOrderByWithAggregationInput = {
   pickupLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   customerRequest?: Prisma.SortOrderInput | Prisma.SortOrder
   numberGuests?: Prisma.SortOrderInput | Prisma.SortOrder
+  surcharges?: Prisma.SortOrderInput | Prisma.SortOrder
   tariffStatus?: Prisma.SortOrder
   quotedAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -406,6 +413,7 @@ export type BookingScalarWhereWithAggregatesInput = {
   pickupLocation?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   customerRequest?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   numberGuests?: Prisma.IntNullableWithAggregatesFilter<"Booking"> | number | null
+  surcharges?: Prisma.JsonNullableWithAggregatesFilter<"Booking">
   tariffStatus?: Prisma.EnumTariffStatusWithAggregatesFilter<"Booking"> | $Enums.TariffStatus
   quotedAmount?: Prisma.DecimalNullableWithAggregatesFilter<"Booking"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusWithAggregatesFilter<"Booking"> | $Enums.BookingStatus
@@ -422,6 +430,7 @@ export type BookingCreateInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -446,6 +455,7 @@ export type BookingUncheckedCreateInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -464,6 +474,7 @@ export type BookingUpdateInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -488,6 +499,7 @@ export type BookingUncheckedUpdateInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -509,6 +521,7 @@ export type BookingCreateManyInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -525,6 +538,7 @@ export type BookingUpdateManyMutationInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -544,6 +558,7 @@ export type BookingUncheckedUpdateManyInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -579,6 +594,7 @@ export type BookingCountOrderByAggregateInput = {
   pickupLocation?: Prisma.SortOrder
   customerRequest?: Prisma.SortOrder
   numberGuests?: Prisma.SortOrder
+  surcharges?: Prisma.SortOrder
   tariffStatus?: Prisma.SortOrder
   quotedAmount?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -830,6 +846,7 @@ export type BookingCreateWithoutCustomerInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -852,6 +869,7 @@ export type BookingUncheckedCreateWithoutCustomerInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -902,6 +920,7 @@ export type BookingScalarWhereInput = {
   pickupLocation?: Prisma.StringNullableFilter<"Booking"> | string | null
   customerRequest?: Prisma.StringNullableFilter<"Booking"> | string | null
   numberGuests?: Prisma.IntNullableFilter<"Booking"> | number | null
+  surcharges?: Prisma.JsonNullableFilter<"Booking">
   tariffStatus?: Prisma.EnumTariffStatusFilter<"Booking"> | $Enums.TariffStatus
   quotedAmount?: Prisma.DecimalNullableFilter<"Booking"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
@@ -918,6 +937,7 @@ export type BookingCreateWithoutVehicleInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -940,6 +960,7 @@ export type BookingUncheckedCreateWithoutVehicleInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -984,6 +1005,7 @@ export type BookingCreateWithoutDriverInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1006,6 +1028,7 @@ export type BookingUncheckedCreateWithoutDriverInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1050,6 +1073,7 @@ export type BookingCreateWithoutStatusHistoryInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1073,6 +1097,7 @@ export type BookingUncheckedCreateWithoutStatusHistoryInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1106,6 +1131,7 @@ export type BookingUpdateWithoutStatusHistoryInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1129,6 +1155,7 @@ export type BookingUncheckedUpdateWithoutStatusHistoryInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1146,6 +1173,7 @@ export type BookingCreateWithoutPaymentInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1169,6 +1197,7 @@ export type BookingUncheckedCreateWithoutPaymentInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1202,6 +1231,7 @@ export type BookingUpdateWithoutPaymentInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1225,6 +1255,7 @@ export type BookingUncheckedUpdateWithoutPaymentInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1244,6 +1275,7 @@ export type BookingCreateManyCustomerInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1260,6 +1292,7 @@ export type BookingUpdateWithoutCustomerInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1282,6 +1315,7 @@ export type BookingUncheckedUpdateWithoutCustomerInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1302,6 +1336,7 @@ export type BookingUncheckedUpdateManyWithoutCustomerInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1320,6 +1355,7 @@ export type BookingCreateManyVehicleInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1336,6 +1372,7 @@ export type BookingUpdateWithoutVehicleInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1358,6 +1395,7 @@ export type BookingUncheckedUpdateWithoutVehicleInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1378,6 +1416,7 @@ export type BookingUncheckedUpdateManyWithoutVehicleInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1396,6 +1435,7 @@ export type BookingCreateManyDriverInput = {
   pickupLocation?: string | null
   customerRequest?: string | null
   numberGuests?: number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: $Enums.TariffStatus
   quotedAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.BookingStatus
@@ -1412,6 +1452,7 @@ export type BookingUpdateWithoutDriverInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1434,6 +1475,7 @@ export type BookingUncheckedUpdateWithoutDriverInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1454,6 +1496,7 @@ export type BookingUncheckedUpdateManyWithoutDriverInput = {
   pickupLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerRequest?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  surcharges?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   tariffStatus?: Prisma.EnumTariffStatusFieldUpdateOperationsInput | $Enums.TariffStatus
   quotedAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
@@ -1504,6 +1547,7 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   pickupLocation?: boolean
   customerRequest?: boolean
   numberGuests?: boolean
+  surcharges?: boolean
   tariffStatus?: boolean
   quotedAmount?: boolean
   status?: boolean
@@ -1531,6 +1575,7 @@ export type BookingSelectScalar = {
   pickupLocation?: boolean
   customerRequest?: boolean
   numberGuests?: boolean
+  surcharges?: boolean
   tariffStatus?: boolean
   quotedAmount?: boolean
   status?: boolean
@@ -1538,7 +1583,7 @@ export type BookingSelectScalar = {
   updatedAt?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingCode" | "customerId" | "vehicleId" | "driverId" | "startDateTime" | "endDateTime" | "rentalType" | "pickupLocation" | "customerRequest" | "numberGuests" | "tariffStatus" | "quotedAmount" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingCode" | "customerId" | "vehicleId" | "driverId" | "startDateTime" | "endDateTime" | "rentalType" | "pickupLocation" | "customerRequest" | "numberGuests" | "surcharges" | "tariffStatus" | "quotedAmount" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customer?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   vehicle?: boolean | Prisma.VehicleDefaultArgs<ExtArgs>
@@ -1572,6 +1617,7 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     pickupLocation: string | null
     customerRequest: string | null
     numberGuests: number | null
+    surcharges: runtime.JsonValue | null
     tariffStatus: $Enums.TariffStatus
     quotedAmount: runtime.Decimal | null
     status: $Enums.BookingStatus
@@ -1962,6 +2008,7 @@ export interface BookingFieldRefs {
   readonly pickupLocation: Prisma.FieldRef<"Booking", 'String'>
   readonly customerRequest: Prisma.FieldRef<"Booking", 'String'>
   readonly numberGuests: Prisma.FieldRef<"Booking", 'Int'>
+  readonly surcharges: Prisma.FieldRef<"Booking", 'Json'>
   readonly tariffStatus: Prisma.FieldRef<"Booking", 'TariffStatus'>
   readonly quotedAmount: Prisma.FieldRef<"Booking", 'Decimal'>
   readonly status: Prisma.FieldRef<"Booking", 'BookingStatus'>

@@ -1388,6 +1388,7 @@ export const BookingScalarFieldEnum = {
   pickupLocation: 'pickupLocation',
   customerRequest: 'customerRequest',
   numberGuests: 'numberGuests',
+  surcharges: 'surcharges',
   tariffStatus: 'tariffStatus',
   quotedAmount: 'quotedAmount',
   status: 'status',
@@ -1605,6 +1606,23 @@ export const DriverOrderByRelevanceFieldEnum = {
 export type DriverOrderByRelevanceFieldEnum = (typeof DriverOrderByRelevanceFieldEnum)[keyof typeof DriverOrderByRelevanceFieldEnum]
 
 
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
 export const BookingOrderByRelevanceFieldEnum = {
   id: 'id',
   bookingCode: 'bookingCode',
@@ -1658,23 +1676,6 @@ export const TicketMessageOrderByRelevanceFieldEnum = {
 } as const
 
 export type TicketMessageOrderByRelevanceFieldEnum = (typeof TicketMessageOrderByRelevanceFieldEnum)[keyof typeof TicketMessageOrderByRelevanceFieldEnum]
-
-
-export const JsonNullValueFilter = {
-  DbNull: DbNull,
-  JsonNull: JsonNull,
-  AnyNull: AnyNull
-} as const
-
-export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-export const QueryMode = {
-  default: 'default',
-  insensitive: 'insensitive'
-} as const
-
-export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
 export const AuditLogOrderByRelevanceFieldEnum = {
@@ -1809,6 +1810,20 @@ export type EnumRentalTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'TariffStatus'
  */
 export type EnumTariffStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TariffStatus'>
@@ -1854,20 +1869,6 @@ export type EnumTicketStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
  * Reference to a field of type 'TicketHandler'
  */
 export type EnumTicketHandlerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TicketHandler'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
