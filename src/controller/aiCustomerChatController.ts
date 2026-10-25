@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
+import { ticketModel } from '../model/ticketModel.js';
+import { TicketHandler } from '../generated/prisma/client.js';
 import {
   generateConversationTraceId,
   resolveClientNetworkAffinity,
@@ -15,6 +17,10 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
   try {
     const rawPrompt = req.body?.message ?? req.body?.prompt;
     const history = req.body?.history;
+    /* Opsional. Kalau klien mengirim id tiket, percakapan ikut disimpan ke tiket
+       itu sehingga admin bisa membacanya setelah mengambil alih. Tanpa id tiket,
+       perilaku lama dipertahankan: hanya menjawab, tidak menyimpan. */
+    const rawTicketId = req.body?.ticketId ?? req.body?.ticket_id;
 
     if (!rawPrompt || typeof rawPrompt !== 'string' || !rawPrompt.trim()) {
       res.status(400).json({
@@ -25,6 +31,34 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     }
 
     const prompt = rawPrompt.trim();
+
+    /* Tiket diperiksa lebih dulu. Kalau tiket sudah dipegang staf, asisten AI
+       harus berhenti menjawab supaya tidak ada dua pihak yang membalas hal yang
+       sama di satu ruangan. */
+    const ticketId = typeof rawTicketId === 'string' && rawTicketId ? rawTicketId : undefined;
+    if (ticketId) {
+      const tiket = await ticketModel.findById(ticketId);
+      if (!tiket) {
+        res.status(404).json({
+          status: 'error',
+          message: `Tiket dengan ID '${ticketId}' tidak ditemukan.`,
+        });
+        return;
+      }
+      if (tiket.handledBy === TicketHandler.HUMAN) {
+        /* Bentuk galat disamakan dengan handler galat aplikasi (`error.code`),
+           supaya klien cukup membaca satu bentuk untuk semua kegagalan. */
+        res.status(409).json({
+          status: 'error',
+          error: {
+            code: 'TICKET_HANDED_OVER',
+            message:
+              'Percakapan ini sudah ditangani staf admin. Asisten AI tidak menjawab lagi di tiket ini.',
+          },
+        });
+        return;
+      }
+    }
 
     // 1. Susun Konteks Pengetahuan Resmi (RAG)
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
@@ -76,7 +110,36 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       }
     }
 
+    /* Kalau tiketnya diketahui, riwayat diambil dari database dan dipakai
+       menggantikan riwayat kiriman klien. Dua alasan: klien bisa mengirim riwayat
+       palsu, dan riwayat di database adalah satu-satunya yang juga dibaca admin.
+       Dengan begitu yang dijawab AI sama dengan yang dilihat admin. */
+    if (ticketId) {
+      const riwayatDb = await ticketModel.listMessages(ticketId);
+      if (riwayatDb.length > 0) {
+        messages.length = 1; // sisakan system prompt saja
+        for (const m of riwayatDb.slice(-6)) {
+          messages.push({
+            role: m.isCustomer ? 'user' : 'assistant',
+            content: m.body,
+          });
+        }
+      }
+    }
+
     messages.push({ role: 'user', content: prompt });
+
+    /* Pesan pelanggan disimpan SEBELUM inferensi dijalankan. Kalau gateway gagal
+       atau waktu habis, pertanyaan pelanggan tetap tercatat sehingga admin bisa
+       melihat apa yang ditanyakan. Balasan AI menyusul setelah berhasil. */
+    if (ticketId) {
+      await ticketModel.createMessage({
+        ticket: { connect: { id: ticketId } },
+        sender: { connect: { id: req.user!.userId } },
+        body: prompt,
+        isCustomer: true,
+      });
+    }
 
     // 2. Eksekusi Inferensi LLM melalui 9Router Gateway
     const targetUrl = `${gatewayUrl}/chat/completions`;
@@ -155,11 +218,18 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         replyContent = 'Halo! Tim MobilJuragan Merauke siap melayani Anda. Silakan hubungi kami untuk informasi lebih lanjut.';
       }
 
+      /* Balasan AI disimpan setelah isinya pasti, supaya yang tersimpan adalah
+         teks yang benar-benar dikirim ke pelanggan. */
+      if (ticketId) {
+        await ticketModel.createAiMessage(ticketId, replyContent);
+      }
+
       res.status(200).json({
         status: 'ok',
         data: {
           reply: replyContent,
           latencyMs,
+          ticketId: ticketId ?? null,
         },
       });
     } catch (networkError) {
@@ -170,11 +240,25 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       );
 
       // Graceful fallback response khas rental MobilJuragan
+      const balasanCadangan = `Halo Sobat Juragan! Terima kasih telah menghubungi MobilJuragan Merauke.\n\nSaat ini sistem asisten virtual kami sedang melakukan sinkronisasi otomatis. Seluruh layanan rental mobil dalam kota Merauke, rute Sota, dan Boven Digoel tetap beroperasi normal dengan armada prima (Innova Reborn, Fortuner, Avanza, Hilux 4x4).\n\nUntuk informasi ketersediaan unit dan pemesanan cepat, silakan langsung hubungi customer service kami via WhatsApp di +62 812-4800-2910. Tim kami siap melayani Anda!`;
+
+      /* Balasan cadangan pun disimpan. Kalau tidak, riwayat di tiket akan terlihat
+         seperti pelanggan bicara sendiri tanpa pernah dijawab. */
+      if (ticketId) {
+        try {
+          await ticketModel.createAiMessage(ticketId, balasanCadangan);
+        } catch (simpanError) {
+          logger.error({ error: simpanError }, 'Gagal menyimpan balasan cadangan AI');
+        }
+      }
+
       res.status(200).json({
         status: 'ok',
         data: {
-          reply: `Halo Sobat Juragan! Terima kasih telah menghubungi MobilJuragan Merauke.\n\nSaat ini sistem asisten virtual kami sedang melakukan sinkronisasi otomatis. Seluruh layanan rental mobil dalam kota Merauke, rute Sota, dan Boven Digoel tetap beroperasi normal dengan armada prima (Innova Reborn, Fortuner, Avanza, Hilux 4x4).\n\nUntuk informasi ketersediaan unit dan pemesanan cepat, silakan langsung hubungi customer service kami via WhatsApp di +62 812-4800-2910. Tim kami siap melayani Anda!`,
+          reply: balasanCadangan,
           latencyMs: Date.now() - startTime,
+          ticketId: ticketId ?? null,
+          fallback: true,
         },
       });
     }

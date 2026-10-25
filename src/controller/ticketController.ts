@@ -394,6 +394,20 @@ export const ticketController = {
 
       const berubah = await ticketModel.handoverToHuman(id, new Date());
 
+      /* Pesan transisi ditulis hanya saat penyerahan benar-benar terjadi.
+         Fungsinya bukan hiasan: admin yang membuka tiket perlu tahu bahwa
+         percakapan sebelumnya dijawab mesin, bukan staf. Tanpa penanda ini,
+         riwayat terbaca seolah staf yang menjawab dari awal. */
+      if (berubah) {
+        await ticketModel.createMessage({
+          ticket: { connect: { id } },
+          body:
+            'Percakapan dialihkan dari asisten AI ke staf admin. Pesan sebelumnya dijawab otomatis oleh asisten AI.',
+          isCustomer: false,
+          isAi: false,
+        });
+      }
+
       sendSuccess(res, {
         ticketId: id,
         handledBy: TicketHandler.HUMAN,
