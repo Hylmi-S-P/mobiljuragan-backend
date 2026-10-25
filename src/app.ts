@@ -8,7 +8,10 @@ export const app: Express = express();
 
 // Middleware dasar
 app.use(cors());
-app.use(express.json());
+/* Batas 10 MB karena foto armada dikirim sebagai data URL base64: berkas 5 MB
+   menjadi sekitar 6,7 MB teks. Batas bawaan 100 KB membuat foto sah ditolak
+   sebelum validasi sempat berjalan. */
+app.use(express.json({ limit: '10mb' }));
 
 // Logger request untuk memantau request masuk
 app.use((req: Request, _res: Response, next) => {

@@ -14,6 +14,28 @@ export const adminVehicleRouter: Router = Router();
 adminVehicleRouter.use(requireAuth);
 adminVehicleRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
 
+
+/**
+ * Foto armada disimpan sebagai data URL di database, jadi server harus memeriksa
+ * isinya sendiri. Batas 5 MB di form hanya menyaring di peramban; permintaan
+ * langsung ke API tidak melewati pemeriksaan itu.
+ *
+ * Ukuran diperiksa dari panjang string base64, bukan dari hasil decode, supaya
+ * tidak perlu mengalokasikan buffer sebesar isinya hanya untuk menolak berkas.
+ */
+const MAKS_FOTO_BYTES = 5 * 1024 * 1024;
+/* Base64 membengkak 4/3, ditambah awalan "data:image/png;base64,". */
+const MAKS_PANJANG_FOTO = Math.ceil((MAKS_FOTO_BYTES * 4) / 3) + 64;
+
+const imageUrlSchema = z
+  .string()
+  .max(MAKS_PANJANG_FOTO, 'Ukuran foto maksimal 5 MB.')
+  .refine(
+    (v) => v === '' || /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v),
+    'Foto harus berupa gambar PNG atau JPG.',
+  )
+  .optional();
+
 const createVehicleSchema = z.object({
   name: z.string().min(1, 'Nama armada wajib diisi.'),
   licensePlate: z.string().min(1, 'Plat nomor wajib diisi.'),
@@ -23,7 +45,7 @@ const createVehicleSchema = z.object({
   pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.'),
   brand: z.string().optional(),
   model: z.string().optional(),
-  imageUrl: z.string().optional(),
+  imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });
 
@@ -36,7 +58,7 @@ const updateVehicleSchema = z.object({
   pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.').optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
-  imageUrl: z.string().optional(),
+  imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });
 

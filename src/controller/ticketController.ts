@@ -104,6 +104,27 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
+      /* Tiket yang sudah ditutup tidak boleh dibuka lagi.
+       *
+       * Penutupan berarti percakapan selesai: pelanggan sudah dapat jawaban, atau
+       * tiket ditutup otomatis karena tidak ada balasan. Membukanya kembali akan
+       * membuat antrean berisi tiket yang sebenarnya sudah beres, dan menghapus
+       * arti penutupan itu sendiri.
+       *
+       * Pelanggan yang masih butuh bantuan setelah tiket ditutup bisa membuat
+       * tiket baru — riwayatnya tetap tersimpan dan tetap bisa dibaca admin.
+       *
+       * RESOLVED masih boleh dibuka kembali. Status itu berarti "dijawab, menunggu
+       * konfirmasi pelanggan", bukan "selesai", jadi pelanggan yang baru membalas
+       * memang perlu menghidupkan percakapannya lagi. */
+      if (existing.status === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah ditutup dan tidak bisa dibuka kembali. Buat tiket baru kalau masih perlu bantuan.',
+          409,
+        );
+      }
+
       const updated = await ticketModel.updateStatus(id, rawStatus as TicketStatus);
       sendSuccess(res, updated);
     } catch (error) {
@@ -143,6 +164,20 @@ export const ticketController = {
         throw new AppError(
           'TICKET_STILL_WITH_AI',
           'Tiket ini masih ditangani asisten AI. Admin baru bisa membalas setelah AI menyerahkannya.',
+          409,
+        );
+      }
+
+      /* Tiket yang sudah ditutup tidak menerima pesan baru.
+       *
+       * Kalau dibiarkan, pesan akan masuk ke tiket yang tidak lagi dipantau
+       * siapa pun: pelanggan mengira sudah mengirim, admin tidak pernah melihat,
+       * dan tiketnya tidak muncul di daftar aktif. Lebih baik ditolak terang-
+       * terangan supaya pelanggan membuat tiket baru. */
+      if (existing.status === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah ditutup dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
           409,
         );
       }
