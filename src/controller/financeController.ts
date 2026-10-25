@@ -42,6 +42,16 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     let completedBookingsCount = 0;
     let confirmedOrActiveCount = 0;
 
+    /* Omzet dan jumlah transaksi per model sewa.
+     *
+     * Dihitung dari basis yang sama dengan omzet total, yaitu pembayaran yang
+     * sudah lunas. Kalau dihitung dari status pesanan COMPLETED, grafik bisa
+     * menampilkan angka yang tidak cocok dengan kartu omzet di atasnya. */
+    let tanpaSupirOmzet = 0;
+    let tanpaSupirJumlah = 0;
+    let denganSupirOmzet = 0;
+    let denganSupirJumlah = 0;
+
     // Map omzet per armada
     const vehicleStatsMap = new Map<
       string,
@@ -79,6 +89,14 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       if (isPaid) {
         // Omzet kas masuk riil hanya tercatat jika pembayaran telah terverifikasi lunas (PAID)
         totalRevenue += amount;
+
+        if (b.rentalType === 'WITHOUT_DRIVER') {
+          tanpaSupirOmzet += amount;
+          tanpaSupirJumlah += 1;
+        } else {
+          denganSupirOmzet += amount;
+          denganSupirJumlah += 1;
+        }
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
@@ -234,6 +252,22 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
           completedBookingsCount,
           confirmedOrActiveCount,
           totalAllBookings: bookings.length,
+        },
+        /* Perbandingan model sewa. Dikirim lagi karena tab-nya dipakai untuk
+           melihat mana yang lebih menguntungkan: lepas kunci atau dengan supir. */
+        rentalTypes: {
+          withoutDriver: {
+            count: tanpaSupirJumlah,
+            revenue: tanpaSupirOmzet,
+            percentage:
+              totalRevenue > 0 ? Math.round((tanpaSupirOmzet / totalRevenue) * 100) : 0,
+          },
+          withDriver: {
+            count: denganSupirJumlah,
+            revenue: denganSupirOmzet,
+            percentage:
+              totalRevenue > 0 ? Math.round((denganSupirOmzet / totalRevenue) * 100) : 0,
+          },
         },
         fleetBreakdown,
         monthlyTrends,
