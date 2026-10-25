@@ -167,7 +167,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         bulan: d.getMonth() + 1,
         revenue: 0,
         bookings: 0,
-        // Satu bulan paling banyak 5 minggu (31 hari Ã¢â€ â€™ ceil(31/7) = 5).
+        // Satu bulan paling banyak 5 minggu (31 hari → ceil(31/7) = 5).
         weekly: [0, 0, 0, 0, 0],
       });
     }
@@ -213,7 +213,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       const awal = new Date(tahun, bulan - 1, indeks * 7 + 1);
       const akhirHari = Math.min((indeks + 1) * 7, new Date(tahun, bulan, 0).getDate());
       const akhir = new Date(tahun, bulan - 1, akhirHari);
-      return `${awal.getDate()}Ã¢â‚¬â€œ${akhir.getDate()} ${monthNames[bulan - 1]}`;
+      return `${awal.getDate()}–${akhir.getDate()} ${monthNames[bulan - 1]}`;
     };
 
     const weeklyBreakdown = monthlyTrends.map((m) => ({
