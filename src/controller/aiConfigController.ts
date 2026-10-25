@@ -929,3 +929,163 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     res.status(500).json({ status: 'error', message: 'Gagal menjalankan pengujian chat.' });
   }
 }
+
+/**
+ * Kategori dokumen pengetahuan untuk RAG.
+ *
+ * Sebelumnya daftar kategori dipatri di kode tampilan, sehingga admin tidak bisa
+ * menambah kategori baru tanpa mengubah kode. Sekarang daftarnya tersimpan di
+ * database dan bisa dikelola dari portal.
+ */
+
+export async function getKnowledgeCategories(_req: Request, res: Response): Promise<void> {
+  try {
+    const categories = await db.knowledgeCategory.findMany({
+      orderBy: [{ orderIndex: 'asc' }, { label: 'asc' }],
+    });
+
+    /* Jumlah dokumen per kategori ikut dikirim supaya layar bisa menolak
+       penghapusan kategori yang masih dipakai tanpa permintaan tambahan. */
+    const jumlah = await db.knowledgeDocument.groupBy({
+      by: ['category'],
+      _count: { _all: true },
+    });
+    const petaJumlah = new Map(jumlah.map((j) => [j.category, j._count._all]));
+
+    res.status(200).json({
+      status: 'ok',
+      data: categories.map((c) => ({
+        ...c,
+        jumlahDokumen: petaJumlah.get(c.slug) ?? 0,
+      })),
+    });
+  } catch (error) {
+    logger.error({ error }, 'Gagal memuat kategori pengetahuan');
+    res.status(500).json({ status: 'error', message: 'Gagal memuat kategori pengetahuan.' });
+  }
+}
+
+export async function createKnowledgeCategory(req: Request, res: Response): Promise<void> {
+  try {
+    const label = String(req.body?.label ?? '').trim();
+    if (!label) {
+      res.status(400).json({ status: 'error', message: 'Nama kategori wajib diisi.' });
+      return;
+    }
+
+    /* Slug dibuat dari nama, lalu dipakai sebagai nilai yang disimpan dokumen.
+       Dengan begitu nama tampilan bisa diubah tanpa menyentuh dokumen lama. */
+    const slug = label
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40);
+
+    if (!slug) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Nama kategori harus mengandung huruf atau angka.',
+      });
+      return;
+    }
+
+    const sudahAda = await db.knowledgeCategory.findUnique({ where: { slug } });
+    if (sudahAda) {
+      res.status(409).json({
+        status: 'error',
+        message: `Kategori dengan kode ${slug} sudah ada.`,
+      });
+      return;
+    }
+
+    const terakhir = await db.knowledgeCategory.findFirst({
+      orderBy: { orderIndex: 'desc' },
+      select: { orderIndex: true },
+    });
+
+    const kategori = await db.knowledgeCategory.create({
+      data: {
+        slug,
+        label,
+        orderIndex: (terakhir?.orderIndex ?? 0) + 10,
+      },
+    });
+
+    res.status(201).json({
+      status: 'ok',
+      data: { ...kategori, jumlahDokumen: 0 },
+      message: 'Kategori berhasil ditambahkan.',
+    });
+  } catch (error) {
+    logger.error({ error }, 'Gagal membuat kategori pengetahuan');
+    res.status(500).json({ status: 'error', message: 'Gagal membuat kategori pengetahuan.' });
+  }
+}
+
+export async function updateKnowledgeCategory(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const label = String(req.body?.label ?? '').trim();
+    const orderIndex = req.body?.orderIndex;
+
+    if (!label && orderIndex === undefined) {
+      res.status(400).json({ status: 'error', message: 'Tidak ada perubahan yang dikirim.' });
+      return;
+    }
+
+    const ada = await db.knowledgeCategory.findUnique({ where: { id } });
+    if (!ada) {
+      res.status(404).json({ status: 'error', message: 'Kategori tidak ditemukan.' });
+      return;
+    }
+
+    /* `slug` sengaja tidak ikut diubah. Dokumen menyimpan slug, jadi menggantinya
+       akan memutus hubungan dengan semua dokumen yang sudah ada. */
+    const kategori = await db.knowledgeCategory.update({
+      where: { id },
+      data: {
+        ...(label ? { label } : {}),
+        ...(orderIndex !== undefined ? { orderIndex: Number(orderIndex) } : {}),
+      },
+    });
+
+    res.status(200).json({
+      status: 'ok',
+      data: kategori,
+      message: 'Kategori berhasil diperbarui.',
+    });
+  } catch (error) {
+    logger.error({ error }, 'Gagal memperbarui kategori pengetahuan');
+    res.status(500).json({ status: 'error', message: 'Gagal memperbarui kategori pengetahuan.' });
+  }
+}
+
+export async function deleteKnowledgeCategory(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    const kategori = await db.knowledgeCategory.findUnique({ where: { id } });
+    if (!kategori) {
+      res.status(404).json({ status: 'error', message: 'Kategori tidak ditemukan.' });
+      return;
+    }
+
+    /* Kategori yang masih dipakai dokumen tidak boleh dihapus. Kalau dihapus,
+       dokumennya menjadi yatim dan tidak lagi muncul di penyaring mana pun. */
+    const dipakai = await db.knowledgeDocument.count({ where: { category: kategori.slug } });
+    if (dipakai > 0) {
+      res.status(409).json({
+        status: 'error',
+        message: `Kategori masih dipakai ${dipakai} dokumen. Pindahkan dokumennya dulu.`,
+      });
+      return;
+    }
+
+    await db.knowledgeCategory.delete({ where: { id } });
+
+    res.status(200).json({ status: 'ok', message: 'Kategori berhasil dihapus.' });
+  } catch (error) {
+    logger.error({ error }, 'Gagal menghapus kategori pengetahuan');
+    res.status(500).json({ status: 'error', message: 'Gagal menghapus kategori pengetahuan.' });
+  }
+}

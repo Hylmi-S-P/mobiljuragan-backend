@@ -12,6 +12,10 @@ import {
   getAiGatewayLogs,
   clearAiGatewayLogs,
   parseKnowledgeFile,
+  getKnowledgeCategories,
+  createKnowledgeCategory,
+  updateKnowledgeCategory,
+  deleteKnowledgeCategory,
 } from '../../controller/aiConfigController.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
@@ -37,6 +41,12 @@ adminAiRouter.post('/documents', createKnowledgeDocument);
 adminAiRouter.post('/documents/parse-file', parseKnowledgeFile);
 adminAiRouter.put('/documents/:id', updateKnowledgeDocument);
 adminAiRouter.delete('/documents/:id', deleteKnowledgeDocument);
+
+// Kategori dokumen pengetahuan
+adminAiRouter.get('/categories', getKnowledgeCategories);
+adminAiRouter.post('/categories', createKnowledgeCategory);
+adminAiRouter.put('/categories/:id', updateKnowledgeCategory);
+adminAiRouter.delete('/categories/:id', deleteKnowledgeCategory);
 
 // Test Chat Sandbox
 adminAiRouter.post('/chat/test', testChatSandbox);
