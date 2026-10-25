@@ -2,6 +2,18 @@ import { db } from '../db.js';
 import { TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
 
 /**
+ * Mengambil id tiket dari berbagai bentuk relasi yang diterima Prisma.
+ *
+ * `TicketMessageCreateInput` menerima relasi tiket dalam beberapa bentuk
+ * (`connect`, `connectOrCreate`, `create`). Nomor urut hanya bisa dihitung kalau
+ * tiketnya sudah ada, jadi hanya bentuk `connect` yang bisa dipakai.
+ */
+function extractTicketId(data: { ticket?: unknown }): string | undefined {
+  const relasi = data.ticket as { connect?: { id?: string } } | undefined;
+  return relasi?.connect?.id;
+}
+
+/**
  * Lapisan model untuk tabel `support_tickets` dan `ticket_messages`.
  *
  * Modul customer care sebelumnya belum punya endpoint sama sekali di backend,
@@ -32,7 +44,7 @@ export const ticketModel = {
       include: {
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         messages: {
-          orderBy: { sentAt: 'asc' },
+          orderBy: { sequence: 'asc' },
           include: {
             sender: { select: { id: true, fullName: true, role: true } },
           },
@@ -48,7 +60,7 @@ export const ticketModel = {
       include: {
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         messages: {
-          orderBy: { sentAt: 'asc' },
+          orderBy: { sequence: 'asc' },
           include: {
             sender: { select: { id: true, fullName: true, role: true } },
           },
@@ -87,8 +99,49 @@ export const ticketModel = {
     return db.supportTicket.update({ where: { id }, data: { status } });
   },
 
-  createMessage(data: Prisma.TicketMessageCreateInput) {
-    return db.ticketMessage.create({ data });
+  /**
+   * Riwayat pesan satu tiket, urut menurut `sequence`.
+   *
+   * Dipakai asisten AI untuk menyusun konteks percakapan, dan dipakai admin untuk
+   * membaca riwayat yang sama. Keduanya sengaja memakai fungsi ini supaya yang
+   * dijawab AI sama dengan yang dilihat admin.
+   */
+  listMessages(ticketId: string) {
+    return db.ticketMessage.findMany({
+      where: { ticketId },
+      orderBy: { sequence: 'asc' },
+      select: { id: true, body: true, isCustomer: true, isAi: true, sequence: true, sentAt: true },
+    });
+  },
+
+  /**
+   * Menyimpan satu pesan pada tiket, dengan nomor urut yang dihitung di dalam
+   * transaksi yang sama.
+   *
+   * Nomor urut tidak boleh dihitung di luar transaksi. Kalau dihitung di luar,
+   * dua pesan yang masuk hampir bersamaan bisa membaca angka terakhir yang sama
+   * lalu bentrok pada indeks unik `[ticketId, sequence]`. Dengan menghitung di
+   * dalam transaksi, pembacaan dan penulisan terjadi sebagai satu langkah.
+   */
+  async createMessage(data: Omit<Prisma.TicketMessageCreateInput, 'sequence'>) {
+    const ticketId = extractTicketId(data);
+    if (!ticketId) {
+      // Tanpa id tiket, nomor urut tidak bisa dihitung. Biarkan Prisma yang
+      // melaporkan galatnya, karena ini berarti pemanggilnya salah.
+      return db.ticketMessage.create({ data: data as Prisma.TicketMessageCreateInput });
+    }
+
+    return db.$transaction(async (tx) => {
+      const terakhir = await tx.ticketMessage.findFirst({
+        where: { ticketId },
+        orderBy: { sequence: 'desc' },
+        select: { sequence: true },
+      });
+
+      return tx.ticketMessage.create({
+        data: { ...data, sequence: (terakhir?.sequence ?? 0) + 1 },
+      });
+    });
   },
 
   /**
@@ -116,16 +169,13 @@ export const ticketModel = {
    * yang dijawab mesin.
    */
   createAiMessage(ticketId: string, body: string) {
-    return db.ticketMessage.create({
-      data: {
-        ticket: { connect: { id: ticketId } },
-        body,
-        isCustomer: false,
-        isAi: true,
-      },
+    return ticketModel.createMessage({
+      ticket: { connect: { id: ticketId } },
+      body,
+      isCustomer: false,
+      isAi: true,
     });
   },
-
   /**
    * Menyerahkan tiket dari asisten AI ke admin.
    *

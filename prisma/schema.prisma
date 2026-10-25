@@ -288,15 +288,29 @@ model TicketMessage {
   senderId    String?
   sender      User?         @relation(fields: [senderId], references: [id])
 
-  body        String
+  /// Isi pesan.
+  ///
+  /// Sebelumnya bertipe `String` biasa, yang di MySQL menjadi `varchar(191)`.
+  /// Balasan asisten AI panjangnya bisa melewati 500 karakter, sehingga isinya
+  /// terpotong tanpa galat apa pun. `@db.Text` memberi ruang sampai 64 KB.
+  body        String        @db.Text
   isCustomer  Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
 
   /// Menandai balasan yang dihasilkan asisten AI, supaya riwayat percakapan bisa
   /// dibaca admin tanpa menebak mana yang dijawab mesin.
   isAi        Boolean       @default(false)
 
+  /// Urutan pesan di dalam satu tiket, mulai dari 1.
+  ///
+  /// Sebelumnya urutan hanya bersandar pada `sentAt`. Di mesin lokal itu cukup,
+  /// tetapi begitu pesan datang bersamaan dari jaringan nyata, dua pesan bisa
+  /// mendapat `sentAt` yang sama dan urutannya menjadi tidak pasti. Kolom ini
+  /// memberi urutan yang tegas dan tahan terhadap reconnect.
+  sequence    Int           @default(0)
+
   sentAt      DateTime      @default(now())
 
+  @@unique([ticketId, sequence])
   @@index([ticketId])
   @@map("ticket_messages")
 }

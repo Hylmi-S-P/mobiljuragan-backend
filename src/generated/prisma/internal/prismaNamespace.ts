@@ -1451,6 +1451,7 @@ export const TicketMessageScalarFieldEnum = {
   body: 'body',
   isCustomer: 'isCustomer',
   isAi: 'isAi',
+  sequence: 'sequence',
   sentAt: 'sentAt'
 } as const
 
