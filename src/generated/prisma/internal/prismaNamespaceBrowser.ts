@@ -61,6 +61,7 @@ export const ModelName = {
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
   AiSetting: 'AiSetting',
+  KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment'
@@ -249,6 +250,18 @@ export const AiSettingScalarFieldEnum = {
 } as const
 
 export type AiSettingScalarFieldEnum = (typeof AiSettingScalarFieldEnum)[keyof typeof AiSettingScalarFieldEnum]
+
+
+export const KnowledgeCategoryScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  label: 'label',
+  orderIndex: 'orderIndex',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeCategoryScalarFieldEnum = (typeof KnowledgeCategoryScalarFieldEnum)[keyof typeof KnowledgeCategoryScalarFieldEnum]
 
 
 export const KnowledgeDocumentScalarFieldEnum = {
@@ -460,6 +473,15 @@ export const AiSettingOrderByRelevanceFieldEnum = {
 } as const
 
 export type AiSettingOrderByRelevanceFieldEnum = (typeof AiSettingOrderByRelevanceFieldEnum)[keyof typeof AiSettingOrderByRelevanceFieldEnum]
+
+
+export const KnowledgeCategoryOrderByRelevanceFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  label: 'label'
+} as const
+
+export type KnowledgeCategoryOrderByRelevanceFieldEnum = (typeof KnowledgeCategoryOrderByRelevanceFieldEnum)[keyof typeof KnowledgeCategoryOrderByRelevanceFieldEnum]
 
 
 export const KnowledgeDocumentOrderByRelevanceFieldEnum = {

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model KnowledgeDocument
- * Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+ * 
  */
 export type KnowledgeDocumentModel = runtime.Types.Result.DefaultSelection<Prisma.$KnowledgeDocumentPayload>
 

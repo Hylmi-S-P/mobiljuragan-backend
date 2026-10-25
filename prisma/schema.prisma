@@ -14,10 +14,10 @@ datasource db {
 }
 
 /// Relasi antarmodel database:
-/// User â–¸ Booking â–¸ (Vehicle, BookingStatusHistory)
-/// User â–¸ SupportTicket â–¸ TicketMessage
-/// User â–¸ OtpVerification
-/// AdminAction â–¸ AuditLog
+/// User Ã¢â€“Â¸ Booking Ã¢â€“Â¸ (Vehicle, BookingStatusHistory)
+/// User Ã¢â€“Â¸ SupportTicket Ã¢â€“Â¸ TicketMessage
+/// User Ã¢â€“Â¸ OtpVerification
+/// AdminAction Ã¢â€“Â¸ AuditLog
 
 enum UserRole {
   CUSTOMER
@@ -366,10 +366,34 @@ model AiSetting {
 }
 
 /// Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+/// Kategori dokumen pengetahuan untuk RAG.
+///
+/// Sebelumnya kategori hanya berupa teks bebas pada KnowledgeDocument, dan
+/// daftar pilihannya dipatri di kode tampilan. Akibatnya admin tidak bisa
+/// menambah kategori baru tanpa mengubah kode, dan kategori yang salah ketik
+/// tetap tersimpan apa adanya.
+///
+/// Tabel ini menjadi daftar resmi kategori. slug dipakai sebagai nilai yang
+/// disimpan dokumen supaya nama tampilan bisa diubah tanpa menyentuh dokumen
+/// yang sudah ada.
+model KnowledgeCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  label     String
+  /// Urutan tampil. Kategori bawaan memakai puluhan supaya kategori baru bisa
+  /// disisipkan di antaranya tanpa menomori ulang semuanya.
+  orderIndex Int     @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderIndex])
+  @@map("knowledge_categories")
+}
+
 model KnowledgeDocument {
   id        String   @id @default(uuid())
   title     String
-  category  String   // SOP | ROUTE | TARIFF | EMERGENCY
+  category  String   // merujuk ke KnowledgeCategory.slug
   content   String   @db.Text
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
