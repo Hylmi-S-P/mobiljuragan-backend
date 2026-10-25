@@ -42,11 +42,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     let completedBookingsCount = 0;
     let confirmedOrActiveCount = 0;
 
-    let withoutDriverRevenue = 0;
-    let withoutDriverCount = 0;
-    let withDriverRevenue = 0;
-    let withDriverCount = 0;
-
     // Map omzet per armada
     const vehicleStatsMap = new Map<
       string,
@@ -85,18 +80,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         // Omzet kas masuk riil hanya tercatat jika pembayaran telah terverifikasi lunas (PAID)
         totalRevenue += amount;
 
-        /* Jumlah transaksi per model sewa dihitung dari basis yang sama dengan
-           omzetnya, yaitu PAID. Sebelumnya angka ini diambil dari COMPLETED,
-           sehingga donut bisa menampilkan "Rp 3.000.000 · 0 transaksi" ketika
-           pembayaran sudah lunas tetapi perjalanannya belum ditandai selesai. */
-        if (b.rentalType === 'WITHOUT_DRIVER') {
-          withoutDriverRevenue += amount;
-          withoutDriverCount += 1;
-        } else {
-          withDriverRevenue += amount;
-          withDriverCount += 1;
-        }
-
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
           stat.totalRevenue += amount;
@@ -109,10 +92,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       // Hitung metrik operasional armada
       if (b.status === 'COMPLETED') {
         completedBookingsCount += 1;
-
-        /* Jumlah per model sewa TIDAK dihitung di sini lagi. Angkanya sudah
-           dihitung pada cabang isPaid di atas, supaya pembilang dan penyebut
-           persentase memakai basis yang sama dengan omzetnya. */
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
@@ -188,7 +167,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         bulan: d.getMonth() + 1,
         revenue: 0,
         bookings: 0,
-        // Satu bulan paling banyak 5 minggu (31 hari → ceil(31/7) = 5).
+        // Satu bulan paling banyak 5 minggu (31 hari Ã¢â€ â€™ ceil(31/7) = 5).
         weekly: [0, 0, 0, 0, 0],
       });
     }
@@ -234,7 +213,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       const awal = new Date(tahun, bulan - 1, indeks * 7 + 1);
       const akhirHari = Math.min((indeks + 1) * 7, new Date(tahun, bulan, 0).getDate());
       const akhir = new Date(tahun, bulan - 1, akhirHari);
-      return `${awal.getDate()}–${akhir.getDate()} ${monthNames[bulan - 1]}`;
+      return `${awal.getDate()}Ã¢â‚¬â€œ${akhir.getDate()} ${monthNames[bulan - 1]}`;
     };
 
     const weeklyBreakdown = monthlyTrends.map((m) => ({
@@ -255,18 +234,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
           completedBookingsCount,
           confirmedOrActiveCount,
           totalAllBookings: bookings.length,
-        },
-        rentalTypes: {
-          withoutDriver: {
-            count: withoutDriverCount,
-            revenue: withoutDriverRevenue,
-            percentage: totalRevenue > 0 ? Math.round((withoutDriverRevenue / totalRevenue) * 100) : 0,
-          },
-          withDriver: {
-            count: withDriverCount,
-            revenue: withDriverRevenue,
-            percentage: totalRevenue > 0 ? Math.round((withDriverRevenue / totalRevenue) * 100) : 0,
-          },
         },
         fleetBreakdown,
         monthlyTrends,
