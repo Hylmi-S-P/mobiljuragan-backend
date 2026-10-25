@@ -14,10 +14,10 @@ datasource db {
 }
 
 /// Relasi antarmodel database:
-/// User ▸ Booking ▸ (Vehicle, BookingStatusHistory)
-/// User ▸ SupportTicket ▸ TicketMessage
-/// User ▸ OtpVerification
-/// AdminAction ▸ AuditLog
+/// User â–¸ Booking â–¸ (Vehicle, BookingStatusHistory)
+/// User â–¸ SupportTicket â–¸ TicketMessage
+/// User â–¸ OtpVerification
+/// AdminAction â–¸ AuditLog
 
 enum UserRole {
   CUSTOMER
@@ -268,6 +268,15 @@ model SupportTicket {
   /// diserahkan, dan selama itu balasan admin ditolak.
   handoverAt  DateTime?
 
+  /// Kapan percakapan terakhir kali bergerak, dihitung dari pesan terbaru atau
+  /// saat tiket dibuat.
+  ///
+  /// Dipakai penutupan otomatis: tiket yang tidak bergerak selama 24 jam ditutup
+  /// supaya antrean tidak menumpuk dengan percakapan yang sudah ditinggalkan.
+  /// Tidak memakai updatedAt karena kolom itu ikut berubah saat admin hanya
+  /// mengganti kategori, dan itu bukan tanda percakapan masih hidup.
+  lastActivityAt DateTime  @default(now())
+
   messages    TicketMessage[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -275,6 +284,7 @@ model SupportTicket {
   @@index([customerId])
   @@index([status])
   @@index([handledBy])
+  @@index([lastActivityAt])
   @@map("support_tickets")
 }
 
