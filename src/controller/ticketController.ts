@@ -14,6 +14,10 @@ import { AppError, sendSuccess } from '../lib/response.js';
 const STATUS_VALUES = Object.values(TicketStatus);
 const CATEGORY_VALUES = Object.values(TicketCategory);
 
+/* Batas panjang satu pesan tiket. Dipakai bersama oleh balasan admin dan pesan
+   pelanggan, dan ditegakkan di server supaya tidak bisa dilewati lewat API. */
+const MAKS_PANJANG_PESAN = 2000;
+
 const CATEGORY_MAP: Record<string, TicketCategory> = {
   RESERVASI: TicketCategory.GENERAL,
   PEMBAYARAN: TicketCategory.PAYMENT_CONFIRMATION,
@@ -115,6 +119,14 @@ export const ticketController = {
 
       if (!body) {
         throw new AppError('VALIDATION_ERROR', 'Isi pesan wajib diisi.', 400);
+      }
+
+      if (body.length > MAKS_PANJANG_PESAN) {
+        throw new AppError(
+          'MESSAGE_TOO_LONG',
+          `Pesan maksimal ${MAKS_PANJANG_PESAN} karakter. Pesan Anda ${body.length} karakter.`,
+          400,
+        );
       }
 
       const existing = await ticketModel.findById(id);
@@ -338,6 +350,14 @@ export const ticketController = {
 
       if (!body) {
         throw new AppError('VALIDATION_ERROR', 'Isi pesan wajib diisi.', 400);
+      }
+
+      if (body.length > MAKS_PANJANG_PESAN) {
+        throw new AppError(
+          'MESSAGE_TOO_LONG',
+          `Pesan maksimal ${MAKS_PANJANG_PESAN} karakter. Pesan Anda ${body.length} karakter.`,
+          400,
+        );
       }
 
       const existing = await ticketModel.findById(id);
