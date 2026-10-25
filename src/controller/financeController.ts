@@ -39,7 +39,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     // Agregasi metrik
     let totalRevenue = 0;
-    let pendingRevenue = 0;
     let completedBookingsCount = 0;
     let confirmedOrActiveCount = 0;
 
@@ -96,10 +95,10 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         if (stat) {
           stat.totalRevenue += amount;
         }
-      } else if (b.status !== 'CANCELLED' && b.status !== 'REJECTED' && amount > 0) {
-        // Transaksi aktif atau selesai yang belum lunas dicatat sebagai piutang / pending revenue
-        pendingRevenue += amount;
       }
+      /* Piutang berjalan tidak lagi dihitung. Kartunya sudah dihapus dari laporan
+         keuangan sesuai keputusan pemilik proyek, jadi angkanya tidak dipakai
+         siapa pun. Menghitung nilai yang tidak dipakai hanya menambah beban. */
 
       // Hitung metrik operasional armada
       if (b.status === 'COMPLETED') {
@@ -123,8 +122,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         }
       }
     }
-
-    const averageOrderValue = completedBookingsCount > 0 ? Math.round(totalRevenue / completedBookingsCount) : 0;
 
     // Susun breakdown per armada, urutkan dari omzet tertinggi
     const fleetBreakdown = Array.from(vehicleStatsMap.values()).sort(
@@ -161,10 +158,8 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       data: {
         summary: {
           totalRevenue,
-          pendingRevenue,
           completedBookingsCount,
           confirmedOrActiveCount,
-          averageOrderValue,
           totalAllBookings: bookings.length,
         },
         rentalTypes: {
