@@ -203,6 +203,10 @@ export const ticketController = {
         );
       }
 
+      // Jalankan pembersihan auto-close tiket secara pasif di latar belakang
+      ticketModel.autoCloseResolvedTickets(24).catch(() => {});
+      ticketModel.autoCloseStaleAiSessions(24).catch(() => {});
+
       const tickets = await ticketModel.listForCustomer(actor.userId, {
         status: rawStatus as TicketStatus | undefined,
       });
@@ -404,4 +408,47 @@ export const ticketController = {
       next(error);
     }
   },
+
+  /**
+   * PATCH/POST /api/v1/tickets/:id/close
+   * Menutup tiket bantuan secara definitif oleh pelanggan atau staf.
+   */
+  async closeCustomerTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const actor = req.user!;
+
+      const existing = await ticketModel.findById(id);
+      if (!existing) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      if (existing.customerId !== actor.userId && actor.role === UserRole.CUSTOMER) {
+        throw new AppError('FORBIDDEN', 'Anda tidak memiliki hak akses untuk tiket ini.', 403);
+      }
+
+      if (existing.status === TicketStatus.CLOSED) {
+        sendSuccess(res, existing);
+        return;
+      }
+
+      const updated = await ticketModel.updateStatus(id, TicketStatus.CLOSED);
+
+      // Catat pesan sistem penutupan tiket pada percakapan
+      await ticketModel.createMessage({
+        ticket: { connect: { id } },
+        sender: { connect: { id: actor.userId } },
+        body:
+          actor.role === UserRole.CUSTOMER
+            ? 'Pelanggan telah menandai kendala selesai dan menutup tiket bantuan ini.'
+            : 'Staf operasional telah menutup tiket bantuan ini.',
+        isCustomer: actor.role === UserRole.CUSTOMER,
+      });
+
+      sendSuccess(res, updated);
+    } catch (error) {
+      next(error);
+    }
+  },
 };
+

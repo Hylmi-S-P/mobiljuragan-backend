@@ -25,6 +25,10 @@ ticketRouter.post('/:id/messages', ticketMessageRateLimiter, ticketController.ad
 /* Dipanggil saat asisten AI menyerahkan tiket ke admin. */
 ticketRouter.post('/:id/handover', ticketController.handover);
 
+/* Penutupan tiket bantuan oleh pelanggan atau staf */
+ticketRouter.patch('/:id/close', ticketController.closeCustomerTicket);
+ticketRouter.post('/:id/close', ticketController.closeCustomerTicket);
+
 /* Saluran peristiwa tiket. Dipakai setelah handover, saat balasan admin perlu
    sampai ke layar pelanggan tanpa menanyakan ulang. */
 ticketRouter.get('/:id/events', streamTicketEvents);

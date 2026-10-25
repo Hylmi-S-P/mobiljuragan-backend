@@ -140,4 +140,56 @@ export const ticketModel = {
     });
     return hasil.count > 0;
   },
+
+  /**
+   * Menutup otomatis tiket berstatus RESOLVED yang telah melewati batas masa tenggang (default 24 jam)
+   * tanpa adanya tanggapan atau pesan balasan baru dari pelanggan.
+   */
+  async autoCloseResolvedTickets(olderThanHours = 24) {
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const result = await db.supportTicket.updateMany({
+      where: {
+        status: TicketStatus.RESOLVED,
+        updatedAt: { lte: cutoff },
+      },
+      data: {
+        status: TicketStatus.CLOSED,
+      },
+    });
+    return result.count;
+  },
+
+  /**
+   * Menutup otomatis sesi AI yang ditinggalkan tanpa pesan baru selama lebih dari 24 jam.
+   */
+  async autoCloseStaleAiSessions(olderThanHours = 24) {
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const result = await db.supportTicket.updateMany({
+      where: {
+        handledBy: TicketHandler.AI,
+        status: { notIn: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
+        updatedAt: { lte: cutoff },
+      },
+      data: {
+        status: TicketStatus.CLOSED,
+      },
+    });
+    return result.count;
+  },
+
+  /**
+   * Pelanggan menutup tiket bantuannya sendiri.
+   */
+  async closeTicketByCustomer(ticketId: string, customerId: string) {
+    const result = await db.supportTicket.updateMany({
+      where: {
+        id: ticketId,
+        customerId,
+      },
+      data: {
+        status: TicketStatus.CLOSED,
+      },
+    });
+    return result.count > 0;
+  },
 };
