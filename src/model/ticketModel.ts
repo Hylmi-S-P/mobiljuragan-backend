@@ -138,9 +138,22 @@ export const ticketModel = {
         select: { sequence: true },
       });
 
-      return tx.ticketMessage.create({
+      const pesan = await tx.ticketMessage.create({
         data: { ...data, sequence: (terakhir?.sequence ?? 0) + 1 },
       });
+
+      /* Setiap pesan baru menandai percakapan masih hidup.
+       *
+       * Tanpa ini, `lastActivityAt` hanya terisi saat tiket dibuat, sehingga tiket
+       * yang sedang aktif dibalas pun tetap terhitung diam dan akan ditutup
+       * otomatis pada siklus berikutnya. Diperbarui di dalam transaksi yang sama
+       * supaya pesan dan penandanya tidak pernah terpisah. */
+      await tx.supportTicket.update({
+        where: { id: ticketId },
+        data: { lastActivityAt: new Date() },
+      });
+
+      return pesan;
     });
   },
 
