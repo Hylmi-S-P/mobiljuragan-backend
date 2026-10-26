@@ -135,7 +135,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     if (ticketId) {
       await ticketModel.createMessage({
         ticket: { connect: { id: ticketId } },
-        sender: { connect: { id: req.user!.userId } },
+        ...(req.user?.userId ? { sender: { connect: { id: req.user.userId } } } : {}),
         body: prompt,
         isCustomer: true,
       });
