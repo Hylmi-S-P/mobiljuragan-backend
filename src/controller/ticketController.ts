@@ -14,6 +14,10 @@ import { AppError, sendSuccess } from '../lib/response.js';
 const STATUS_VALUES = Object.values(TicketStatus);
 const CATEGORY_VALUES = Object.values(TicketCategory);
 
+/* Batas panjang satu pesan tiket. Dipakai bersama oleh balasan admin dan pesan
+   pelanggan, dan ditegakkan di server supaya tidak bisa dilewati lewat API. */
+const MAKS_PANJANG_PESAN = 2000;
+
 const CATEGORY_MAP: Record<string, TicketCategory> = {
   RESERVASI: TicketCategory.GENERAL,
   PEMBAYARAN: TicketCategory.PAYMENT_CONFIRMATION,
@@ -100,6 +104,27 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
+      /* Tiket yang sudah ditutup tidak boleh dibuka lagi.
+       *
+       * Penutupan berarti percakapan selesai: pelanggan sudah dapat jawaban, atau
+       * tiket ditutup otomatis karena tidak ada balasan. Membukanya kembali akan
+       * membuat antrean berisi tiket yang sebenarnya sudah beres, dan menghapus
+       * arti penutupan itu sendiri.
+       *
+       * Pelanggan yang masih butuh bantuan setelah tiket ditutup bisa membuat
+       * tiket baru — riwayatnya tetap tersimpan dan tetap bisa dibaca admin.
+       *
+       * RESOLVED masih boleh dibuka kembali. Status itu berarti "dijawab, menunggu
+       * konfirmasi pelanggan", bukan "selesai", jadi pelanggan yang baru membalas
+       * memang perlu menghidupkan percakapannya lagi. */
+      if (existing.status === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah ditutup dan tidak bisa dibuka kembali. Buat tiket baru kalau masih perlu bantuan.',
+          409,
+        );
+      }
+
       const updated = await ticketModel.updateStatus(id, rawStatus as TicketStatus);
       sendSuccess(res, updated);
     } catch (error) {
@@ -117,6 +142,14 @@ export const ticketController = {
         throw new AppError('VALIDATION_ERROR', 'Isi pesan wajib diisi.', 400);
       }
 
+      if (body.length > MAKS_PANJANG_PESAN) {
+        throw new AppError(
+          'MESSAGE_TOO_LONG',
+          `Pesan maksimal ${MAKS_PANJANG_PESAN} karakter. Pesan Anda ${body.length} karakter.`,
+          400,
+        );
+      }
+
       const existing = await ticketModel.findById(id);
       if (!existing) {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
@@ -131,6 +164,20 @@ export const ticketController = {
         throw new AppError(
           'TICKET_STILL_WITH_AI',
           'Tiket ini masih ditangani asisten AI. Admin baru bisa membalas setelah AI menyerahkannya.',
+          409,
+        );
+      }
+
+      /* Tiket yang sudah ditutup tidak menerima pesan baru.
+       *
+       * Kalau dibiarkan, pesan akan masuk ke tiket yang tidak lagi dipantau
+       * siapa pun: pelanggan mengira sudah mengirim, admin tidak pernah melihat,
+       * dan tiketnya tidak muncul di daftar aktif. Lebih baik ditolak terang-
+       * terangan supaya pelanggan membuat tiket baru. */
+      if (existing.status === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah ditutup dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
           409,
         );
       }
@@ -344,6 +391,14 @@ export const ticketController = {
         throw new AppError('VALIDATION_ERROR', 'Isi pesan wajib diisi.', 400);
       }
 
+      if (body.length > MAKS_PANJANG_PESAN) {
+        throw new AppError(
+          'MESSAGE_TOO_LONG',
+          `Pesan maksimal ${MAKS_PANJANG_PESAN} karakter. Pesan Anda ${body.length} karakter.`,
+          400,
+        );
+      }
+
       const existing = await ticketModel.findById(id);
       if (!existing) {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
@@ -397,6 +452,20 @@ export const ticketController = {
       }
 
       const berubah = await ticketModel.handoverToHuman(id, new Date());
+
+      /* Pesan transisi ditulis hanya saat penyerahan benar-benar terjadi.
+         Fungsinya bukan hiasan: admin yang membuka tiket perlu tahu bahwa
+         percakapan sebelumnya dijawab mesin, bukan staf. Tanpa penanda ini,
+         riwayat terbaca seolah staf yang menjawab dari awal. */
+      if (berubah) {
+        await ticketModel.createMessage({
+          ticket: { connect: { id } },
+          body:
+            'Percakapan dialihkan dari asisten AI ke staf admin. Pesan sebelumnya dijawab otomatis oleh asisten AI.',
+          isCustomer: false,
+          isAi: false,
+        });
+      }
 
       sendSuccess(res, {
         ticketId: id,

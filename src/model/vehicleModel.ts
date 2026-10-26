@@ -112,7 +112,31 @@ export const vehicleModel = {
     return db.vehicle.findMany({
       where: whereClause,
       orderBy: [{ operationalStatus: 'asc' }, { name: 'asc' }],
-      select: CATALOG_FIELDS,
+      select: {
+        ...CATALOG_FIELDS,
+        /* Ringkasan booking yang sedang mengunci unit saat ini.
+         *
+         * `operationalStatus` hanya berubah lewat perubahan manual admin, jadi
+         * unit yang sedang disewa tetap tertulis AVAILABLE. Tanpa ringkasan ini,
+         * katalog menampilkan "Tersedia" untuk mobil yang sudah keluar.
+         *
+         * Hanya kode dan status yang dikirim: klien tidak perlu tahu nominal atau
+         * identitas penyewa untuk sekadar memberi badge. */
+        bookings: {
+          where: {
+            status: { in: BLOCKING_BOOKING_STATUS },
+            startDateTime: { lte: new Date() },
+            endDateTime: { gte: new Date() },
+          },
+          select: {
+            id: true,
+            bookingCode: true,
+            status: true,
+          },
+          take: 1,
+          orderBy: { startDateTime: 'asc' },
+        },
+      },
     });
   },
 

@@ -34,6 +34,7 @@ export type SupportTicketMinAggregateOutputType = {
   status: $Enums.TicketStatus | null
   handledBy: $Enums.TicketHandler | null
   handoverAt: Date | null
+  lastActivityAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +49,7 @@ export type SupportTicketMaxAggregateOutputType = {
   status: $Enums.TicketStatus | null
   handledBy: $Enums.TicketHandler | null
   handoverAt: Date | null
+  lastActivityAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +64,7 @@ export type SupportTicketCountAggregateOutputType = {
   status: number
   handledBy: number
   handoverAt: number
+  lastActivityAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -78,6 +81,7 @@ export type SupportTicketMinAggregateInputType = {
   status?: true
   handledBy?: true
   handoverAt?: true
+  lastActivityAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -92,6 +96,7 @@ export type SupportTicketMaxAggregateInputType = {
   status?: true
   handledBy?: true
   handoverAt?: true
+  lastActivityAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -106,6 +111,7 @@ export type SupportTicketCountAggregateInputType = {
   status?: true
   handledBy?: true
   handoverAt?: true
+  lastActivityAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -193,6 +199,7 @@ export type SupportTicketGroupByOutputType = {
   status: $Enums.TicketStatus
   handledBy: $Enums.TicketHandler
   handoverAt: Date | null
+  lastActivityAt: Date
   createdAt: Date
   updatedAt: Date
   _count: SupportTicketCountAggregateOutputType | null
@@ -228,6 +235,7 @@ export type SupportTicketWhereInput = {
   status?: Prisma.EnumTicketStatusFilter<"SupportTicket"> | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFilter<"SupportTicket"> | $Enums.TicketHandler
   handoverAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   customer?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -244,6 +252,7 @@ export type SupportTicketOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   handledBy?: Prisma.SortOrder
   handoverAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastActivityAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   customer?: Prisma.UserOrderByWithRelationInput
@@ -264,6 +273,7 @@ export type SupportTicketWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumTicketStatusFilter<"SupportTicket"> | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFilter<"SupportTicket"> | $Enums.TicketHandler
   handoverAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   customer?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -280,6 +290,7 @@ export type SupportTicketOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   handledBy?: Prisma.SortOrder
   handoverAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastActivityAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SupportTicketCountOrderByAggregateInput
@@ -300,6 +311,7 @@ export type SupportTicketScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumTicketStatusWithAggregatesFilter<"SupportTicket"> | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerWithAggregatesFilter<"SupportTicket"> | $Enums.TicketHandler
   handoverAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupportTicket"> | Date | string | null
+  lastActivityAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
 }
@@ -313,6 +325,7 @@ export type SupportTicketCreateInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
   customer: Prisma.UserCreateNestedOneWithoutTicketsInput
@@ -329,6 +342,7 @@ export type SupportTicketUncheckedCreateInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
@@ -343,6 +357,7 @@ export type SupportTicketUpdateInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
@@ -359,6 +374,7 @@ export type SupportTicketUncheckedUpdateInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
@@ -374,6 +390,7 @@ export type SupportTicketCreateManyInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -387,6 +404,7 @@ export type SupportTicketUpdateManyMutationInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -401,6 +419,7 @@ export type SupportTicketUncheckedUpdateManyInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -431,6 +450,7 @@ export type SupportTicketCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   handledBy?: Prisma.SortOrder
   handoverAt?: Prisma.SortOrder
+  lastActivityAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -445,6 +465,7 @@ export type SupportTicketMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   handledBy?: Prisma.SortOrder
   handoverAt?: Prisma.SortOrder
+  lastActivityAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -459,6 +480,7 @@ export type SupportTicketMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   handledBy?: Prisma.SortOrder
   handoverAt?: Prisma.SortOrder
+  lastActivityAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -545,6 +567,7 @@ export type SupportTicketCreateWithoutCustomerInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageCreateNestedManyWithoutTicketInput
@@ -559,6 +582,7 @@ export type SupportTicketUncheckedCreateWithoutCustomerInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
@@ -603,6 +627,7 @@ export type SupportTicketScalarWhereInput = {
   status?: Prisma.EnumTicketStatusFilter<"SupportTicket"> | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFilter<"SupportTicket"> | $Enums.TicketHandler
   handoverAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
 }
@@ -616,6 +641,7 @@ export type SupportTicketCreateWithoutMessagesInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
   customer: Prisma.UserCreateNestedOneWithoutTicketsInput
@@ -631,6 +657,7 @@ export type SupportTicketUncheckedCreateWithoutMessagesInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -660,6 +687,7 @@ export type SupportTicketUpdateWithoutMessagesInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
@@ -675,6 +703,7 @@ export type SupportTicketUncheckedUpdateWithoutMessagesInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -688,6 +717,7 @@ export type SupportTicketCreateManyCustomerInput = {
   status?: $Enums.TicketStatus
   handledBy?: $Enums.TicketHandler
   handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -701,6 +731,7 @@ export type SupportTicketUpdateWithoutCustomerInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUpdateManyWithoutTicketNestedInput
@@ -715,6 +746,7 @@ export type SupportTicketUncheckedUpdateWithoutCustomerInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
@@ -729,6 +761,7 @@ export type SupportTicketUncheckedUpdateManyWithoutCustomerInput = {
   status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
   handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -774,6 +807,7 @@ export type SupportTicketSelect<ExtArgs extends runtime.Types.Extensions.Interna
   status?: boolean
   handledBy?: boolean
   handoverAt?: boolean
+  lastActivityAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   customer?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -793,11 +827,12 @@ export type SupportTicketSelectScalar = {
   status?: boolean
   handledBy?: boolean
   handoverAt?: boolean
+  lastActivityAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SupportTicketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketNumber" | "customerId" | "title" | "category" | "description" | "status" | "handledBy" | "handoverAt" | "createdAt" | "updatedAt", ExtArgs["result"]["supportTicket"]>
+export type SupportTicketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketNumber" | "customerId" | "title" | "category" | "description" | "status" | "handledBy" | "handoverAt" | "lastActivityAt" | "createdAt" | "updatedAt", ExtArgs["result"]["supportTicket"]>
 export type SupportTicketInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customer?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   messages?: boolean | Prisma.SupportTicket$messagesArgs<ExtArgs>
@@ -829,6 +864,16 @@ export type $SupportTicketPayload<ExtArgs extends runtime.Types.Extensions.Inter
      * diserahkan, dan selama itu balasan admin ditolak.
      */
     handoverAt: Date | null
+    /**
+     * Kapan percakapan terakhir kali bergerak, dihitung dari pesan terbaru atau
+     * saat tiket dibuat.
+     * 
+     * Dipakai penutupan otomatis: tiket yang tidak bergerak selama 24 jam ditutup
+     * supaya antrean tidak menumpuk dengan percakapan yang sudah ditinggalkan.
+     * Tidak memakai updatedAt karena kolom itu ikut berubah saat admin hanya
+     * mengganti kategori, dan itu bukan tanda percakapan masih hidup.
+     */
+    lastActivityAt: Date
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["supportTicket"]>
@@ -1211,6 +1256,7 @@ export interface SupportTicketFieldRefs {
   readonly status: Prisma.FieldRef<"SupportTicket", 'TicketStatus'>
   readonly handledBy: Prisma.FieldRef<"SupportTicket", 'TicketHandler'>
   readonly handoverAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
+  readonly lastActivityAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
 }

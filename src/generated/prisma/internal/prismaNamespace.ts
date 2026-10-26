@@ -407,6 +407,7 @@ export const ModelName = {
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
   AiSetting: 'AiSetting',
+  KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment'
@@ -425,7 +426,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeDocument" | "faq" | "payment"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1089,6 +1090,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    KnowledgeCategory: {
+      payload: Prisma.$KnowledgeCategoryPayload<ExtArgs>
+      fields: Prisma.KnowledgeCategoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KnowledgeCategoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KnowledgeCategoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        findFirst: {
+          args: Prisma.KnowledgeCategoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KnowledgeCategoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        findMany: {
+          args: Prisma.KnowledgeCategoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>[]
+        }
+        create: {
+          args: Prisma.KnowledgeCategoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        createMany: {
+          args: Prisma.KnowledgeCategoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.KnowledgeCategoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        update: {
+          args: Prisma.KnowledgeCategoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.KnowledgeCategoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KnowledgeCategoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.KnowledgeCategoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeCategoryPayload>
+        }
+        aggregate: {
+          args: Prisma.KnowledgeCategoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKnowledgeCategory>
+        }
+        groupBy: {
+          args: Prisma.KnowledgeCategoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeCategoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KnowledgeCategoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeCategoryCountAggregateOutputType> | number
+        }
+      }
+    }
     KnowledgeDocument: {
       payload: Prisma.$KnowledgeDocumentPayload<ExtArgs>
       fields: Prisma.KnowledgeDocumentFieldRefs
@@ -1437,6 +1504,7 @@ export const SupportTicketScalarFieldEnum = {
   status: 'status',
   handledBy: 'handledBy',
   handoverAt: 'handoverAt',
+  lastActivityAt: 'lastActivityAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1451,6 +1519,7 @@ export const TicketMessageScalarFieldEnum = {
   body: 'body',
   isCustomer: 'isCustomer',
   isAi: 'isAi',
+  sequence: 'sequence',
   sentAt: 'sentAt'
 } as const
 
@@ -1491,6 +1560,18 @@ export const AiSettingScalarFieldEnum = {
 } as const
 
 export type AiSettingScalarFieldEnum = (typeof AiSettingScalarFieldEnum)[keyof typeof AiSettingScalarFieldEnum]
+
+
+export const KnowledgeCategoryScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  label: 'label',
+  orderIndex: 'orderIndex',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeCategoryScalarFieldEnum = (typeof KnowledgeCategoryScalarFieldEnum)[keyof typeof KnowledgeCategoryScalarFieldEnum]
 
 
 export const KnowledgeDocumentScalarFieldEnum = {
@@ -1702,6 +1783,15 @@ export const AiSettingOrderByRelevanceFieldEnum = {
 } as const
 
 export type AiSettingOrderByRelevanceFieldEnum = (typeof AiSettingOrderByRelevanceFieldEnum)[keyof typeof AiSettingOrderByRelevanceFieldEnum]
+
+
+export const KnowledgeCategoryOrderByRelevanceFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  label: 'label'
+} as const
+
+export type KnowledgeCategoryOrderByRelevanceFieldEnum = (typeof KnowledgeCategoryOrderByRelevanceFieldEnum)[keyof typeof KnowledgeCategoryOrderByRelevanceFieldEnum]
 
 
 export const KnowledgeDocumentOrderByRelevanceFieldEnum = {
@@ -2052,6 +2142,7 @@ export type GlobalOmitConfig = {
   ticketMessage?: Prisma.TicketMessageOmit
   auditLog?: Prisma.AuditLogOmit
   aiSetting?: Prisma.AiSettingOmit
+  knowledgeCategory?: Prisma.KnowledgeCategoryOmit
   knowledgeDocument?: Prisma.KnowledgeDocumentOmit
   faq?: Prisma.FaqOmit
   payment?: Prisma.PaymentOmit

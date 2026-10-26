@@ -14,10 +14,10 @@ datasource db {
 }
 
 /// Relasi antarmodel database:
-/// User ▸ Booking ▸ (Vehicle, BookingStatusHistory)
-/// User ▸ SupportTicket ▸ TicketMessage
-/// User ▸ OtpVerification
-/// AdminAction ▸ AuditLog
+/// User Ã¢â€“Â¸ Booking Ã¢â€“Â¸ (Vehicle, BookingStatusHistory)
+/// User Ã¢â€“Â¸ SupportTicket Ã¢â€“Â¸ TicketMessage
+/// User Ã¢â€“Â¸ OtpVerification
+/// AdminAction Ã¢â€“Â¸ AuditLog
 
 enum UserRole {
   CUSTOMER
@@ -268,6 +268,15 @@ model SupportTicket {
   /// diserahkan, dan selama itu balasan admin ditolak.
   handoverAt  DateTime?
 
+  /// Kapan percakapan terakhir kali bergerak, dihitung dari pesan terbaru atau
+  /// saat tiket dibuat.
+  ///
+  /// Dipakai penutupan otomatis: tiket yang tidak bergerak selama 24 jam ditutup
+  /// supaya antrean tidak menumpuk dengan percakapan yang sudah ditinggalkan.
+  /// Tidak memakai updatedAt karena kolom itu ikut berubah saat admin hanya
+  /// mengganti kategori, dan itu bukan tanda percakapan masih hidup.
+  lastActivityAt DateTime  @default(now())
+
   messages    TicketMessage[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -275,6 +284,7 @@ model SupportTicket {
   @@index([customerId])
   @@index([status])
   @@index([handledBy])
+  @@index([lastActivityAt])
   @@map("support_tickets")
 }
 
@@ -288,15 +298,29 @@ model TicketMessage {
   senderId    String?
   sender      User?         @relation(fields: [senderId], references: [id])
 
-  body        String
+  /// Isi pesan.
+  ///
+  /// Sebelumnya bertipe `String` biasa, yang di MySQL menjadi `varchar(191)`.
+  /// Balasan asisten AI panjangnya bisa melewati 500 karakter, sehingga isinya
+  /// terpotong tanpa galat apa pun. `@db.Text` memberi ruang sampai 64 KB.
+  body        String        @db.Text
   isCustomer  Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
 
   /// Menandai balasan yang dihasilkan asisten AI, supaya riwayat percakapan bisa
   /// dibaca admin tanpa menebak mana yang dijawab mesin.
   isAi        Boolean       @default(false)
 
+  /// Urutan pesan di dalam satu tiket, mulai dari 1.
+  ///
+  /// Sebelumnya urutan hanya bersandar pada `sentAt`. Di mesin lokal itu cukup,
+  /// tetapi begitu pesan datang bersamaan dari jaringan nyata, dua pesan bisa
+  /// mendapat `sentAt` yang sama dan urutannya menjadi tidak pasti. Kolom ini
+  /// memberi urutan yang tegas dan tahan terhadap reconnect.
+  sequence    Int           @default(0)
+
   sentAt      DateTime      @default(now())
 
+  @@unique([ticketId, sequence])
   @@index([ticketId])
   @@map("ticket_messages")
 }
@@ -342,10 +366,34 @@ model AiSetting {
 }
 
 /// Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+/// Kategori dokumen pengetahuan untuk RAG.
+///
+/// Sebelumnya kategori hanya berupa teks bebas pada KnowledgeDocument, dan
+/// daftar pilihannya dipatri di kode tampilan. Akibatnya admin tidak bisa
+/// menambah kategori baru tanpa mengubah kode, dan kategori yang salah ketik
+/// tetap tersimpan apa adanya.
+///
+/// Tabel ini menjadi daftar resmi kategori. slug dipakai sebagai nilai yang
+/// disimpan dokumen supaya nama tampilan bisa diubah tanpa menyentuh dokumen
+/// yang sudah ada.
+model KnowledgeCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  label     String
+  /// Urutan tampil. Kategori bawaan memakai puluhan supaya kategori baru bisa
+  /// disisipkan di antaranya tanpa menomori ulang semuanya.
+  orderIndex Int     @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderIndex])
+  @@map("knowledge_categories")
+}
+
 model KnowledgeDocument {
   id        String   @id @default(uuid())
   title     String
-  category  String   // SOP | ROUTE | TARIFF | EMERGENCY
+  category  String   // merujuk ke KnowledgeCategory.slug
   content   String   @db.Text
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
