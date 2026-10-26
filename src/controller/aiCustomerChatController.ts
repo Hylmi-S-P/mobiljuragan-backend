@@ -149,8 +149,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Session-ID': traceId,
-      'X-Opencode-Session': traceId,
-      'X-Opencode-Session-Id': traceId,
       'X-Session-Affinity': traceId,
       'X-Request-ID': `cust-${crypto.randomUUID()}`,
       'X-Forwarded-For': networkAffinity,
