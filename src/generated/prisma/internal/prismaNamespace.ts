@@ -410,7 +410,8 @@ export const ModelName = {
   KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
-  Payment: 'Payment'
+  Payment: 'Payment',
+  BookingDocument: 'BookingDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1354,6 +1355,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BookingDocument: {
+      payload: Prisma.$BookingDocumentPayload<ExtArgs>
+      fields: Prisma.BookingDocumentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookingDocumentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookingDocumentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        findFirst: {
+          args: Prisma.BookingDocumentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookingDocumentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        findMany: {
+          args: Prisma.BookingDocumentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>[]
+        }
+        create: {
+          args: Prisma.BookingDocumentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        createMany: {
+          args: Prisma.BookingDocumentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.BookingDocumentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        update: {
+          args: Prisma.BookingDocumentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookingDocumentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookingDocumentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.BookingDocumentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingDocumentPayload>
+        }
+        aggregate: {
+          args: Prisma.BookingDocumentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingDocument>
+        }
+        groupBy: {
+          args: Prisma.BookingDocumentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingDocumentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookingDocumentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingDocumentCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1630,6 +1697,23 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const BookingDocumentScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  statementLetterUrl: 'statementLetterUrl',
+  ktpUrl: 'ktpUrl',
+  simUrl: 'simUrl',
+  status: 'status',
+  rejectionReason: 'rejectionReason',
+  verifiedAt: 'verifiedAt',
+  verifiedBy: 'verifiedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1835,6 +1919,19 @@ export const PaymentOrderByRelevanceFieldEnum = {
 export type PaymentOrderByRelevanceFieldEnum = (typeof PaymentOrderByRelevanceFieldEnum)[keyof typeof PaymentOrderByRelevanceFieldEnum]
 
 
+export const BookingDocumentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  statementLetterUrl: 'statementLetterUrl',
+  ktpUrl: 'ktpUrl',
+  simUrl: 'simUrl',
+  rejectionReason: 'rejectionReason',
+  verifiedBy: 'verifiedBy'
+} as const
+
+export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
+
+
 
 /**
  * Field references
@@ -1992,6 +2089,13 @@ export type EnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'PaymentStatus'
  */
 export type EnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DocumentStatus'
+ */
+export type EnumDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentStatus'>
     
 
 /**
@@ -2159,6 +2263,7 @@ export type GlobalOmitConfig = {
   knowledgeDocument?: Prisma.KnowledgeDocumentOmit
   faq?: Prisma.FaqOmit
   payment?: Prisma.PaymentOmit
+  bookingDocument?: Prisma.BookingDocumentOmit
 }
 
 /* Types for Logging */

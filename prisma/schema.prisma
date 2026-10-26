@@ -102,6 +102,13 @@ enum PaymentMethod {
   CASH
 }
 
+enum DocumentStatus {
+  PENDING_UPLOAD
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
 
 model User {
   id            String    @id @default(uuid())
@@ -224,6 +231,7 @@ model Booking {
   updatedAt           DateTime           @updatedAt
 
   payment             Payment?
+  document            BookingDocument?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -496,6 +504,30 @@ model Payment {
   @@index([totalAmount])
   @@index([method])
   @@map("payments")
+}
+
+/// Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
+model BookingDocument {
+  id                  String          @id @default(uuid())
+  bookingId           String          @unique
+  booking             Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  statementLetterUrl  String?         @db.LongText
+  ktpUrl              String?         @db.LongText
+  simUrl              String?         @db.LongText
+
+  status              DocumentStatus  @default(PENDING_UPLOAD)
+  rejectionReason     String?         @db.Text
+
+  verifiedAt          DateTime?
+  verifiedBy          String?
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("booking_documents")
 }
 
 

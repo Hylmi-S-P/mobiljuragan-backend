@@ -74,4 +74,8 @@ v1Router.use('/tickets', ticketRouter);
 // Asisten AI interaktif sisi pelanggan / mobile: /api/v1/ai/*
 v1Router.use('/ai', customerAiRouter);
 
+// Pengunduhan template & verifikasi dokumen lepas kunci: /api/v1/documents/*, /api/v1/bookings/:id/documents
+import { documentRouter } from './documentRoutes.js';
+v1Router.use('/', documentRouter);
+
 

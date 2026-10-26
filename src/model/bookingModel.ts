@@ -72,6 +72,7 @@ const adminBookingDetailInclude = {
     orderBy: { changedAt: 'asc' as const },
   },
   payment: true,
+  document: true,
 } as const;
 
 /**
@@ -229,6 +230,8 @@ export const bookingModel = {
         statusHistory: {
           orderBy: { changedAt: 'asc' },
         },
+        payment: true,
+        document: true,
       },
     });
   },

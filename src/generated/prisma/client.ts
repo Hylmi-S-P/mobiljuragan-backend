@@ -122,3 +122,8 @@ export type Faq = Prisma.FaqModel
  * Pembayaran & Pemisahan Arus Kas Riil (Payment Lifecycle)
  */
 export type Payment = Prisma.PaymentModel
+/**
+ * Model BookingDocument
+ * Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
+ */
+export type BookingDocument = Prisma.BookingDocumentModel

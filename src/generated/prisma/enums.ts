@@ -127,6 +127,16 @@ export const PaymentMethod = {
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
 
 
+export const DocumentStatus = {
+  PENDING_UPLOAD: 'PENDING_UPLOAD',
+  PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type DocumentStatus = (typeof DocumentStatus)[keyof typeof DocumentStatus]
+
+
 export const DriverLicenseType = {
   SIM_A: 'SIM_A',
   SIM_B1: 'SIM_B1',

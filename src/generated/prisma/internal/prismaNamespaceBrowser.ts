@@ -64,7 +64,8 @@ export const ModelName = {
   KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
-  Payment: 'Payment'
+  Payment: 'Payment',
+  BookingDocument: 'BookingDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -320,6 +321,23 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const BookingDocumentScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  statementLetterUrl: 'statementLetterUrl',
+  ktpUrl: 'ktpUrl',
+  simUrl: 'simUrl',
+  status: 'status',
+  rejectionReason: 'rejectionReason',
+  verifiedAt: 'verifiedAt',
+  verifiedBy: 'verifiedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -523,4 +541,17 @@ export const PaymentOrderByRelevanceFieldEnum = {
 } as const
 
 export type PaymentOrderByRelevanceFieldEnum = (typeof PaymentOrderByRelevanceFieldEnum)[keyof typeof PaymentOrderByRelevanceFieldEnum]
+
+
+export const BookingDocumentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  statementLetterUrl: 'statementLetterUrl',
+  ktpUrl: 'ktpUrl',
+  simUrl: 'simUrl',
+  rejectionReason: 'rejectionReason',
+  verifiedBy: 'verifiedBy'
+} as const
+
+export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
 
