@@ -28,6 +28,8 @@ const CATALOG_FIELDS = {
 
 /** Status booking yang dianggap masih mengunci armada. */
 const BLOCKING_BOOKING_STATUS: BookingStatus[] = [
+  BookingStatus.CREATED,
+  BookingStatus.PENDING_CONFIRMATION,
   BookingStatus.CONFIRMED,
   BookingStatus.IN_PROGRESS,
 ];
@@ -57,11 +59,13 @@ export const vehicleModel = {
     const { category, transmission, search, operationalStatus, startDate, endDate } = filter;
     const whereClause: Prisma.VehicleWhereInput = {};
 
-    // Filter status operasional (default: AVAILABLE)
+    // Filter status operasional (sertakan AVAILABLE, BOOKED, MAINTENANCE agar status armada transparan)
     if (operationalStatus && operationalStatus !== 'ALL') {
       whereClause.operationalStatus = operationalStatus as OperationalStatus;
     } else if (!operationalStatus) {
-      whereClause.operationalStatus = OperationalStatus.AVAILABLE;
+      whereClause.operationalStatus = {
+        in: [OperationalStatus.AVAILABLE, OperationalStatus.BOOKED, OperationalStatus.MAINTENANCE],
+      };
     }
 
     // Filter kategori
@@ -125,7 +129,6 @@ export const vehicleModel = {
         bookings: {
           where: {
             status: { in: BLOCKING_BOOKING_STATUS },
-            startDateTime: { lte: new Date() },
             endDateTime: { gte: new Date() },
           },
           select: {
@@ -145,6 +148,23 @@ export const vehicleModel = {
     return db.vehicle.findFirst({
       where: {
         OR: [{ id }, { externalId: id }],
+      },
+      include: {
+        bookings: {
+          where: {
+            status: { in: BLOCKING_BOOKING_STATUS },
+            endDateTime: { gte: new Date() },
+          },
+          select: {
+            id: true,
+            bookingCode: true,
+            status: true,
+            startDateTime: true,
+            endDateTime: true,
+          },
+          take: 1,
+          orderBy: { startDateTime: 'asc' },
+        },
       },
     });
   },

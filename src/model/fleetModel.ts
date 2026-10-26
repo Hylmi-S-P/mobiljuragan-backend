@@ -63,8 +63,14 @@ export const fleetModel = {
   async vehicleIdsRentedAt(waktu: Date): Promise<Set<string>> {
     const baris = await db.booking.findMany({
       where: {
-        status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
-        startDateTime: { lte: waktu },
+        status: {
+          in: [
+            BookingStatus.CREATED,
+            BookingStatus.PENDING_CONFIRMATION,
+            BookingStatus.CONFIRMED,
+            BookingStatus.IN_PROGRESS,
+          ],
+        },
         endDateTime: { gte: waktu },
       },
       select: { vehicleId: true },
