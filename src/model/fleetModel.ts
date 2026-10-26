@@ -44,4 +44,33 @@ export const fleetModel = {
       },
     });
   },
+
+  /**
+   * Unit yang sedang tersewa pada satu titik waktu.
+   *
+   * Dipakai katalog armada untuk menampilkan badge "Disewa". Tanpa ini, katalog
+   * membaca kolom `operationalStatus` saja, dan kolom itu menyimpan keadaan unit
+   * di gudang (servis, tidak tersedia) — tidak diperbarui saat ada sewa berjalan.
+   * Akibatnya unit yang sedang disewa tetap tampil "Tersedia" di katalog.
+   *
+   * Yang dihitung hanya booking yang benar-benar mengunci jadwal: CONFIRMED dan
+   * IN_PROGRESS. Booking yang masih menunggu konfirmasi tarif belum mengunci apa
+   * pun, jadi unitnya masih pantas tampil tersedia.
+   *
+   * Mengembalikan himpunan id, bukan daftar lengkap, karena katalog hanya perlu
+   * tahu "sedang disewa atau tidak".
+   */
+  async vehicleIdsRentedAt(waktu: Date): Promise<Set<string>> {
+    const baris = await db.booking.findMany({
+      where: {
+        status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
+        startDateTime: { lte: waktu },
+        endDateTime: { gte: waktu },
+      },
+      select: { vehicleId: true },
+      distinct: ['vehicleId'],
+    });
+
+    return new Set(baris.map((b) => b.vehicleId));
+  },
 };

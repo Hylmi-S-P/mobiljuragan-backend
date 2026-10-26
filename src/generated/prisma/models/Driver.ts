@@ -14,9 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Driver
- * Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
- * modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
- * Kesiapan supir (SIAGA/LIBUR/SEDANG_TUGAS) menentukan apakah ia boleh ditugaskan.
+ * 
  */
 export type DriverModel = runtime.Types.Result.DefaultSelection<Prisma.$DriverPayload>
 
@@ -32,6 +30,8 @@ export type DriverMinAggregateOutputType = {
   fullName: string | null
   phoneNumber: string | null
   licenseNumber: string | null
+  licenseType: $Enums.DriverLicenseType | null
+  licensePhotoUrl: string | null
   routeScope: $Enums.DriverRoute | null
   readiness: $Enums.DriverReadiness | null
   isActive: boolean | null
@@ -45,6 +45,8 @@ export type DriverMaxAggregateOutputType = {
   fullName: string | null
   phoneNumber: string | null
   licenseNumber: string | null
+  licenseType: $Enums.DriverLicenseType | null
+  licensePhotoUrl: string | null
   routeScope: $Enums.DriverRoute | null
   readiness: $Enums.DriverReadiness | null
   isActive: boolean | null
@@ -58,6 +60,8 @@ export type DriverCountAggregateOutputType = {
   fullName: number
   phoneNumber: number
   licenseNumber: number
+  licenseType: number
+  licensePhotoUrl: number
   routeScope: number
   readiness: number
   isActive: number
@@ -73,6 +77,8 @@ export type DriverMinAggregateInputType = {
   fullName?: true
   phoneNumber?: true
   licenseNumber?: true
+  licenseType?: true
+  licensePhotoUrl?: true
   routeScope?: true
   readiness?: true
   isActive?: true
@@ -86,6 +92,8 @@ export type DriverMaxAggregateInputType = {
   fullName?: true
   phoneNumber?: true
   licenseNumber?: true
+  licenseType?: true
+  licensePhotoUrl?: true
   routeScope?: true
   readiness?: true
   isActive?: true
@@ -99,6 +107,8 @@ export type DriverCountAggregateInputType = {
   fullName?: true
   phoneNumber?: true
   licenseNumber?: true
+  licenseType?: true
+  licensePhotoUrl?: true
   routeScope?: true
   readiness?: true
   isActive?: true
@@ -185,6 +195,8 @@ export type DriverGroupByOutputType = {
   fullName: string
   phoneNumber: string | null
   licenseNumber: string | null
+  licenseType: $Enums.DriverLicenseType | null
+  licensePhotoUrl: string | null
   routeScope: $Enums.DriverRoute
   readiness: $Enums.DriverReadiness
   isActive: boolean
@@ -219,6 +231,8 @@ export type DriverWhereInput = {
   fullName?: Prisma.StringFilter<"Driver"> | string
   phoneNumber?: Prisma.StringNullableFilter<"Driver"> | string | null
   licenseNumber?: Prisma.StringNullableFilter<"Driver"> | string | null
+  licenseType?: Prisma.EnumDriverLicenseTypeNullableFilter<"Driver"> | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.StringNullableFilter<"Driver"> | string | null
   routeScope?: Prisma.EnumDriverRouteFilter<"Driver"> | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFilter<"Driver"> | $Enums.DriverReadiness
   isActive?: Prisma.BoolFilter<"Driver"> | boolean
@@ -233,6 +247,8 @@ export type DriverOrderByWithRelationInput = {
   fullName?: Prisma.SortOrder
   phoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   licenseNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  licenseType?: Prisma.SortOrderInput | Prisma.SortOrder
+  licensePhotoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   routeScope?: Prisma.SortOrder
   readiness?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -251,6 +267,8 @@ export type DriverWhereUniqueInput = Prisma.AtLeast<{
   fullName?: Prisma.StringFilter<"Driver"> | string
   phoneNumber?: Prisma.StringNullableFilter<"Driver"> | string | null
   licenseNumber?: Prisma.StringNullableFilter<"Driver"> | string | null
+  licenseType?: Prisma.EnumDriverLicenseTypeNullableFilter<"Driver"> | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.StringNullableFilter<"Driver"> | string | null
   routeScope?: Prisma.EnumDriverRouteFilter<"Driver"> | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFilter<"Driver"> | $Enums.DriverReadiness
   isActive?: Prisma.BoolFilter<"Driver"> | boolean
@@ -265,6 +283,8 @@ export type DriverOrderByWithAggregationInput = {
   fullName?: Prisma.SortOrder
   phoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   licenseNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  licenseType?: Prisma.SortOrderInput | Prisma.SortOrder
+  licensePhotoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   routeScope?: Prisma.SortOrder
   readiness?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -284,6 +304,8 @@ export type DriverScalarWhereWithAggregatesInput = {
   fullName?: Prisma.StringWithAggregatesFilter<"Driver"> | string
   phoneNumber?: Prisma.StringNullableWithAggregatesFilter<"Driver"> | string | null
   licenseNumber?: Prisma.StringNullableWithAggregatesFilter<"Driver"> | string | null
+  licenseType?: Prisma.EnumDriverLicenseTypeNullableWithAggregatesFilter<"Driver"> | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.StringNullableWithAggregatesFilter<"Driver"> | string | null
   routeScope?: Prisma.EnumDriverRouteWithAggregatesFilter<"Driver"> | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessWithAggregatesFilter<"Driver"> | $Enums.DriverReadiness
   isActive?: Prisma.BoolWithAggregatesFilter<"Driver"> | boolean
@@ -297,6 +319,8 @@ export type DriverCreateInput = {
   fullName: string
   phoneNumber?: string | null
   licenseNumber?: string | null
+  licenseType?: $Enums.DriverLicenseType | null
+  licensePhotoUrl?: string | null
   routeScope?: $Enums.DriverRoute
   readiness?: $Enums.DriverReadiness
   isActive?: boolean
@@ -311,6 +335,8 @@ export type DriverUncheckedCreateInput = {
   fullName: string
   phoneNumber?: string | null
   licenseNumber?: string | null
+  licenseType?: $Enums.DriverLicenseType | null
+  licensePhotoUrl?: string | null
   routeScope?: $Enums.DriverRoute
   readiness?: $Enums.DriverReadiness
   isActive?: boolean
@@ -325,6 +351,8 @@ export type DriverUpdateInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -339,6 +367,8 @@ export type DriverUncheckedUpdateInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -353,6 +383,8 @@ export type DriverCreateManyInput = {
   fullName: string
   phoneNumber?: string | null
   licenseNumber?: string | null
+  licenseType?: $Enums.DriverLicenseType | null
+  licensePhotoUrl?: string | null
   routeScope?: $Enums.DriverRoute
   readiness?: $Enums.DriverReadiness
   isActive?: boolean
@@ -366,6 +398,8 @@ export type DriverUpdateManyMutationInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -379,6 +413,8 @@ export type DriverUncheckedUpdateManyInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -398,6 +434,8 @@ export type DriverCountOrderByAggregateInput = {
   fullName?: Prisma.SortOrder
   phoneNumber?: Prisma.SortOrder
   licenseNumber?: Prisma.SortOrder
+  licenseType?: Prisma.SortOrder
+  licensePhotoUrl?: Prisma.SortOrder
   routeScope?: Prisma.SortOrder
   readiness?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -411,6 +449,8 @@ export type DriverMaxOrderByAggregateInput = {
   fullName?: Prisma.SortOrder
   phoneNumber?: Prisma.SortOrder
   licenseNumber?: Prisma.SortOrder
+  licenseType?: Prisma.SortOrder
+  licensePhotoUrl?: Prisma.SortOrder
   routeScope?: Prisma.SortOrder
   readiness?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -424,6 +464,8 @@ export type DriverMinOrderByAggregateInput = {
   fullName?: Prisma.SortOrder
   phoneNumber?: Prisma.SortOrder
   licenseNumber?: Prisma.SortOrder
+  licenseType?: Prisma.SortOrder
+  licensePhotoUrl?: Prisma.SortOrder
   routeScope?: Prisma.SortOrder
   readiness?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -434,6 +476,10 @@ export type DriverMinOrderByAggregateInput = {
 export type DriverNullableScalarRelationFilter = {
   is?: Prisma.DriverWhereInput | null
   isNot?: Prisma.DriverWhereInput | null
+}
+
+export type NullableEnumDriverLicenseTypeFieldUpdateOperationsInput = {
+  set?: $Enums.DriverLicenseType | null
 }
 
 export type EnumDriverRouteFieldUpdateOperationsInput = {
@@ -466,6 +512,8 @@ export type DriverCreateWithoutBookingsInput = {
   fullName: string
   phoneNumber?: string | null
   licenseNumber?: string | null
+  licenseType?: $Enums.DriverLicenseType | null
+  licensePhotoUrl?: string | null
   routeScope?: $Enums.DriverRoute
   readiness?: $Enums.DriverReadiness
   isActive?: boolean
@@ -479,6 +527,8 @@ export type DriverUncheckedCreateWithoutBookingsInput = {
   fullName: string
   phoneNumber?: string | null
   licenseNumber?: string | null
+  licenseType?: $Enums.DriverLicenseType | null
+  licensePhotoUrl?: string | null
   routeScope?: $Enums.DriverRoute
   readiness?: $Enums.DriverReadiness
   isActive?: boolean
@@ -508,6 +558,8 @@ export type DriverUpdateWithoutBookingsInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -521,6 +573,8 @@ export type DriverUncheckedUpdateWithoutBookingsInput = {
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  licenseType?: Prisma.NullableEnumDriverLicenseTypeFieldUpdateOperationsInput | $Enums.DriverLicenseType | null
+  licensePhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routeScope?: Prisma.EnumDriverRouteFieldUpdateOperationsInput | $Enums.DriverRoute
   readiness?: Prisma.EnumDriverReadinessFieldUpdateOperationsInput | $Enums.DriverReadiness
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -565,6 +619,8 @@ export type DriverSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   fullName?: boolean
   phoneNumber?: boolean
   licenseNumber?: boolean
+  licenseType?: boolean
+  licensePhotoUrl?: boolean
   routeScope?: boolean
   readiness?: boolean
   isActive?: boolean
@@ -582,6 +638,8 @@ export type DriverSelectScalar = {
   fullName?: boolean
   phoneNumber?: boolean
   licenseNumber?: boolean
+  licenseType?: boolean
+  licensePhotoUrl?: boolean
   routeScope?: boolean
   readiness?: boolean
   isActive?: boolean
@@ -589,7 +647,7 @@ export type DriverSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DriverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "fullName" | "phoneNumber" | "licenseNumber" | "routeScope" | "readiness" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["driver"]>
+export type DriverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "fullName" | "phoneNumber" | "licenseNumber" | "licenseType" | "licensePhotoUrl" | "routeScope" | "readiness" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["driver"]>
 export type DriverInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   bookings?: boolean | Prisma.Driver$bookingsArgs<ExtArgs>
   _count?: boolean | Prisma.DriverCountOutputTypeDefaultArgs<ExtArgs>
@@ -608,7 +666,22 @@ export type $DriverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     externalId: string
     fullName: string
     phoneNumber: string | null
+    /**
+     * Nomor SIM tetap disimpan untuk keperluan administratif, tetapi TIDAK diisi
+     * dari formulir: Ami meminta kolomnya dihapus karena SIM dicek fisik saat
+     * wawancara. Halimah meminta jenis SIM tetap bisa dipilih, dan itu diwakili
+     * oleh licenseType di bawah.
+     */
     licenseNumber: string | null
+    /**
+     * Golongan SIM. Nullable karena data supir yang sudah ada belum punya nilai.
+     */
+    licenseType: $Enums.DriverLicenseType | null
+    /**
+     * Foto SIM sebagai data URL. LONGTEXT karena Base64 mudah melewati batas
+     * VARCHAR — masalah yang sudah pernah terjadi pada proofImageUrl pembayaran.
+     */
+    licensePhotoUrl: string | null
     routeScope: $Enums.DriverRoute
     readiness: $Enums.DriverReadiness
     isActive: boolean
@@ -989,6 +1062,8 @@ export interface DriverFieldRefs {
   readonly fullName: Prisma.FieldRef<"Driver", 'String'>
   readonly phoneNumber: Prisma.FieldRef<"Driver", 'String'>
   readonly licenseNumber: Prisma.FieldRef<"Driver", 'String'>
+  readonly licenseType: Prisma.FieldRef<"Driver", 'DriverLicenseType'>
+  readonly licensePhotoUrl: Prisma.FieldRef<"Driver", 'String'>
   readonly routeScope: Prisma.FieldRef<"Driver", 'DriverRoute'>
   readonly readiness: Prisma.FieldRef<"Driver", 'DriverReadiness'>
   readonly isActive: Prisma.FieldRef<"Driver", 'Boolean'>
