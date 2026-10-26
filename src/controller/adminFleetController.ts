@@ -72,4 +72,27 @@ export const adminFleetController = {
       next(error);
     }
   },
+
+  /**
+   * GET /api/v1/admin/fleet/rented
+   *
+   * Daftar id unit yang sedang tersewa saat ini. Dipakai katalog armada untuk
+   * badge "Disewa".
+   *
+   * Kenapa endpoint terpisah, bukan menambah field di GET /admin/vehicles:
+   * katalog hanya butuh himpunan id, sedangkan endpoint kendaraan dipakai juga
+   * oleh formulir dan modul lain yang tidak peduli jadwal sewa. Menambah query
+   * booking di sana berarti setiap pemanggil ikut menanggung biayanya.
+   *
+   * Sengaja mengembalikan array id, bukan objek peta, supaya bentuknya sederhana
+   * dan mudah dipakai lintas bahasa (web dan mobile).
+   */
+  async rented(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ids = await fleetModel.vehicleIdsRentedAt(new Date());
+      sendSuccess(res, { vehicleIds: [...ids] });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

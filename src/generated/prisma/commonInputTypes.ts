@@ -184,6 +184,13 @@ export type EnumOperationalStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumOperationalStatusFilter<$PrismaModel>
 }
 
+export type EnumDriverLicenseTypeNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverLicenseType | Prisma.EnumDriverLicenseTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverLicenseType[] | null
+  notIn?: $Enums.DriverLicenseType[] | null
+  not?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel> | $Enums.DriverLicenseType | null
+}
+
 export type EnumDriverRouteFilter<$PrismaModel = never> = {
   equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
   in?: $Enums.DriverRoute[]
@@ -196,6 +203,16 @@ export type EnumDriverReadinessFilter<$PrismaModel = never> = {
   in?: $Enums.DriverReadiness[]
   notIn?: $Enums.DriverReadiness[]
   not?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel> | $Enums.DriverReadiness
+}
+
+export type EnumDriverLicenseTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverLicenseType | Prisma.EnumDriverLicenseTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverLicenseType[] | null
+  notIn?: $Enums.DriverLicenseType[] | null
+  not?: Prisma.NestedEnumDriverLicenseTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.DriverLicenseType | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel>
 }
 
 export type EnumDriverRouteWithAggregatesFilter<$PrismaModel = never> = {
@@ -759,6 +776,13 @@ export type NestedEnumOperationalStatusWithAggregatesFilter<$PrismaModel = never
   _max?: Prisma.NestedEnumOperationalStatusFilter<$PrismaModel>
 }
 
+export type NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverLicenseType | Prisma.EnumDriverLicenseTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverLicenseType[] | null
+  notIn?: $Enums.DriverLicenseType[] | null
+  not?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel> | $Enums.DriverLicenseType | null
+}
+
 export type NestedEnumDriverRouteFilter<$PrismaModel = never> = {
   equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel>
   in?: $Enums.DriverRoute[]
@@ -771,6 +795,16 @@ export type NestedEnumDriverReadinessFilter<$PrismaModel = never> = {
   in?: $Enums.DriverReadiness[]
   notIn?: $Enums.DriverReadiness[]
   not?: Prisma.NestedEnumDriverReadinessFilter<$PrismaModel> | $Enums.DriverReadiness
+}
+
+export type NestedEnumDriverLicenseTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverLicenseType | Prisma.EnumDriverLicenseTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverLicenseType[] | null
+  notIn?: $Enums.DriverLicenseType[] | null
+  not?: Prisma.NestedEnumDriverLicenseTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.DriverLicenseType | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverLicenseTypeNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumDriverRouteWithAggregatesFilter<$PrismaModel = never> = {

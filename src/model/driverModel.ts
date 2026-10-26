@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import {
   BookingStatus,
+  DriverLicenseType,
   DriverReadiness,
   type DriverRoute,
   type Prisma,
@@ -101,6 +102,8 @@ export const driverModel = {
     fullName: string;
     phoneNumber: string | null;
     licenseNumber: string | null;
+    licenseType: DriverLicenseType | null;
+    licensePhotoUrl: string | null;
     routeScope: DriverRoute;
     actorId: string;
   }) {
@@ -111,6 +114,8 @@ export const driverModel = {
           fullName: input.fullName,
           phoneNumber: input.phoneNumber,
           licenseNumber: input.licenseNumber,
+          licenseType: input.licenseType,
+          licensePhotoUrl: input.licensePhotoUrl,
           routeScope: input.routeScope,
           readiness: DriverReadiness.SIAGA,
           isActive: true,
@@ -142,6 +147,8 @@ export const driverModel = {
       fullName?: string;
       phoneNumber?: string | null;
       licenseNumber?: string | null;
+      licenseType?: DriverLicenseType | null;
+      licensePhotoUrl?: string | null;
       routeScope?: DriverRoute;
     },
     changes: Record<string, string | null>,
@@ -154,6 +161,10 @@ export const driverModel = {
           ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
           ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
           ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
+          ...(data.licenseType !== undefined ? { licenseType: data.licenseType } : {}),
+          ...(data.licensePhotoUrl !== undefined
+            ? { licensePhotoUrl: data.licensePhotoUrl }
+            : {}),
           ...(data.routeScope !== undefined ? { routeScope: data.routeScope } : {}),
         },
       });

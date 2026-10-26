@@ -65,7 +65,17 @@ export const ticketController = {
         status: rawStatus as TicketStatus | undefined,
       });
 
-      sendSuccess(res, tickets);
+      /* isMine dihitung di server: klien tidak menyimpan identitas admin, hanya
+         token. Menambahkannya di sini menghindari satu permintaan tambahan pada
+         setiap muat halaman, dan nilainya tidak bisa dipalsukan dari peramban. */
+      const actorId = req.user!.userId;
+      sendSuccess(
+        res,
+        tickets.map((t) => ({
+          ...t,
+          isMine: t.assignedAdminId === actorId,
+        })),
+      );
     } catch (error) {
       next(error);
     }
@@ -80,7 +90,7 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      sendSuccess(res, ticket);
+      sendSuccess(res, { ...ticket, isMine: ticket.assignedAdminId === req.user!.userId });
     } catch (error) {
       next(error);
     }
@@ -182,6 +192,30 @@ export const ticketController = {
         );
       }
 
+      /* A15.1 — tiket yang sedang dipegang admin lain tidak boleh dijawab.
+       *
+       * Tanpa pemeriksaan ini, dua admin bisa menjawab pelanggan yang sama tanpa
+       * saling tahu, dan pelanggan menerima dua jawaban berbeda untuk satu
+       * pertanyaan. Pemeriksaan ditaruh di sini, bukan hanya di tampilan, supaya
+       * tidak bisa dilewati dengan memanggil API langsung. */
+      if (
+        existing.assignedAdminId &&
+        existing.assignedAdminId !== actor.userId
+      ) {
+        throw new AppError(
+          'TICKET_ASSIGNED_TO_OTHER',
+          'Tiket ini sedang dipegang admin lain. Ambil alih dulu kalau memang perlu Anda tangani.',
+          409,
+        );
+      }
+
+      /* Kalau tiket belum dipegang siapa pun, balasan pertama otomatis mengklaimnya.
+       * Admin tidak perlu menekan dua tombol untuk hal yang jelas: membalas
+       * berarti mengerjakan. */
+      if (!existing.assignedAdminId) {
+        await ticketModel.assignTo(id, actor.userId);
+      }
+
       const message = await ticketModel.createMessage({
         ticket: { connect: { id } },
         sender: { connect: { id: actor.userId } },
@@ -196,6 +230,121 @@ export const ticketController = {
       }
 
       sendSuccess(res, message, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/v1/admin/tickets/:id/assign
+   *
+   * Mengambil tiket supaya terkunci ke admin ini.
+   *
+   * Kalau tiket sudah dipegang admin lain, permintaan ditolak 409 — bukan
+   * ditimpa diam-diam. Admin perlu tahu bahwa ada orang lain yang sedang
+   * mengerjakannya, dan kalau memang perlu, ia bisa memakai endpoint takeover.
+   */
+  async assign(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const actor = req.user!;
+
+      const existing = await ticketModel.findById(id);
+      if (!existing) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      if (existing.assignedAdminId === actor.userId) {
+        /* Sudah dipegang sendiri. Dikembalikan sebagai sukses supaya tombol yang
+         * ditekan dua kali tidak menghasilkan galat yang membingungkan. */
+        sendSuccess(res, { assignedAdminId: actor.userId, alreadyMine: true });
+        return;
+      }
+
+      if (existing.assignedAdminId) {
+        throw new AppError(
+          'TICKET_ASSIGNED_TO_OTHER',
+          'Tiket ini sudah dipegang admin lain. Gunakan ambil alih kalau memang perlu Anda tangani.',
+          409,
+        );
+      }
+
+      const updated = await ticketModel.assignTo(id, actor.userId);
+      sendSuccess(res, { assignedAdminId: updated.assignedAdminId, assignedAt: updated.assignedAt });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/v1/admin/tickets/:id/takeover
+   *
+   * Mengambil alih tiket yang sedang dipegang admin lain.
+   *
+   * Dibedakan dari assign supaya perpindahan tangan tercatat sebagai tindakan
+   * sadar. Tanpa pemisahan ini, "ambil tiket" akan diam-diam merebut pekerjaan
+   * orang lain, dan catatan penjawab kehilangan maknanya.
+   *
+   * Hanya ADMIN (bukan STAFF) yang boleh mengambil alih, karena ini berarti
+   * membatalkan pekerjaan yang sedang berjalan.
+   */
+  async takeover(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const actor = req.user!;
+
+      if (actor.role !== 'ADMIN') {
+        throw new AppError(
+          'FORBIDDEN',
+          'Hanya admin yang boleh mengambil alih tiket milik admin lain.',
+          403,
+        );
+      }
+
+      const existing = await ticketModel.findById(id);
+      if (!existing) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      const updated = await ticketModel.assignTo(id, actor.userId);
+      sendSuccess(res, {
+        assignedAdminId: updated.assignedAdminId,
+        assignedAt: updated.assignedAt,
+        previousAdminId: existing.assignedAdminId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * DELETE /api/v1/admin/tickets/:id/assign
+   *
+   * Melepas tiket supaya bisa diambil admin lain.
+   *
+   * Pemegang sendiri boleh melepas. Admin juga boleh melepas milik orang lain,
+   * untuk keadaan darurat seperti admin yang tiba-tiba tidak masuk.
+   */
+  async release(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const actor = req.user!;
+
+      const existing = await ticketModel.findById(id);
+      if (!existing) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      if (existing.assignedAdminId && existing.assignedAdminId !== actor.userId && actor.role !== 'ADMIN') {
+        throw new AppError(
+          'FORBIDDEN',
+          'Tiket ini dipegang admin lain. Hanya admin yang boleh melepasnya.',
+          403,
+        );
+      }
+
+      await ticketModel.releaseFrom(id);
+      sendSuccess(res, { assignedAdminId: null });
     } catch (error) {
       next(error);
     }

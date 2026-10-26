@@ -167,6 +167,8 @@ export const adminDriverController = {
         fullName: payload.fullName,
         phoneNumber: payload.phoneNumber ?? null,
         licenseNumber: payload.licenseNumber ?? null,
+        licenseType: payload.licenseType ?? null,
+        licensePhotoUrl: payload.licensePhotoUrl ?? null,
         routeScope: payload.routeScope,
         actorId: staffUser.userId,
       });
@@ -211,6 +213,12 @@ export const adminDriverController = {
       if (payload.phoneNumber !== undefined) changes.phoneNumber = payload.phoneNumber ?? null;
       if (payload.licenseNumber !== undefined)
         changes.licenseNumber = payload.licenseNumber ?? null;
+      if (payload.licenseType !== undefined)
+        changes.licenseType = payload.licenseType ?? null;
+      /* Foto SIM tidak disalin ke audit: isinya Base64 ratusan kilobita, dan
+         mencatat "foto berubah" sudah cukup untuk keperluan penelusuran. */
+      if (payload.licensePhotoUrl !== undefined)
+        changes.licensePhotoUrl = payload.licensePhotoUrl ? '(foto diperbarui)' : null;
       if (payload.routeScope !== undefined) changes.routeScope = payload.routeScope;
 
       const updated = await driverModel.updateWithAudit(
@@ -221,6 +229,10 @@ export const adminDriverController = {
             payload.phoneNumber === undefined ? undefined : (payload.phoneNumber ?? null),
           licenseNumber:
             payload.licenseNumber === undefined ? undefined : (payload.licenseNumber ?? null),
+          licenseType:
+            payload.licenseType === undefined ? undefined : (payload.licenseType ?? null),
+          licensePhotoUrl:
+            payload.licensePhotoUrl === undefined ? undefined : (payload.licensePhotoUrl ?? null),
           routeScope: payload.routeScope,
         },
         changes,
