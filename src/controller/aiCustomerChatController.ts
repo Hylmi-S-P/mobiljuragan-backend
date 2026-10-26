@@ -114,6 +114,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
        menggantikan riwayat kiriman klien. Dua alasan: klien bisa mengirim riwayat
        palsu, dan riwayat di database adalah satu-satunya yang juga dibaca admin.
        Dengan begitu yang dijawab AI sama dengan yang dilihat admin. */
+    let isPromptAlreadyLastMessage = false;
     if (ticketId) {
       const riwayatDb = await ticketModel.listMessages(ticketId);
       if (riwayatDb.length > 0) {
@@ -124,15 +125,21 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
             content: m.body,
           });
         }
+        const pesanTerakhir = riwayatDb[riwayatDb.length - 1];
+        if (pesanTerakhir?.isCustomer && pesanTerakhir.body.trim() === prompt.trim()) {
+          isPromptAlreadyLastMessage = true;
+        }
       }
     }
 
-    messages.push({ role: 'user', content: prompt });
+    if (!isPromptAlreadyLastMessage) {
+      messages.push({ role: 'user', content: prompt });
+    }
 
     /* Pesan pelanggan disimpan SEBELUM inferensi dijalankan. Kalau gateway gagal
        atau waktu habis, pertanyaan pelanggan tetap tercatat sehingga admin bisa
        melihat apa yang ditanyakan. Balasan AI menyusul setelah berhasil. */
-    if (ticketId) {
+    if (ticketId && !isPromptAlreadyLastMessage) {
       await ticketModel.createMessage({
         ticket: { connect: { id: ticketId } },
         ...(req.user?.userId ? { sender: { connect: { id: req.user.userId } } } : {}),

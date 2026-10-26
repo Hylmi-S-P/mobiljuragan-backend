@@ -463,6 +463,7 @@ export const ticketController = {
         description,
         category,
         customer: { connect: { id: actor.userId } },
+        handledBy: TicketHandler.AI,
         messages: {
           create: {
             sender: { connect: { id: actor.userId } },
