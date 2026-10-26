@@ -70,8 +70,23 @@ export type AuditLog = Prisma.AuditLogModel
  */
 export type AiSetting = Prisma.AiSettingModel
 /**
- * Model KnowledgeDocument
+ * Model KnowledgeCategory
  * Dokumen basis pengetahuan lokal (RAG Context) untuk asisten rental Merauke
+ * Kategori dokumen pengetahuan untuk RAG.
+ * 
+ * Sebelumnya kategori hanya berupa teks bebas pada KnowledgeDocument, dan
+ * daftar pilihannya dipatri di kode tampilan. Akibatnya admin tidak bisa
+ * menambah kategori baru tanpa mengubah kode, dan kategori yang salah ketik
+ * tetap tersimpan apa adanya.
+ * 
+ * Tabel ini menjadi daftar resmi kategori. slug dipakai sebagai nilai yang
+ * disimpan dokumen supaya nama tampilan bisa diubah tanpa menyentuh dokumen
+ * yang sudah ada.
+ */
+export type KnowledgeCategory = Prisma.KnowledgeCategoryModel
+/**
+ * Model KnowledgeDocument
+ * 
  */
 export type KnowledgeDocument = Prisma.KnowledgeDocumentModel
 /**

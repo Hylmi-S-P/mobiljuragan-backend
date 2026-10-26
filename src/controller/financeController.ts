@@ -39,14 +39,18 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     // Agregasi metrik
     let totalRevenue = 0;
-    let pendingRevenue = 0;
     let completedBookingsCount = 0;
     let confirmedOrActiveCount = 0;
 
-    let withoutDriverRevenue = 0;
-    let withoutDriverCount = 0;
-    let withDriverRevenue = 0;
-    let withDriverCount = 0;
+    /* Omzet dan jumlah transaksi per model sewa.
+     *
+     * Dihitung dari basis yang sama dengan omzet total, yaitu pembayaran yang
+     * sudah lunas. Kalau dihitung dari status pesanan COMPLETED, grafik bisa
+     * menampilkan angka yang tidak cocok dengan kartu omzet di atasnya. */
+    let tanpaSupirOmzet = 0;
+    let tanpaSupirJumlah = 0;
+    let denganSupirOmzet = 0;
+    let denganSupirJumlah = 0;
 
     // Map omzet per armada
     const vehicleStatsMap = new Map<
@@ -87,28 +91,25 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         totalRevenue += amount;
 
         if (b.rentalType === 'WITHOUT_DRIVER') {
-          withoutDriverRevenue += amount;
+          tanpaSupirOmzet += amount;
+          tanpaSupirJumlah += 1;
         } else {
-          withDriverRevenue += amount;
+          denganSupirOmzet += amount;
+          denganSupirJumlah += 1;
         }
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
           stat.totalRevenue += amount;
         }
-      } else if (b.status !== 'CANCELLED' && b.status !== 'REJECTED' && amount > 0) {
-        // Transaksi aktif atau selesai yang belum lunas dicatat sebagai piutang / pending revenue
-        pendingRevenue += amount;
       }
+      /* Piutang berjalan tidak lagi dihitung. Kartunya sudah dihapus dari laporan
+         keuangan sesuai keputusan pemilik proyek, jadi angkanya tidak dipakai
+         siapa pun. Menghitung nilai yang tidak dipakai hanya menambah beban. */
 
       // Hitung metrik operasional armada
       if (b.status === 'COMPLETED') {
         completedBookingsCount += 1;
-        if (b.rentalType === 'WITHOUT_DRIVER') {
-          withoutDriverCount += 1;
-        } else {
-          withDriverCount += 1;
-        }
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
@@ -124,63 +125,154 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       }
     }
 
-    const averageOrderValue = completedBookingsCount > 0 ? Math.round(totalRevenue / completedBookingsCount) : 0;
-
     // Susun breakdown per armada, urutkan dari omzet tertinggi
     const fleetBreakdown = Array.from(vehicleStatsMap.values()).sort(
       (a, b) => b.totalRevenue - a.totalRevenue || b.completedBookings - a.completedBookings
     );
 
-    // Tren bulanan (6 bulan terakhir)
-    const monthlyMap = new Map<string, { label: string; revenue: number; bookings: number }>();
+    /* ================= Data untuk grafik =================
+     *
+     * Query terpisah dari `bookings` di atas. `bookings` sudah disaring oleh
+     * parameter `range` yang dipakai tabel dan kartu, sedangkan grafik butuh
+     * rentang tetap 12 bulan dan 4 tahun. Kalau memakai `bookings` yang sama,
+     * grafik akan ikut mengecil begitu pengguna memilih "bulan ini".
+     *
+     * Yang dihitung hanya transaksi yang benar-benar lunas (PAID). Tanggal yang
+     * dipakai adalah waktu verifikasi pembayaran, karena di situlah uang masuk.
+     * Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
+     */
+    const BULAN_GRAFIK = 12;
+    const TAHUN_YOY = 4;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-    for (let i = 5; i >= 0; i--) {
+    const transaksiLunas = await db.booking.findMany({
+      where: { payment: { is: { status: 'PAID' } } },
+      select: {
+        quotedAmount: true,
+        createdAt: true,
+        payment: { select: { verifiedAt: true } },
+      },
+    });
+
+    const tanggalMasuk = (b: (typeof transaksiLunas)[number]): Date =>
+      b.payment?.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
+
+    const nominal = (b: (typeof transaksiLunas)[number]): number =>
+      b.quotedAmount ? Number(b.quotedAmount) : 0;
+
+    /* --- Grafik 1: 12 bulan terakhir, tiap bulan dipecah per minggu --- */
+    type BulanGrafik = {
+      label: string;
+      shortLabel: string;
+      tahun: number;
+      bulan: number;
+      revenue: number;
+      bookings: number;
+      weekly: number[];
+    };
+
+    const bulanMap = new Map<string, BulanGrafik>();
+    const urutanBulan: string[] = [];
+
+    for (let i = BULAN_GRAFIK - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-      monthlyMap.set(key, { label, revenue: 0, bookings: 0 });
+      urutanBulan.push(key);
+      bulanMap.set(key, {
+        label: `${monthNames[d.getMonth()]} ${d.getFullYear()}`,
+        shortLabel: monthNames[d.getMonth()],
+        tahun: d.getFullYear(),
+        bulan: d.getMonth() + 1,
+        revenue: 0,
+        bookings: 0,
+        // Satu bulan paling banyak 5 minggu (31 hari → ceil(31/7) = 5).
+        weekly: [0, 0, 0, 0, 0],
+      });
     }
 
-    for (const b of bookings) {
-      if (b.payment?.status === 'PAID') {
-        const d = b.payment.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (monthlyMap.has(key)) {
-          const entry = monthlyMap.get(key)!;
-          entry.revenue += b.quotedAmount ? Number(b.quotedAmount) : 0;
-          entry.bookings += 1;
-        }
+    /* --- Grafik 2: tahun ke tahun, 4 tahun terakhir --- */
+    type TahunGrafik = { tahun: number; revenue: number; bookings: number };
+    const tahunMap = new Map<number, TahunGrafik>();
+    const urutanTahun: number[] = [];
+
+    for (let i = TAHUN_YOY - 1; i >= 0; i--) {
+      const th = now.getFullYear() - i;
+      urutanTahun.push(th);
+      tahunMap.set(th, { tahun: th, revenue: 0, bookings: 0 });
+    }
+
+    for (const b of transaksiLunas) {
+      const d = tanggalMasuk(b);
+      const nilai = nominal(b);
+
+      const keyBulan = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bulan = bulanMap.get(keyBulan);
+      if (bulan) {
+        bulan.revenue += nilai;
+        bulan.bookings += 1;
+        // Minggu ke-1 = tanggal 1-7, ke-2 = 8-14, dan seterusnya.
+        const indeksMinggu = Math.min(Math.floor((d.getDate() - 1) / 7), 4);
+        bulan.weekly[indeksMinggu] += nilai;
+      }
+
+      const tahun = tahunMap.get(d.getFullYear());
+      if (tahun) {
+        tahun.revenue += nilai;
+        tahun.bookings += 1;
       }
     }
 
-    const monthlyTrends = Array.from(monthlyMap.values());
+    const monthlyTrends = urutanBulan.map((k) => bulanMap.get(k)!);
+    const yearOverYear = urutanTahun.map((t) => tahunMap.get(t)!);
+
+    /* Label minggu dibuat dari tanggal asli, bukan sekadar "Minggu 1", supaya
+       pembaca tahu rentang tanggalnya. */
+    const labelMinggu = (tahun: number, bulan: number, indeks: number): string => {
+      const awal = new Date(tahun, bulan - 1, indeks * 7 + 1);
+      const akhirHari = Math.min((indeks + 1) * 7, new Date(tahun, bulan, 0).getDate());
+      const akhir = new Date(tahun, bulan - 1, akhirHari);
+      return `${awal.getDate()}–${akhir.getDate()} ${monthNames[bulan - 1]}`;
+    };
+
+    const weeklyBreakdown = monthlyTrends.map((m) => ({
+      label: m.label,
+      tahun: m.tahun,
+      bulan: m.bulan,
+      minggu: m.weekly.map((revenue, i) => ({
+        label: labelMinggu(m.tahun, m.bulan, i),
+        revenue,
+      })),
+    }));
 
     res.status(200).json({
       status: 'ok',
       data: {
         summary: {
           totalRevenue,
-          pendingRevenue,
           completedBookingsCount,
           confirmedOrActiveCount,
-          averageOrderValue,
           totalAllBookings: bookings.length,
         },
+        /* Perbandingan model sewa. Dikirim lagi karena tab-nya dipakai untuk
+           melihat mana yang lebih menguntungkan: lepas kunci atau dengan supir. */
         rentalTypes: {
           withoutDriver: {
-            count: withoutDriverCount,
-            revenue: withoutDriverRevenue,
-            percentage: totalRevenue > 0 ? Math.round((withoutDriverRevenue / totalRevenue) * 100) : 0,
+            count: tanpaSupirJumlah,
+            revenue: tanpaSupirOmzet,
+            percentage:
+              totalRevenue > 0 ? Math.round((tanpaSupirOmzet / totalRevenue) * 100) : 0,
           },
           withDriver: {
-            count: withDriverCount,
-            revenue: withDriverRevenue,
-            percentage: totalRevenue > 0 ? Math.round((withDriverRevenue / totalRevenue) * 100) : 0,
+            count: denganSupirJumlah,
+            revenue: denganSupirOmzet,
+            percentage:
+              totalRevenue > 0 ? Math.round((denganSupirOmzet / totalRevenue) * 100) : 0,
           },
         },
         fleetBreakdown,
         monthlyTrends,
+        weeklyBreakdown,
+        yearOverYear,
       },
     });
   } catch (error) {

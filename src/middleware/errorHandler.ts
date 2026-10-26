@@ -27,6 +27,24 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  /* Body melebihi batas. Sebelumnya ini jatuh ke 500 "terjadi kesalahan pada
+     server", padahal penyebabnya jelas: berkas yang dikirim terlalu besar.
+     Tanpa penanganan ini, pengguna tidak tahu apa yang harus diperbaiki. */
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'type' in err &&
+    (err as { type?: string }).type === 'entity.too.large'
+  ) {
+    sendError(
+      res,
+      'PAYLOAD_TOO_LARGE',
+      'Berkas yang dikirim terlalu besar. Foto maksimal 5 MB.',
+      413,
+    );
+    return;
+  }
+
   logger.error(
     {
       err,
