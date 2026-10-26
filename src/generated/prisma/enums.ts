@@ -127,6 +127,16 @@ export const PaymentMethod = {
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
 
 
+export const DriverLicenseType = {
+  SIM_A: 'SIM_A',
+  SIM_B1: 'SIM_B1',
+  SIM_B2: 'SIM_B2',
+  SIM_C: 'SIM_C'
+} as const
+
+export type DriverLicenseType = (typeof DriverLicenseType)[keyof typeof DriverLicenseType]
+
+
 export const TicketHandler = {
   AI: 'AI',
   HUMAN: 'HUMAN'

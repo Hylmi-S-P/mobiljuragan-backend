@@ -121,6 +121,8 @@ model User {
   otpVerifications OtpVerification[]
   auditLogs     AuditLog[]
 
+  /// Tiket yang sedang dipegang admin ini. Lihat SupportTicket.assignedAdminId.
+  assignedTickets SupportTicket[] @relation("TicketAssignee")
   @@map("users")
 }
 
@@ -151,13 +153,36 @@ model Vehicle {
 /// Roster supir resmi MobilJuragan Merauke. Menopang layar Manajemen Supir (07),
 /// modal M4 dan M5, serta pemilihan supir di Detail Pemesanan (04B) pada dashboard.
 /// Kesiapan supir (SIAGA/LIBUR/SEDANG_TUGAS) menentukan apakah ia boleh ditugaskan.
+/// Golongan SIM yang diakui sistem.
+///
+/// Dibatasi pada golongan yang benar-benar relevan untuk armada sewa di Merauke:
+/// A untuk sepeda motor operasional, B1 untuk kendaraan ringan, B2 untuk
+/// kendaraan berat, C untuk kendaraan niaga. Teks bebas akan menghasilkan
+/// "SIM A", "sim a", dan "A" untuk hal yang sama, dan itu tidak bisa dipakai
+/// untuk penyaringan.
+enum DriverLicenseType {
+  SIM_A
+  SIM_B1
+  SIM_B2
+  SIM_C
+}
+
 model Driver {
   id            String          @id @default(uuid())
   /// Slug stabil untuk klien, misalnya markus-gebze.
   externalId    String          @unique
   fullName      String
   phoneNumber   String?
+  /// Nomor SIM tetap disimpan untuk keperluan administratif, tetapi TIDAK diisi
+  /// dari formulir: Ami meminta kolomnya dihapus karena SIM dicek fisik saat
+  /// wawancara. Halimah meminta jenis SIM tetap bisa dipilih, dan itu diwakili
+  /// oleh licenseType di bawah.
   licenseNumber String?
+  /// Golongan SIM. Nullable karena data supir yang sudah ada belum punya nilai.
+  licenseType   DriverLicenseType?
+  /// Foto SIM sebagai data URL. LONGTEXT karena Base64 mudah melewati batas
+  /// VARCHAR — masalah yang sudah pernah terjadi pada proofImageUrl pembayaran.
+  licensePhotoUrl String?  @db.LongText
   routeScope    DriverRoute     @default(DALAM_KOTA)
   readiness     DriverReadiness @default(SIAGA)
   isActive      Boolean         @default(true)
@@ -278,6 +303,21 @@ model SupportTicket {
   /// mengganti kategori, dan itu bukan tanda percakapan masih hidup.
   lastActivityAt DateTime  @default(now())
 
+  /// Admin yang sedang memegang tiket ini.
+  ///
+  /// Null berarti belum ada yang mengambil. Selama null, admin mana pun boleh
+  /// mengambil; setelah terisi, hanya admin itu yang boleh menjawab. Ini yang
+  /// membuat dua admin tidak menjawab pelanggan yang sama secara bersamaan.
+  ///
+  /// Berbeda dari handledBy: handledBy membedakan AI dari manusia, sedangkan
+  /// kolom ini membedakan admin yang satu dari admin yang lain.
+  assignedAdminId String?
+  assignedAdmin   User?   @relation("TicketAssignee", fields: [assignedAdminId], references: [id])
+
+  /// Kapan tiket diambil alih. Dipakai menampilkan lama kepemilikan, dan
+  /// memungkinkan pelepasan klaim secara sadar oleh admin atau super admin.
+  assignedAt      DateTime?
+
   messages    TicketMessage[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -286,6 +326,7 @@ model SupportTicket {
   @@index([status])
   @@index([handledBy])
   @@index([lastActivityAt])
+  @@index([assignedAdminId])
   @@map("support_tickets")
 }
 
