@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import {
   BookingStatus,
   BookingStatusActor,
+  DocumentStatus,
   DriverReadiness,
   RentalType,
   TariffStatus,
@@ -57,6 +58,18 @@ const bookingCustomerSummary = {
   },
 } as const;
 
+/** Bentuk ringkas supir yang aman dikirim ke klien. */
+const bookingDriverSummary = {
+  select: {
+    id: true,
+    externalId: true,
+    fullName: true,
+    phoneNumber: true,
+    routeScope: true,
+    readiness: true,
+  },
+} as const;
+
 /** Bentuk include detail pesanan untuk admin, dipakai juga oleh draf WhatsApp. */
 const adminBookingDetailInclude = {
   customer: {
@@ -68,6 +81,7 @@ const adminBookingDetailInclude = {
     },
   },
   vehicle: true,
+  driver: bookingDriverSummary,
   statusHistory: {
     orderBy: { changedAt: 'asc' as const },
   },
@@ -178,6 +192,9 @@ export const bookingModel = {
       orderBy: { createdAt: 'desc' },
       include: {
         vehicle: bookingVehicleSummary,
+        driver: bookingDriverSummary,
+        document: true,
+        payment: true,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -227,6 +244,7 @@ export const bookingModel = {
       include: {
         vehicle: true,
         customer: bookingCustomerSummary,
+        driver: bookingDriverSummary,
         statusHistory: {
           orderBy: { changedAt: 'asc' },
         },
@@ -252,6 +270,7 @@ export const bookingModel = {
       include: {
         customer: bookingCustomerSummary,
         vehicle: bookingVehicleSummary,
+        driver: bookingDriverSummary,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -325,6 +344,17 @@ export const bookingModel = {
         return { kind: 'driver_required' as const, booking };
       }
 
+      /* Booking lepas kunci wajib memiliki seluruh dokumen yang telah diverifikasi sebelum dikonfirmasi tarif. */
+      if (isConfirming && booking.rentalType === RentalType.WITHOUT_DRIVER) {
+        const doc = await tx.bookingDocument.findUnique({
+          where: { bookingId: booking.id },
+        });
+        const isVerified = doc?.status === DocumentStatus.VERIFIED;
+        if (!isVerified) {
+          return { kind: 'documents_unverified' as const, booking };
+        }
+      }
+
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };
 
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
@@ -336,7 +366,7 @@ export const bookingModel = {
       const updatedBooking = await tx.booking.update({
         where: { id: booking.id },
         data: updateData,
-        include: { vehicle: true, customer: true },
+        include: { vehicle: true, customer: true, driver: bookingDriverSummary },
       });
 
       await tx.bookingStatusHistory.create({

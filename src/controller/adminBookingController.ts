@@ -191,6 +191,14 @@ export const adminBookingController = {
         );
       }
 
+      if (result.kind === 'documents_unverified') {
+        throw new AppError(
+          'DOCUMENTS_UNVERIFIED',
+          'Booking lepas kunci harus memiliki seluruh dokumen (e-KTP, SIM A, Surat Pernyataan) yang telah diverifikasi staf sebelum tarif dapat dikonfirmasi.',
+          409,
+        );
+      }
+
       sendSuccess(res, {
         ...result.booking,
         whatsappIntent: buildWhatsAppIntent(result.booking),

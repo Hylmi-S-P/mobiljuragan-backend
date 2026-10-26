@@ -16,6 +16,7 @@ documentRouter.get(
 // Rute Dokumen Pemesanan Pelanggan
 documentRouter.get('/bookings/:id/documents', documentController.getBookingDocuments);
 documentRouter.post('/bookings/:id/documents', documentController.uploadBookingDocuments);
+documentRouter.get('/bookings/:id/statement-pdf', documentController.getBookingStatementPdf);
 
 // Rute Verifikasi Dokumen oleh Admin Portal
 documentRouter.patch(

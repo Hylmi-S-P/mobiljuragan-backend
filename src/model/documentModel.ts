@@ -26,6 +26,21 @@ export const documentModel = {
   },
 
   /**
+   * Mengambil detail lengkap pemesanan untuk pencetakan PDF surat pernyataan auto-filled.
+   */
+  async findBookingDetailForStatementPdf(bookingIdOrCode: string) {
+    return db.booking.findFirst({
+      where: {
+        OR: [{ id: bookingIdOrCode }, { bookingCode: bookingIdOrCode }],
+      },
+      include: {
+        customer: true,
+        vehicle: true,
+      },
+    });
+  },
+
+  /**
    * Menyimpan atau memperbarui unggahan dokumen persyaratan sewa lepas kunci.
    */
   async upsertDocument(

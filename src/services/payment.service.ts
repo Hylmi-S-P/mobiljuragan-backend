@@ -2,8 +2,10 @@ import { db } from '../db.js';
 import {
   BookingStatus,
   BookingStatusActor,
+  DocumentStatus,
   PaymentMethod,
   PaymentStatus,
+  RentalType,
   type Prisma,
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
@@ -91,6 +93,20 @@ export const paymentService = {
           'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dibuat.',
           400
         );
+      }
+
+      // Pastikan dokumen sewa lepas kunci sudah diverifikasi sebelum tagihan dibuat
+      if (booking.rentalType === RentalType.WITHOUT_DRIVER) {
+        const doc = await tx.bookingDocument.findUnique({
+          where: { bookingId: booking.id },
+        });
+        if (doc?.status !== DocumentStatus.VERIFIED) {
+          throw new AppError(
+            'DOCUMENTS_NOT_VERIFIED',
+            'Dokumen persyaratan lepas kunci wajib diverifikasi admin sebelum tagihan pembayaran dapat dibuat.',
+            400
+          );
+        }
       }
 
       // 1:1 Constraint: Cek apakah pembayaran sudah pernah dibuat

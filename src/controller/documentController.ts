@@ -24,6 +24,27 @@ export const documentController = {
   },
 
   /**
+   * Mengunduh berkas surat pernyataan yang sudah terisi otomatis data reservasi pemesan.
+   * GET /api/v1/bookings/:id/statement-pdf
+   */
+  async getBookingStatementPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { buffer, bookingCode } = await documentService.getBookingStatementPdfBuffer(id);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="Surat_Pernyataan_Lepas_Kunci_${bookingCode}.pdf"`,
+      );
+      res.setHeader('Content-Length', buffer.length);
+      res.end(buffer);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * Mengambil struktur teks pernyataan untuk pratinjau in-app pada mobile app.
    * GET /api/v1/documents/template/surat-pernyataan-lepas-kunci/text
    */
