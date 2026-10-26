@@ -13,17 +13,9 @@ const execFileAsync = promisify(execFile);
 
 /**
  * Menghasilkan correlation trace identifier (W3C/OpenTelemetry Session Context)
- * Format standar 12-karakter hex + 14-karakter entropi untuk isolasi state gateway.
  */
 export function generateConversationTraceId(): string {
-  const hexPart = crypto.randomBytes(6).toString('hex'); // 12 hex chars
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  let randPart = '';
-  const randomBytes = crypto.randomBytes(14);
-  for (let i = 0; i < 14; i++) {
-    randPart += chars[randomBytes[i] % chars.length];
-  }
-  return `ses_${hexPart}${randPart}`;
+  return `trace-${crypto.randomUUID()}`;
 }
 
 /**
@@ -758,8 +750,6 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Session-ID': traceId,
-      'X-Opencode-Session': traceId,
-      'X-Opencode-Session-Id': traceId,
       'X-Session-Affinity': traceId,
       'X-Request-ID': `req-${crypto.randomUUID()}`,
       'X-Forwarded-For': networkAffinity,

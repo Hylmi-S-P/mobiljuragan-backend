@@ -38,3 +38,7 @@ adminFleetRouter.get(
   validateQuery(fleetCalendarQuerySchema),
   adminFleetController.calendar,
 );
+
+/* Unit yang sedang tersewa saat ini. Dipakai katalog untuk badge "Disewa".
+   Tidak menerima parameter: yang ditanyakan selalu "sekarang". */
+adminFleetRouter.get('/rented', adminFleetController.rented);

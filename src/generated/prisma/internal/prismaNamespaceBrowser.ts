@@ -123,6 +123,8 @@ export const DriverScalarFieldEnum = {
   fullName: 'fullName',
   phoneNumber: 'phoneNumber',
   licenseNumber: 'licenseNumber',
+  licenseType: 'licenseType',
+  licensePhotoUrl: 'licensePhotoUrl',
   routeScope: 'routeScope',
   readiness: 'readiness',
   isActive: 'isActive',
@@ -195,6 +197,8 @@ export const SupportTicketScalarFieldEnum = {
   handledBy: 'handledBy',
   handoverAt: 'handoverAt',
   lastActivityAt: 'lastActivityAt',
+  assignedAdminId: 'assignedAdminId',
+  assignedAt: 'assignedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -370,7 +374,8 @@ export const DriverOrderByRelevanceFieldEnum = {
   externalId: 'externalId',
   fullName: 'fullName',
   phoneNumber: 'phoneNumber',
-  licenseNumber: 'licenseNumber'
+  licenseNumber: 'licenseNumber',
+  licensePhotoUrl: 'licensePhotoUrl'
 } as const
 
 export type DriverOrderByRelevanceFieldEnum = (typeof DriverOrderByRelevanceFieldEnum)[keyof typeof DriverOrderByRelevanceFieldEnum]
@@ -415,7 +420,8 @@ export const SupportTicketOrderByRelevanceFieldEnum = {
   ticketNumber: 'ticketNumber',
   customerId: 'customerId',
   title: 'title',
-  description: 'description'
+  description: 'description',
+  assignedAdminId: 'assignedAdminId'
 } as const
 
 export type SupportTicketOrderByRelevanceFieldEnum = (typeof SupportTicketOrderByRelevanceFieldEnum)[keyof typeof SupportTicketOrderByRelevanceFieldEnum]

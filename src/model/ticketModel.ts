@@ -27,6 +27,9 @@ export const ticketModel = {
       where: filter?.status ? { status: filter.status } : undefined,
       orderBy: { updatedAt: 'desc' },
       include: {
+        /* Nama penjawab supaya daftar bisa menandai tiket yang sedang dipegang
+           admin lain. Hanya nama: tampilan tidak butuh data lain. */
+        assignedAdmin: { select: { id: true, fullName: true } },
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         _count: { select: { messages: true } },
       },
@@ -58,6 +61,7 @@ export const ticketModel = {
     return db.supportTicket.findUnique({
       where: { id },
       include: {
+        assignedAdmin: { select: { id: true, fullName: true } },
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         messages: {
           orderBy: { sequence: 'asc' },
@@ -196,6 +200,42 @@ export const ticketModel = {
    * panggilan kedua tidak mengubah apa pun, sehingga waktu penyerahan yang
    * tercatat tetap yang pertama.
    */
+  /**
+   * Mengambil tiket untuk satu admin.
+   *
+   * Syarat "assignedAdminId: null" pada where membuat operasi ini aman terhadap
+   * dua admin yang menekan tombol hampir bersamaan: hanya satu yang berhasil,
+   * dan yang lain mendapat hitungan 0. Kalau memakai update biasa, keduanya akan
+   * berhasil dan yang terakhir menimpa yang pertama tanpa ada yang tahu.
+   */
+  async assignTo(ticketId: string, adminId: string) {
+    const hasil = await db.supportTicket.updateMany({
+      where: { id: ticketId, assignedAdminId: null },
+      data: { assignedAdminId: adminId, assignedAt: new Date() },
+    });
+
+    /* Dibaca ulang apa pun hasilnya, supaya pemanggil selalu tahu keadaan
+       sebenarnya — termasuk siapa pemegangnya kalau kalah cepat. */
+    const sekarang = await db.supportTicket.findUnique({
+      where: { id: ticketId },
+      select: { assignedAdminId: true, assignedAt: true },
+    });
+
+    return {
+      assignedAdminId: sekarang?.assignedAdminId ?? null,
+      assignedAt: sekarang?.assignedAt ?? null,
+      berhasil: hasil.count > 0,
+    };
+  },
+
+  /** Melepas tiket supaya bisa diambil admin lain. */
+  async releaseFrom(ticketId: string) {
+    return db.supportTicket.update({
+      where: { id: ticketId },
+      data: { assignedAdminId: null, assignedAt: null },
+    });
+  },
+
   async handoverToHuman(ticketId: string, at: Date) {
     const hasil = await db.supportTicket.updateMany({
       where: { id: ticketId, handledBy: TicketHandler.AI },
