@@ -19,7 +19,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
     "test": "tsx ../.verify/e2e/api-e2e.ts",
-    "test:e2e": "tsx ../.verify/e2e/api-e2e.ts"
+    "test:e2e": "tsx ../.verify/e2e/api-e2e.ts",
+    "db:reset-test-data": "tsx scripts/reset-test-data.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
