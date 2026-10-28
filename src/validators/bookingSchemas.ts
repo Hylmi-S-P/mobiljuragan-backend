@@ -57,3 +57,7 @@ export const assignDriverSchema = z.object({
     .min(1, 'driverId wajib diisi, boleh uuid supir atau externalId seperti markus-gebze.'),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
+
+export const customerCancelBookingSchema = z.object({
+  reason: z.string().max(500, 'Alasan pembatalan maksimal 500 karakter.').optional(),
+});

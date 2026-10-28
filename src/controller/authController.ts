@@ -65,11 +65,41 @@ export const authController = {
     try {
       const { phoneNumber: rawPhone, otp, purpose } = req.body;
       const phoneNumber = normalizePhoneNumber(rawPhone);
+      const isDev = process.env.NODE_ENV !== 'production';
 
       // Cari OTP verification aktif terakhir
       const latestOtp = await authModel.findLatestActiveOtp(phoneNumber, purpose);
 
       if (!latestOtp) {
+        // Pada mode development, jika magic code digunakan dan user sudah terdaftar di DB, izinkan langsung
+        if (isDev && otp === '123456') {
+          const user = await authModel.findUserByPhoneNumber(phoneNumber);
+          if (user) {
+            const token = signAuthToken({
+              userId: user.id,
+              phoneNumber: user.phoneNumber,
+              role: user.role,
+            });
+            logger.info(
+              { userId: user.id, phoneNumber },
+              `[OTP VERIFY DEV MAGIC CODE] Customer ${phoneNumber} login via Magic Code 123456.`,
+            );
+            sendSuccess(
+              res,
+              {
+                token,
+                user: {
+                  id: user.id,
+                  fullName: user.fullName,
+                  phoneNumber: user.phoneNumber,
+                  role: user.role,
+                },
+              },
+              200,
+            );
+            return;
+          }
+        }
         throw new AppError(
           'OTP_NOT_FOUND',
           'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.',
@@ -77,8 +107,8 @@ export const authController = {
         );
       }
 
-      // Cek batas percobaan
-      if (latestOtp.attemptCount >= OTP_MAX_ATTEMPTS) {
+      // Cek batas percobaan (dilewati di mode dev untuk magic code 123456)
+      if (latestOtp.attemptCount >= OTP_MAX_ATTEMPTS && (!isDev || otp !== '123456')) {
         throw new AppError(
           'OTP_TOO_MANY_ATTEMPTS',
           'Terlalu banyak percobaan yang salah. Permintaan dibatalkan demi keamanan. Silakan minta kode baru.',
@@ -86,8 +116,8 @@ export const authController = {
         );
       }
 
-      // Cek kedaluwarsa
-      if (latestOtp.expiresAt < new Date()) {
+      // Cek kedaluwarsa (dilewati di mode dev untuk magic code 123456)
+      if (latestOtp.expiresAt < new Date() && (!isDev || otp !== '123456')) {
         throw new AppError(
           'OTP_EXPIRED',
           'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.',
@@ -99,7 +129,6 @@ export const authController = {
       await authModel.incrementAttemptCount(latestOtp.id);
 
       // Verifikasi kecocokan hash (pada mode dev/testing, kode 123456 diterima untuk integrasi demo/mobile)
-      const isDev = process.env.NODE_ENV !== 'production';
       const isValid = verifyOtpHash(otp, latestOtp.otpHash) || (isDev && otp === '123456');
       if (!isValid) {
         const remainingAttempts = Math.max(0, OTP_MAX_ATTEMPTS - 1 - latestOtp.attemptCount);

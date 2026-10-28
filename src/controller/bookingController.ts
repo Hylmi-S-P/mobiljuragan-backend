@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { bookingModel } from '../model/bookingModel.js';
-import { OperationalStatus, UserRole } from '../generated/prisma/client.js';
+import { BookingStatus, BookingStatusActor, OperationalStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import type { createBookingSchema } from '../validators/bookingSchemas.js';
+import type { createBookingSchema, customerCancelBookingSchema } from '../validators/bookingSchemas.js';
 
 /**
  * Controller pemesanan sewa sisi pelanggan.
@@ -173,6 +173,74 @@ export const bookingController = {
       }
 
       sendSuccess(res, booking);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * PATCH /api/v1/bookings/:id/cancel
+   * Membatalkan pemesanan sewa sisi pelanggan.
+   */
+  async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { reason } = (req.body ?? {}) as z.infer<typeof customerCancelBookingSchema>;
+      const customer = req.user!;
+      const isStaffOrAdmin = customer.role === UserRole.STAFF || customer.role === UserRole.ADMIN;
+
+      const booking = await bookingModel.findCustomerDetail({
+        id,
+        customerId: customer.userId,
+        isStaffOrAdmin,
+      });
+
+      if (!booking) {
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
+      }
+
+      if (booking.status === BookingStatus.CANCELLED) {
+        sendSuccess(res, { message: 'Pesanan sudah dalam status dibatalkan.', booking });
+        return;
+      }
+
+      if (booking.status === BookingStatus.COMPLETED) {
+        throw new AppError(
+          'BOOKING_CANNOT_BE_CANCELLED',
+          'Pesanan yang sudah selesai tidak dapat dibatalkan.',
+          400,
+        );
+      }
+
+      const noteText = reason?.trim() ? `Dibatalkan oleh pemesan: ${reason.trim()}` : 'Dibatalkan oleh pemesan.';
+
+      const result = await bookingModel.updateStatusWithHistoryAndAudit({
+        id: booking.id,
+        nextStatus: BookingStatus.CANCELLED,
+        quotedAmount: undefined,
+        note: noteText,
+        actorUserId: customer.userId,
+        actor: BookingStatusActor.CUSTOMER,
+        actorFullName: customer.fullName,
+        actorRole: customer.role,
+      });
+
+      if (!result) {
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan ID '${id}' tidak ditemukan saat memperbarui status.`,
+          404,
+        );
+      }
+
+      sendSuccess(res, {
+        message: 'Pesanan berhasil dibatalkan.',
+        booking: result.booking,
+      });
     } catch (error) {
       next(error);
     }
