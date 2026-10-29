@@ -4,6 +4,7 @@ import { generateOtp, hashOtp, verifyOtpHash, signAuthToken } from '../lib/auth.
 import { AppError, sendSuccess } from '../lib/response.js';
 import { normalizePhoneNumber } from '../lib/phone.js';
 import { logger } from '../logger.js';
+import { whatsappOtpService } from '../services/whatsappOtp.service.js';
 
 /**
  * Controller autentikasi customer berbasis OTP.
@@ -42,6 +43,17 @@ export const authController = {
       });
 
       logger.info({ phoneNumber, purpose }, `[OTP REQUEST] Kode OTP dibuat untuk ${phoneNumber}`);
+
+      // Picu pengiriman pesan WhatsApp OTP secara non-blocking
+      whatsappOtpService
+        .sendOtp({
+          phoneNumber,
+          otpCode: plainOtp,
+          fullName: user.fullName,
+        })
+        .catch((err) => {
+          logger.error({ err, phoneNumber }, '[OTP REQUEST] Gagal memicu pengiriman WhatsApp OTP');
+        });
 
       // Pada mode dev, sertakan mockOtp agar mempermudah testing tim & frontend
       const isDev = process.env.NODE_ENV !== 'production';
