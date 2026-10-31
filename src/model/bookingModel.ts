@@ -4,10 +4,14 @@ import {
   BookingStatusActor,
   DocumentStatus,
   DriverReadiness,
+  OperationalStatus,
+  PaymentStatus,
   RentalType,
   TariffStatus,
   type Prisma,
 } from '../generated/prisma/client.js';
+import { assertBookingTransition } from '../lib/bookingStage.js';
+import { AppError } from '../lib/response.js';
 
 /**
  * Lapisan model untuk tabel `bookings` beserta riwayat statusnya.
@@ -321,6 +325,36 @@ export const bookingModel = {
 
       if (!booking) return null;
 
+      /* Urutan tahap dijaga di satu tempat (lib/bookingStage): pesanan tidak boleh
+         meloncat dari permintaan masuk langsung ke pembayaran. */
+      assertBookingTransition(booking.status, input.nextStatus);
+
+      /* Nominal tarif hanya bermakna bersama konfirmasi tarif. Mengirimkannya pada
+         transisi lain akan menyimpan tarif tanpa tahap konfirmasi yang jelas. */
+      if (input.quotedAmount !== undefined && input.nextStatus !== BookingStatus.CONFIRMED) {
+        throw new AppError(
+          'TARIFF_REQUIRES_CONFIRMATION',
+          'Nominal tarif hanya boleh dikirim bersama konfirmasi tarif (status CONFIRMED).',
+          409,
+        );
+      }
+
+      const quotedAmount =
+        input.quotedAmount ??
+        (booking.quotedAmount !== null ? Number(booking.quotedAmount) : undefined);
+
+      if (input.nextStatus === BookingStatus.CONFIRMED && !(quotedAmount && quotedAmount > 0)) {
+        return { kind: 'tariff_required' as const, booking };
+      }
+
+      /* Armada hanya boleh diserahkan setelah pembayaran diverifikasi staff. */
+      if (input.nextStatus === BookingStatus.IN_PROGRESS) {
+        const payment = await tx.payment.findUnique({ where: { bookingId: booking.id } });
+        if (payment?.status !== PaymentStatus.PAID) {
+          return { kind: 'payment_unverified' as const, booking };
+        }
+      }
+
       const isConfirming = input.nextStatus === BookingStatus.CONFIRMED;
 
       // Konfirmasi tidak boleh menabrak jadwal aktif pesanan lain di armada yang sama.
@@ -358,8 +392,10 @@ export const bookingModel = {
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };
 
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
-      if (input.quotedAmount !== undefined) {
-        updateData.quotedAmount = input.quotedAmount;
+      if (isConfirming) {
+        if (input.quotedAmount !== undefined) {
+          updateData.quotedAmount = input.quotedAmount;
+        }
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }
 
@@ -413,6 +449,69 @@ export const bookingModel = {
           await tx.driver.update({
             where: { id: booking.driverId },
             data: { readiness: DriverReadiness.SIAGA },
+          });
+        }
+      }
+
+      /* Sinkronisasi status armada mengikuti tahap pesanan, supaya dashboard tidak
+         menjadi satu-satunya penentu status dan tidak ada dua sumber kebenaran. */
+      if (input.nextStatus === BookingStatus.IN_PROGRESS) {
+        await tx.vehicle.update({
+          where: { id: booking.vehicleId },
+          data: { operationalStatus: OperationalStatus.BOOKED },
+        });
+      }
+
+      if (input.nextStatus === BookingStatus.COMPLETED) {
+        const now = new Date();
+        const serviceExpectedDoneAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        /* Kalau masih ada pesanan aktif lain yang mulai sebelum masa in-service
+           berakhir, armada tetap dianggap terpakai, bukan masuk pemeriksaan. */
+        const upcomingBooking = await tx.booking.count({
+          where: {
+            id: { not: booking.id },
+            vehicleId: booking.vehicleId,
+            status: { in: ACTIVE_BOOKING_STATUSES },
+            startDateTime: { lte: serviceExpectedDoneAt },
+            endDateTime: { gte: now },
+          },
+        });
+
+        await tx.vehicle.update({
+          where: { id: booking.vehicleId },
+          data:
+            upcomingBooking > 0
+              ? {
+                  operationalStatus: OperationalStatus.BOOKED,
+                  serviceStartedAt: null,
+                  serviceExpectedDoneAt: null,
+                }
+              : {
+                  operationalStatus: OperationalStatus.IN_SERVICE,
+                  serviceStartedAt: now,
+                  serviceExpectedDoneAt,
+                },
+        });
+      }
+
+      if (
+        (input.nextStatus === BookingStatus.CANCELLED ||
+          input.nextStatus === BookingStatus.REJECTED) &&
+        booking.vehicle.operationalStatus !== OperationalStatus.MAINTENANCE
+      ) {
+        const otherActive = await tx.booking.count({
+          where: {
+            id: { not: booking.id },
+            vehicleId: booking.vehicleId,
+            status: { in: ACTIVE_BOOKING_STATUSES },
+          },
+        });
+
+        if (otherActive === 0) {
+          await tx.vehicle.update({
+            where: { id: booking.vehicleId },
+            data: { operationalStatus: OperationalStatus.AVAILABLE },
           });
         }
       }

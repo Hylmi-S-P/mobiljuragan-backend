@@ -101,3 +101,14 @@ adminVehicleRouter.patch(
   validateBody(updateVehicleStatusSchema),
   adminVehicleController.updateStatus,
 );
+
+// Menutup masa in-service setelah pemeriksaan/pembersihan armada selesai.
+adminVehicleRouter.post(
+  '/:id/service/complete',
+  validateBody(
+    z.object({
+      note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+    }),
+  ),
+  adminVehicleController.completeService,
+);

@@ -52,6 +52,7 @@ export type RentalType = (typeof RentalType)[keyof typeof RentalType]
 export const OperationalStatus = {
   AVAILABLE: 'AVAILABLE',
   BOOKED: 'BOOKED',
+  IN_SERVICE: 'IN_SERVICE',
   MAINTENANCE: 'MAINTENANCE',
   UNAVAILABLE: 'UNAVAILABLE'
 } as const

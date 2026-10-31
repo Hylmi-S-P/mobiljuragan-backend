@@ -41,6 +41,23 @@ export const adminVehicleController = {
     }
   },
 
+  /**
+   * POST /admin/vehicles/:id/service/complete
+   * Menutup masa in-service setelah pemeriksaan/pembersihan selesai.
+   */
+  async completeService(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { note } = req.body as { note?: string };
+      const staffUser = req.user!;
+
+      const updated = await vehicleModel.completeService(id, staffUser.userId, note);
+      sendSuccess(res, updated);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const staffUser = req.user!;

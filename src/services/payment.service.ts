@@ -95,6 +95,21 @@ export const paymentService = {
         );
       }
 
+      /* Tagihan hanya boleh dibuat setelah tarif benar-benar dikonfirmasi.
+         Sebelumnya, pesanan yang masih di tahap permintaan masuk sudah bisa
+         menghasilkan tagihan, sehingga tahap konfirmasi tarif terlewat. */
+      if (
+        booking.status !== BookingStatus.CONFIRMED &&
+        booking.status !== BookingStatus.IN_PROGRESS
+      ) {
+        throw new AppError(
+          'BOOKING_NOT_CONFIRMED',
+          'Pembayaran baru bisa dibuat setelah tarif sewa dikonfirmasi admin.',
+          409,
+          { status: booking.status }
+        );
+      }
+
       // Pastikan dokumen sewa lepas kunci sudah diverifikasi sebelum tagihan dibuat
       if (booking.rentalType === RentalType.WITHOUT_DRIVER) {
         const doc = await tx.bookingDocument.findUnique({

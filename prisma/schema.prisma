@@ -51,6 +51,9 @@ enum RentalType {
 enum OperationalStatus {
   AVAILABLE
   BOOKED
+  /// Masa pemeriksaan/pembersihan setelah sewa selesai. Diisi sistem, bukan admin:
+  /// admin hanya menyatakan kapan masa ini berakhir (lihat serviceExpectedDoneAt).
+  IN_SERVICE
   MAINTENANCE
   UNAVAILABLE
 }
@@ -147,6 +150,11 @@ model Vehicle {
   imageUrl          String?
   pricePerDay       Int               @default(400000)
   operationalStatus OperationalStatus @default(AVAILABLE)
+  /// Kapan armada masuk masa in-service. Diisi sistem saat booking selesai.
+  serviceStartedAt      DateTime?
+  /// Perkiraan masa in-service berakhir. Hanya memblokir pesanan yang mulai
+  /// sebelum waktu ini, supaya armada tetap bisa dipesan untuk tanggal jauh.
+  serviceExpectedDoneAt DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

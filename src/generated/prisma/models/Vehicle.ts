@@ -49,6 +49,8 @@ export type VehicleMinAggregateOutputType = {
   imageUrl: string | null
   pricePerDay: number | null
   operationalStatus: $Enums.OperationalStatus | null
+  serviceStartedAt: Date | null
+  serviceExpectedDoneAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +68,8 @@ export type VehicleMaxAggregateOutputType = {
   imageUrl: string | null
   pricePerDay: number | null
   operationalStatus: $Enums.OperationalStatus | null
+  serviceStartedAt: Date | null
+  serviceExpectedDoneAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -83,6 +87,8 @@ export type VehicleCountAggregateOutputType = {
   imageUrl: number
   pricePerDay: number
   operationalStatus: number
+  serviceStartedAt: number
+  serviceExpectedDoneAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -112,6 +118,8 @@ export type VehicleMinAggregateInputType = {
   imageUrl?: true
   pricePerDay?: true
   operationalStatus?: true
+  serviceStartedAt?: true
+  serviceExpectedDoneAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -129,6 +137,8 @@ export type VehicleMaxAggregateInputType = {
   imageUrl?: true
   pricePerDay?: true
   operationalStatus?: true
+  serviceStartedAt?: true
+  serviceExpectedDoneAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -146,6 +156,8 @@ export type VehicleCountAggregateInputType = {
   imageUrl?: true
   pricePerDay?: true
   operationalStatus?: true
+  serviceStartedAt?: true
+  serviceExpectedDoneAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -250,6 +262,8 @@ export type VehicleGroupByOutputType = {
   imageUrl: string | null
   pricePerDay: number
   operationalStatus: $Enums.OperationalStatus
+  serviceStartedAt: Date | null
+  serviceExpectedDoneAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: VehicleCountAggregateOutputType | null
@@ -290,6 +304,8 @@ export type VehicleWhereInput = {
   imageUrl?: Prisma.StringNullableFilter<"Vehicle"> | string | null
   pricePerDay?: Prisma.IntFilter<"Vehicle"> | number
   operationalStatus?: Prisma.EnumOperationalStatusFilter<"Vehicle"> | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.DateTimeNullableFilter<"Vehicle"> | Date | string | null
+  serviceExpectedDoneAt?: Prisma.DateTimeNullableFilter<"Vehicle"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   bookings?: Prisma.BookingListRelationFilter
@@ -308,6 +324,8 @@ export type VehicleOrderByWithRelationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   pricePerDay?: Prisma.SortOrder
   operationalStatus?: Prisma.SortOrder
+  serviceStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  serviceExpectedDoneAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   bookings?: Prisma.BookingOrderByRelationAggregateInput
@@ -330,6 +348,8 @@ export type VehicleWhereUniqueInput = Prisma.AtLeast<{
   imageUrl?: Prisma.StringNullableFilter<"Vehicle"> | string | null
   pricePerDay?: Prisma.IntFilter<"Vehicle"> | number
   operationalStatus?: Prisma.EnumOperationalStatusFilter<"Vehicle"> | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.DateTimeNullableFilter<"Vehicle"> | Date | string | null
+  serviceExpectedDoneAt?: Prisma.DateTimeNullableFilter<"Vehicle"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   bookings?: Prisma.BookingListRelationFilter
@@ -348,6 +368,8 @@ export type VehicleOrderByWithAggregationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   pricePerDay?: Prisma.SortOrder
   operationalStatus?: Prisma.SortOrder
+  serviceStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  serviceExpectedDoneAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.VehicleCountOrderByAggregateInput
@@ -373,6 +395,8 @@ export type VehicleScalarWhereWithAggregatesInput = {
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Vehicle"> | string | null
   pricePerDay?: Prisma.IntWithAggregatesFilter<"Vehicle"> | number
   operationalStatus?: Prisma.EnumOperationalStatusWithAggregatesFilter<"Vehicle"> | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Vehicle"> | Date | string | null
+  serviceExpectedDoneAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Vehicle"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Vehicle"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Vehicle"> | Date | string
 }
@@ -390,6 +414,8 @@ export type VehicleCreateInput = {
   imageUrl?: string | null
   pricePerDay?: number
   operationalStatus?: $Enums.OperationalStatus
+  serviceStartedAt?: Date | string | null
+  serviceExpectedDoneAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   bookings?: Prisma.BookingCreateNestedManyWithoutVehicleInput
@@ -408,6 +434,8 @@ export type VehicleUncheckedCreateInput = {
   imageUrl?: string | null
   pricePerDay?: number
   operationalStatus?: $Enums.OperationalStatus
+  serviceStartedAt?: Date | string | null
+  serviceExpectedDoneAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutVehicleInput
@@ -426,6 +454,8 @@ export type VehicleUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   bookings?: Prisma.BookingUpdateManyWithoutVehicleNestedInput
@@ -444,6 +474,8 @@ export type VehicleUncheckedUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutVehicleNestedInput
@@ -462,6 +494,8 @@ export type VehicleCreateManyInput = {
   imageUrl?: string | null
   pricePerDay?: number
   operationalStatus?: $Enums.OperationalStatus
+  serviceStartedAt?: Date | string | null
+  serviceExpectedDoneAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -479,6 +513,8 @@ export type VehicleUpdateManyMutationInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -496,6 +532,8 @@ export type VehicleUncheckedUpdateManyInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -519,6 +557,8 @@ export type VehicleCountOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   pricePerDay?: Prisma.SortOrder
   operationalStatus?: Prisma.SortOrder
+  serviceStartedAt?: Prisma.SortOrder
+  serviceExpectedDoneAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -541,6 +581,8 @@ export type VehicleMaxOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   pricePerDay?: Prisma.SortOrder
   operationalStatus?: Prisma.SortOrder
+  serviceStartedAt?: Prisma.SortOrder
+  serviceExpectedDoneAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -558,6 +600,8 @@ export type VehicleMinOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   pricePerDay?: Prisma.SortOrder
   operationalStatus?: Prisma.SortOrder
+  serviceStartedAt?: Prisma.SortOrder
+  serviceExpectedDoneAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -582,6 +626,10 @@ export type IntFieldUpdateOperationsInput = {
 
 export type EnumOperationalStatusFieldUpdateOperationsInput = {
   set?: $Enums.OperationalStatus
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type VehicleCreateNestedOneWithoutBookingsInput = {
@@ -611,6 +659,8 @@ export type VehicleCreateWithoutBookingsInput = {
   imageUrl?: string | null
   pricePerDay?: number
   operationalStatus?: $Enums.OperationalStatus
+  serviceStartedAt?: Date | string | null
+  serviceExpectedDoneAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -628,6 +678,8 @@ export type VehicleUncheckedCreateWithoutBookingsInput = {
   imageUrl?: string | null
   pricePerDay?: number
   operationalStatus?: $Enums.OperationalStatus
+  serviceStartedAt?: Date | string | null
+  serviceExpectedDoneAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -661,6 +713,8 @@ export type VehicleUpdateWithoutBookingsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -678,6 +732,8 @@ export type VehicleUncheckedUpdateWithoutBookingsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pricePerDay?: Prisma.IntFieldUpdateOperationsInput | number
   operationalStatus?: Prisma.EnumOperationalStatusFieldUpdateOperationsInput | $Enums.OperationalStatus
+  serviceStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  serviceExpectedDoneAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -726,6 +782,8 @@ export type VehicleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   imageUrl?: boolean
   pricePerDay?: boolean
   operationalStatus?: boolean
+  serviceStartedAt?: boolean
+  serviceExpectedDoneAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   bookings?: boolean | Prisma.Vehicle$bookingsArgs<ExtArgs>
@@ -747,11 +805,13 @@ export type VehicleSelectScalar = {
   imageUrl?: boolean
   pricePerDay?: boolean
   operationalStatus?: boolean
+  serviceStartedAt?: boolean
+  serviceExpectedDoneAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type VehicleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "name" | "licensePlate" | "brand" | "model" | "seatingCapacity" | "transmission" | "category" | "imageUrl" | "pricePerDay" | "operationalStatus" | "createdAt" | "updatedAt", ExtArgs["result"]["vehicle"]>
+export type VehicleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "name" | "licensePlate" | "brand" | "model" | "seatingCapacity" | "transmission" | "category" | "imageUrl" | "pricePerDay" | "operationalStatus" | "serviceStartedAt" | "serviceExpectedDoneAt" | "createdAt" | "updatedAt", ExtArgs["result"]["vehicle"]>
 export type VehicleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   bookings?: boolean | Prisma.Vehicle$bookingsArgs<ExtArgs>
   _count?: boolean | Prisma.VehicleCountOutputTypeDefaultArgs<ExtArgs>
@@ -775,6 +835,15 @@ export type $VehiclePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     imageUrl: string | null
     pricePerDay: number
     operationalStatus: $Enums.OperationalStatus
+    /**
+     * Kapan armada masuk masa in-service. Diisi sistem saat booking selesai.
+     */
+    serviceStartedAt: Date | null
+    /**
+     * Perkiraan masa in-service berakhir. Hanya memblokir pesanan yang mulai
+     * sebelum waktu ini, supaya armada tetap bisa dipesan untuk tanggal jauh.
+     */
+    serviceExpectedDoneAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["vehicle"]>
@@ -1159,6 +1228,8 @@ export interface VehicleFieldRefs {
   readonly imageUrl: Prisma.FieldRef<"Vehicle", 'String'>
   readonly pricePerDay: Prisma.FieldRef<"Vehicle", 'Int'>
   readonly operationalStatus: Prisma.FieldRef<"Vehicle", 'OperationalStatus'>
+  readonly serviceStartedAt: Prisma.FieldRef<"Vehicle", 'DateTime'>
+  readonly serviceExpectedDoneAt: Prisma.FieldRef<"Vehicle", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Vehicle", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Vehicle", 'DateTime'>
 }

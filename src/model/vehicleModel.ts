@@ -1,5 +1,12 @@
 import { db } from '../db.js';
 import { BookingStatus, OperationalStatus, type Prisma } from '../generated/prisma/client.js';
+import { AppError } from '../lib/response.js';
+
+/** Status pesanan yang masih memegang armada. */
+const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
+  BookingStatus.CONFIRMED,
+  BookingStatus.IN_PROGRESS,
+];
 
 /**
  * Lapisan model untuk tabel `vehicles`.
@@ -42,6 +49,62 @@ export interface VehicleCatalogFilter {
   operationalStatus?: string;
   startDate?: string;
   endDate?: string;
+}
+
+/**
+ * Aturan perubahan status operasional yang boleh dilakukan manusia.
+ *
+ * Dipakai bersama oleh `updateOperationalStatus` dan `updateVehicle`, karena
+ * formulir edit armada juga bisa mengirim `operationalStatus` dan sebelumnya
+ * melewati pemeriksaan ini.
+ */
+async function assertManualStatusChange(
+  tx: Prisma.TransactionClient,
+  vehicle: { id: string; operationalStatus: OperationalStatus },
+  nextStatus: OperationalStatus,
+): Promise<void> {
+  if (nextStatus === vehicle.operationalStatus) return;
+
+  /* BOOKED dan IN_SERVICE diturunkan sistem dari pesanan. Kalau admin boleh
+     menimpanya, status armada dan status pesanan bisa saling bertentangan. */
+  if (nextStatus === OperationalStatus.BOOKED || nextStatus === OperationalStatus.IN_SERVICE) {
+    throw new AppError(
+      'SYSTEM_MANAGED_STATUS',
+      `Status ${nextStatus} dikelola sistem dari pesanan aktif dan tidak bisa diubah manual. Gunakan "Selesai Inspeksi" untuk menutup masa in-service.`,
+      409,
+    );
+  }
+
+  /* Masa in-service hanya boleh ditutup lewat aksi khusus, supaya jejak
+     pemeriksaan (serviceStartedAt/serviceExpectedDoneAt) ikut dibersihkan. */
+  if (
+    vehicle.operationalStatus === OperationalStatus.IN_SERVICE &&
+    nextStatus !== OperationalStatus.AVAILABLE
+  ) {
+    throw new AppError(
+      'IN_SERVICE_ACTIVE',
+      'Armada sedang dalam masa in-service. Selesaikan inspeksi terlebih dahulu.',
+      409,
+    );
+  }
+
+  /* Armada yang masih terikat pesanan aktif tidak boleh ditandai tersedia. */
+  if (
+    vehicle.operationalStatus === OperationalStatus.BOOKED &&
+    nextStatus === OperationalStatus.AVAILABLE
+  ) {
+    const activeBookings = await tx.booking.count({
+      where: { vehicleId: vehicle.id, status: { in: ACTIVE_BOOKING_STATUSES } },
+    });
+
+    if (activeBookings > 0) {
+      throw new AppError(
+        'VEHICLE_IN_USE',
+        'Armada masih terikat pesanan aktif, status tidak bisa diubah menjadi tersedia.',
+        409,
+      );
+    }
+  }
 }
 
 export const vehicleModel = {
@@ -186,6 +249,8 @@ export const vehicleModel = {
     note?: string,
   ) {
     return db.$transaction(async (tx) => {
+      await assertManualStatusChange(tx, vehicle, nextStatus);
+
       const updated = await tx.vehicle.update({
         where: { id: vehicle.id },
         data: {
@@ -198,6 +263,69 @@ export const vehicleModel = {
         data: {
           actorId,
           action: 'UPDATE_VEHICLE_STATUS',
+          entityType: 'Vehicle',
+          entityId: vehicle.id,
+          metadata: {
+            externalId: vehicle.externalId,
+            name: vehicle.name,
+            licensePlate: vehicle.licensePlate,
+            fromStatus: vehicle.operationalStatus,
+            toStatus: nextStatus,
+            note: note || null,
+          },
+        },
+      });
+
+      return updated;
+    });
+  },
+
+  /**
+   * Menutup masa in-service setelah pemeriksaan/pembersihan selesai.
+   *
+   * Hanya admin yang menyatakan selesai (temuan lapangan bisa ringan seperti
+   * pembersihan, atau berat seperti perbaikan mesin), jadi tidak ada durasi tetap
+   * yang dipaksakan sistem. Kolom service* dibersihkan agar tidak menahan
+   * pesanan berikutnya.
+   */
+  completeService(vehicleId: string, actorId: string, note?: string) {
+    return db.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.findFirst({
+        where: { OR: [{ id: vehicleId }, { externalId: vehicleId }] },
+      });
+
+      if (!vehicle) {
+        throw new AppError('VEHICLE_NOT_FOUND', 'Armada tidak ditemukan.', 404);
+      }
+
+      if (vehicle.operationalStatus !== OperationalStatus.IN_SERVICE) {
+        throw new AppError(
+          'NOT_IN_SERVICE',
+          'Armada ini tidak sedang dalam masa in-service.',
+          409,
+        );
+      }
+
+      const activeBookings = await tx.booking.count({
+        where: { vehicleId: vehicle.id, status: { in: ACTIVE_BOOKING_STATUSES } },
+      });
+
+      const nextStatus =
+        activeBookings > 0 ? OperationalStatus.BOOKED : OperationalStatus.AVAILABLE;
+
+      const updated = await tx.vehicle.update({
+        where: { id: vehicle.id },
+        data: {
+          operationalStatus: nextStatus,
+          serviceStartedAt: null,
+          serviceExpectedDoneAt: null,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'COMPLETE_VEHICLE_SERVICE',
           entityType: 'Vehicle',
           entityId: vehicle.id,
           metadata: {
@@ -235,6 +363,18 @@ export const vehicleModel = {
       '-' +
       data.licensePlate.toLowerCase().replace(/[^a-z0-9]+/g, '');
     return db.$transaction(async (tx) => {
+      /* Armada baru tidak mungkin sudah disewa atau sedang in-service. */
+      if (
+        data.operationalStatus === OperationalStatus.BOOKED ||
+        data.operationalStatus === OperationalStatus.IN_SERVICE
+      ) {
+        throw new AppError(
+          'SYSTEM_MANAGED_STATUS',
+          'Armada baru tidak bisa dibuat dengan status Disewa/In-service.',
+          409,
+        );
+      }
+
       const created = await tx.vehicle.create({
         data: {
           externalId: slug,
@@ -292,6 +432,10 @@ export const vehicleModel = {
 
       if (!vehicle) {
         throw new Error('VEHICLE_NOT_FOUND');
+      }
+
+      if (data.operationalStatus !== undefined) {
+        await assertManualStatusChange(tx, vehicle, data.operationalStatus);
       }
 
       const updated = await tx.vehicle.update({

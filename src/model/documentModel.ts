@@ -10,7 +10,7 @@ export const documentModel = {
       where: {
         OR: [{ id: bookingIdOrCode }, { bookingCode: bookingIdOrCode }],
       },
-      select: { id: true, bookingCode: true, customerId: true, rentalType: true },
+      select: { id: true, bookingCode: true, customerId: true, rentalType: true, status: true },
     });
 
     if (!booking) return null;

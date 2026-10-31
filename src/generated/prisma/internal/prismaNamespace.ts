@@ -1487,6 +1487,8 @@ export const VehicleScalarFieldEnum = {
   imageUrl: 'imageUrl',
   pricePerDay: 'pricePerDay',
   operationalStatus: 'operationalStatus',
+  serviceStartedAt: 'serviceStartedAt',
+  serviceExpectedDoneAt: 'serviceExpectedDoneAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

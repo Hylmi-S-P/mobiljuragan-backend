@@ -1,5 +1,6 @@
 import { documentModel } from '../model/documentModel.js';
 import { DocumentStatus } from '../generated/prisma/client.js';
+import { assertBookingDocumentsMutable } from '../lib/bookingStage.js';
 import { AppError } from '../lib/response.js';
 
 export const documentService = {
@@ -358,6 +359,10 @@ export const documentService = {
       throw new AppError('BOOKING_NOT_FOUND', 'Pemesanan tidak ditemukan.', 404);
     }
 
+    /* Pesanan yang sudah berjalan/selesai tidak boleh menerima dokumen baru;
+       sebelumnya aksi ini masih lolos di pesanan COMPLETED. */
+    assertBookingDocumentsMutable(record.booking.status);
+
     const updated = await documentModel.upsertDocument(record.booking.id, data);
     return {
       bookingId: record.booking.id,
@@ -381,6 +386,8 @@ export const documentService = {
     if (!record) {
       throw new AppError('BOOKING_NOT_FOUND', 'Pemesanan tidak ditemukan.', 404);
     }
+
+    assertBookingDocumentsMutable(record.booking.status);
 
     if (input.action === 'APPROVE') {
       const doc = record.document;

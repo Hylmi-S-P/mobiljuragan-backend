@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { BookingStatusActor, UserRole, type Prisma } from '../generated/prisma/client.js';
 import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js';
+import { computeBookingBlockers } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
 import type {
@@ -139,6 +140,7 @@ export const adminBookingController = {
 
       sendSuccess(res, {
         ...booking,
+        blockers: computeBookingBlockers(booking),
         whatsappIntent: buildWhatsAppIntent(booking),
       });
     } catch (error) {
@@ -195,6 +197,22 @@ export const adminBookingController = {
         throw new AppError(
           'DOCUMENTS_UNVERIFIED',
           'Booking lepas kunci harus memiliki seluruh dokumen (e-KTP, SIM A, Surat Pernyataan) yang telah diverifikasi staf sebelum tarif dapat dikonfirmasi.',
+          409,
+        );
+      }
+
+      if (result.kind === 'tariff_required') {
+        throw new AppError(
+          'TARIFF_REQUIRED',
+          'Konfirmasi tarif wajib menyertakan nominal sewa. Tahap ini tidak boleh dilewati.',
+          409,
+        );
+      }
+
+      if (result.kind === 'payment_unverified') {
+        throw new AppError(
+          'PAYMENT_UNVERIFIED',
+          'Pembayaran belum diverifikasi. Verifikasi pembayaran terlebih dahulu sebelum menyerahkan armada.',
           409,
         );
       }
