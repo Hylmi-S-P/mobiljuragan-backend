@@ -216,6 +216,25 @@ export const bookingController = {
         );
       }
 
+      /* Pesanan yang sudah ditolak tidak punya tahap untuk dibatalkan, dan sewa
+         yang sedang berjalan hanya boleh dihentikan lewat admin (penyelesaian
+         dini, penagihan overtime, dsb.). */
+      if (booking.status === BookingStatus.REJECTED) {
+        throw new AppError(
+          'BOOKING_ALREADY_REJECTED',
+          'Pesanan ini sudah ditolak, tidak ada yang perlu dibatalkan.',
+          409,
+        );
+      }
+
+      if (booking.status === BookingStatus.IN_PROGRESS) {
+        throw new AppError(
+          'BOOKING_IN_PROGRESS',
+          'Sewa sedang berjalan. Hubungi admin MobilJuragan untuk penghentian lebih awal.',
+          409,
+        );
+      }
+
       const noteText = reason?.trim() ? `Dibatalkan oleh pemesan: ${reason.trim()}` : 'Dibatalkan oleh pemesan.';
 
       const result = await bookingModel.updateStatusWithHistoryAndAudit({
