@@ -121,6 +121,16 @@ model User {
   passwordHash String?
   isActive     Boolean @default(true)
 
+  /// Jumlah percobaan login yang gagal berturut-turut. Direset ke 0 setiap
+  /// login berhasil. Dipakai untuk mengunci akun sementara.
+  failedLoginAttempts Int @default(0)
+
+  /// Akun tidak boleh dipakai login sampai waktu ini lewat.
+  lockedUntil DateTime?
+
+  /// Waktu login berhasil terakhir, untuk jejak di dashboard.
+  lastLoginAt DateTime?
+
   bookings         Booking[]
   tickets          SupportTicket[]
   sentMessages     TicketMessage[]

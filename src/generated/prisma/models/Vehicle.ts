@@ -572,14 +572,6 @@ export type VehicleScalarRelationFilter = {
   isNot?: Prisma.VehicleWhereInput
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type EnumOperationalStatusFieldUpdateOperationsInput = {
   set?: $Enums.OperationalStatus
 }
