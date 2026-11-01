@@ -278,6 +278,13 @@ export type IntNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedIntNullableFilter<$PrismaModel> | number | null
 }
 
+export type EnumDriverRouteNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverRoute[] | null
+  notIn?: $Enums.DriverRoute[] | null
+  not?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel> | $Enums.DriverRoute | null
+}
+
 export type EnumTariffStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.TariffStatus | Prisma.EnumTariffStatusFieldRefInput<$PrismaModel>
   in?: $Enums.TariffStatus[]
@@ -327,6 +334,16 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
+}
+
+export type EnumDriverRouteNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverRoute[] | null
+  notIn?: $Enums.DriverRoute[] | null
+  not?: Prisma.NestedEnumDriverRouteNullableWithAggregatesFilter<$PrismaModel> | $Enums.DriverRoute | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel>
 }
 
 export type EnumTariffStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -876,6 +893,13 @@ export type NestedEnumRentalTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumRentalTypeFilter<$PrismaModel> | $Enums.RentalType
 }
 
+export type NestedEnumDriverRouteNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverRoute[] | null
+  notIn?: $Enums.DriverRoute[] | null
+  not?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel> | $Enums.DriverRoute | null
+}
+
 export type NestedEnumTariffStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.TariffStatus | Prisma.EnumTariffStatusFieldRefInput<$PrismaModel>
   in?: $Enums.TariffStatus[]
@@ -936,6 +960,16 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
+}
+
+export type NestedEnumDriverRouteNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DriverRoute | Prisma.EnumDriverRouteFieldRefInput<$PrismaModel> | null
+  in?: $Enums.DriverRoute[] | null
+  notIn?: $Enums.DriverRoute[] | null
+  not?: Prisma.NestedEnumDriverRouteNullableWithAggregatesFilter<$PrismaModel> | $Enums.DriverRoute | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDriverRouteNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumTariffStatusWithAggregatesFilter<$PrismaModel = never> = {

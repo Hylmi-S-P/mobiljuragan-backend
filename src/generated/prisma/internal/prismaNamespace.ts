@@ -1526,6 +1526,7 @@ export const BookingScalarFieldEnum = {
   pickupLocation: 'pickupLocation',
   customerRequest: 'customerRequest',
   numberGuests: 'numberGuests',
+  routeScope: 'routeScope',
   tariffStatus: 'tariffStatus',
   quotedAmount: 'quotedAmount',
   status: 'status',

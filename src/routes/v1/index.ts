@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authRouter } from './auth.js';
 import { adminAuthRouter } from './adminAuth.js';
 import { vehicleRouter } from './vehicles.js';
+import { pickupPointRouter } from './pickupPoints.js';
 import { bookingRouter } from './bookings.js';
 import { adminBookingRouter } from './adminBookings.js';
 import { adminFleetRouter } from './adminFleet.js';
@@ -19,6 +20,9 @@ import { ticketRouter } from './tickets.js';
 import { customerAiRouter } from './customerAiRoutes.js';
 
 export const v1Router: Router = Router();
+
+// Titik serah terima resmi (publik, dipakai mobile & dashboard): /api/v1/pickup-points
+v1Router.use('/pickup-points', pickupPointRouter);
 
 // Manajemen pembayaran admin portal: /api/v1/admin/payments/*
 v1Router.use('/admin/payments', adminPaymentRouter);

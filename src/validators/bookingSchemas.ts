@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BookingStatus, RentalType } from '../generated/prisma/client.js';
+import { BookingStatus, RentalType, DriverRoute } from '../generated/prisma/client.js';
 
 /**
  * Skema validasi modul pemesanan sewa.
@@ -47,6 +47,11 @@ export const updateBookingStatusSchema = z.object({
     error: 'Status sewa tidak valid.',
   }),
   quotedAmount: z.number().nonnegative('Tarif sewa tidak boleh bernilai negatif.').optional(),
+  routeScope: z
+    .nativeEnum(DriverRoute, {
+      error: 'Rute perjalanan tidak valid (pilih DALAM_KOTA atau LUAR_KOTA).',
+    })
+    .optional(),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 

@@ -4,6 +4,7 @@ import {
   BookingStatusActor,
   DocumentStatus,
   DriverReadiness,
+  DriverRoute,
   OperationalStatus,
   PaymentStatus,
   RentalType,
@@ -11,6 +12,7 @@ import {
   type Prisma,
 } from '../generated/prisma/client.js';
 import { assertBookingTransition } from '../lib/bookingStage.js';
+import { normalizePickupLocation } from '../lib/pickupPoints.js';
 import { AppError } from '../lib/response.js';
 
 /**
@@ -131,7 +133,8 @@ export const bookingModel = {
           startDateTime: input.start,
           endDateTime: input.end,
           rentalType: input.rentalType,
-          pickupLocation: input.pickupLocation,
+          // Label titik jemput selalu memakai nama resmi; data lama "Pool Kantor" ikut dinormalkan.
+          pickupLocation: normalizePickupLocation(input.pickupLocation),
           customerRequest: input.customerRequest,
           numberGuests: input.numberGuests,
           // Tarif sengaja tetap null; angkanya baru diisi saat admin mengonfirmasi.
@@ -311,6 +314,7 @@ export const bookingModel = {
     id: string;
     nextStatus: BookingStatus;
     quotedAmount: number | undefined;
+    routeScope?: DriverRoute;
     note: string | null;
     actorUserId: string;
     actor: BookingStatusActor;
@@ -395,6 +399,9 @@ export const bookingModel = {
       if (isConfirming) {
         if (input.quotedAmount !== undefined) {
           updateData.quotedAmount = input.quotedAmount;
+        }
+        if (input.routeScope !== undefined) {
+          updateData.routeScope = input.routeScope;
         }
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }

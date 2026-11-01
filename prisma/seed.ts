@@ -185,6 +185,22 @@ const INITIAL_FAQS = [
     isActive: true,
   },
   {
+    category: 'Booking & Sewa',
+    question: 'Apakah tarif sudah termasuk perjalanan luar kota Merauke?',
+    answer:
+      'Rute dalam kota dan luar kota memiliki komponen tarif yang berbeda. Rute perjalanan ditentukan admin saat konfirmasi tarif, lalu dicantumkan pada rincian tagihan sebelum Anda membayar. BBM, tol/parkir, dan uang jalan pengemudi untuk rute luar kota dihitung terpisah dan akan tampil pada rincian tersebut, sehingga tidak ada biaya yang muncul tiba-tiba setelah pembayaran.',
+    orderIndex: 5,
+    isActive: true,
+  },
+  {
+    category: 'Booking & Sewa',
+    question: 'Di mana saja titik serah terima armada?',
+    answer:
+      'Titik serah terima resmi: Kantor MobilJuragan, Bandara Mopah Merauke, dan Pelabuhan Merauke. Pelanggan memilih titiknya saat mengisi opsi rental, dan titik tersebut dipakai admin sebagai acuan penyerahan unit.',
+    orderIndex: 6,
+    isActive: true,
+  },
+  {
     category: 'Pembayaran',
     question: 'Metode pembayaran apa saja yang berlaku?',
     answer:

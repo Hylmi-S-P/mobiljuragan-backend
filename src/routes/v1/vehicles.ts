@@ -16,9 +16,9 @@ const vehicleQuerySchema = z
     operationalStatus: z
       .string()
       .transform((val) => val.toUpperCase())
-      .refine((val) => ['AVAILABLE', 'BOOKED', 'MAINTENANCE', 'UNAVAILABLE', 'ALL'].includes(val), {
+      .refine((val) => ['AVAILABLE', 'BOOKED', 'IN_SERVICE', 'MAINTENANCE', 'UNAVAILABLE', 'ALL'].includes(val), {
         message:
-          'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE, atau ALL).',
+          'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, IN_SERVICE, MAINTENANCE, UNAVAILABLE, atau ALL).',
       })
       .optional(),
     startDate: z
