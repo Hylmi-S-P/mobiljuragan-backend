@@ -192,3 +192,69 @@ export function unggahSatuGambar(namaField = 'file') {
     },
   }).single(namaField);
 }
+
+/**
+ * Mengubah data URL Base64 menjadi buffer, dengan batas ukuran yang sama
+ * seperti unggahan berkas.
+ *
+ * Dipakai untuk memindahkan endpoint lama yang masih menerima Base64 di dalam
+ * JSON. Isinya tidak langsung disimpan: tetap dilewatkan ke sharp lebih dulu,
+ * supaya yang masuk database hanya WebP yang sudah dinormalkan. Dengan begitu
+ * baris database berhenti menyimpan blok Base64 berukuran ratusan kilobita.
+ */
+export function bufferDariBase64(nilai: string): Buffer {
+  const cocok = /^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/i.exec(nilai.trim());
+  if (!cocok) {
+    throw new AppError(
+      'FILE_TYPE_NOT_ALLOWED',
+      'Bukti harus berupa data URL gambar JPEG, PNG, atau WebP.',
+      400,
+    );
+  }
+
+  const isi = cocok[2].replace(/\s/g, '');
+
+  /*
+   * Panjang string Base64 diperiksa lebih dulu. Tanpa ini, berkas 50 MB harus
+   * di-decode penuh ke memori sebelum ditolak, dan penyerang bisa memakai itu
+   * untuk menghabiskan RAM.
+   */
+  const perkiraanByte = Math.floor((isi.length * 3) / 4);
+  if (perkiraanByte > BATAS_UKURAN_BERKAS) {
+    throw new AppError(
+      'FILE_TOO_LARGE',
+      `Ukuran berkas melebihi batas ${Math.round(BATAS_UKURAN_BERKAS / 1024 / 1024)} MB.`,
+      413,
+    );
+  }
+
+  const buffer = Buffer.from(isi, 'base64');
+  if (buffer.length === 0) {
+    throw new AppError('FILE_EMPTY', 'Berkas gambar kosong.', 400);
+  }
+
+  return buffer;
+}
+
+/**
+ * Menormalkan gambar yang datang sebagai Base64.
+ *
+ * Membungkus buffer menjadi bentuk yang sama dengan berkas multer, lalu memakai
+ * jalur `siapkanGambar` yang sudah ada. Tujuannya supaya Base64 dan unggahan
+ * berkas menghasilkan normalisasi yang persis sama, bukan dua jalur berbeda
+ * yang bisa menyimpang.
+ */
+export async function siapkanGambarDariBase64(nilai: string): Promise<GambarSiapSimpan> {
+  const buffer = bufferDariBase64(nilai);
+
+  const sepertiBerkas = {
+    fieldname: 'file',
+    originalname: 'base64.webp',
+    encoding: 'base64',
+    mimetype: 'application/octet-stream',
+    buffer,
+    size: buffer.length,
+  } as Express.Multer.File;
+
+  return siapkanGambar(sepertiBerkas);
+}

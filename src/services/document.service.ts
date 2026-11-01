@@ -3,9 +3,50 @@ import { DocumentStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
 import type { IsiTemplateDokumen } from '../lib/documentTemplateDefault.js';
+import {
+  simpanMediaDariBase64,
+  segarkanTautanMedia,
+  tautanStabil,
+  type KategoriMedia,
+} from '../lib/mediaService.js';
 
 /** Identitas pemanggil yang sudah lolos `requireAuth`. */
 export type DocumentActor = { userId: string; role: UserRole };
+
+/**
+ * Menentukan tautan dokumen yang akan disimpan.
+ *
+ * Menerima data URL Base64 dari aplikasi lama maupun tautan media yang sudah
+ * jadi. Nilai kosong berarti dokumen itu tidak diunggah pada permintaan ini.
+ *
+ * Base64 tidak pernah ditulis ke kolom database: isinya dinormalkan sharp lebih
+ * dulu, lalu disimpan sebagai berkas media. Satu foto e-KTP dari kamera HP bisa
+ * mencapai 3 MB, dan menyimpannya sebagai teks Base64 membuat baris tabel
+ * membengkak tiga kali lipat.
+ */
+async function selesaikanDokumen(
+  nilai: string | null | undefined,
+  kategori: KategoriMedia,
+  ownerUserId: string,
+): Promise<string | null> {
+  if (!nilai) return null;
+
+  const bersih = nilai.trim();
+  if (!bersih) return null;
+
+  if (bersih.startsWith('/api/v1/media/')) return bersih;
+
+  if (bersih.startsWith('data:')) {
+    const media = await simpanMediaDariBase64({ base64: bersih, kategori, ownerUserId });
+    return tautanStabil(media.id);
+  }
+
+  throw new AppError(
+    'DOCUMENT_INVALID',
+    'Dokumen harus diunggah sebagai berkas gambar, bukan berupa alamat luar.',
+    400,
+  );
+}
 
 /**
  * Memastikan pemanggil berhak menyentuh dokumen pemesanan ini.
@@ -64,20 +105,34 @@ export const documentService = {
 
     pastikanBolehAkses(record.booking.customerId, actor);
 
+    /*
+     * Tautan dokumen yang tersimpan adalah rujukan stabil tanpa tanda tangan.
+     * Tanda tangan dibuat baru di sini supaya pratinjau di dashboard tetap bisa
+     * dibuka walaupun data sudah lama tersimpan.
+     */
+    const dokumen = record.document
+      ? {
+          ...record.document,
+          statementLetterUrl: await segarkanTautanMedia(record.document.statementLetterUrl),
+          ktpUrl: await segarkanTautanMedia(record.document.ktpUrl),
+          simUrl: await segarkanTautanMedia(record.document.simUrl),
+        }
+      : {
+          status: DocumentStatus.PENDING_UPLOAD,
+          statementLetterUrl: null,
+          ktpUrl: null,
+          simUrl: null,
+          rejectionReason: null,
+          verifiedAt: null,
+          verifiedBy: null,
+        };
+
     return {
       bookingId: record.booking.id,
       bookingCode: record.booking.bookingCode,
       rentalType: record.booking.rentalType,
       isSelfDrive: record.booking.rentalType === 'WITHOUT_DRIVER',
-      document: record.document ?? {
-        status: DocumentStatus.PENDING_UPLOAD,
-        statementLetterUrl: null,
-        ktpUrl: null,
-        simUrl: null,
-        rejectionReason: null,
-        verifiedAt: null,
-        verifiedBy: null,
-      },
+      document: dokumen,
     };
   },
 
@@ -100,7 +155,25 @@ export const documentService = {
 
     pastikanBolehAkses(record.booking.customerId, actor);
 
-    const updated = await documentModel.upsertDocument(record.booking.id, data);
+    /*
+     * Ketiga berkas diselesaikan lebih dulu, sebelum menyentuh database.
+     *
+     * Isinya bisa berupa data URL Base64 dari aplikasi lama atau tautan media
+     * yang sudah jadi. Yang Base64 dinormalkan sharp lalu disimpan sebagai
+     * media, sehingga kolom `statementLetterUrl`, `ktpUrl`, dan `simUrl` tidak
+     * lagi menyimpan blok Base64 berukuran ratusan kilobita.
+     */
+    const [statementLetterUrl, ktpUrl, simUrl] = await Promise.all([
+      selesaikanDokumen(data.statementLetterUrl, 'STATEMENT_LETTER', record.booking.customerId),
+      selesaikanDokumen(data.ktpUrl, 'KTP', record.booking.customerId),
+      selesaikanDokumen(data.simUrl, 'SIM', record.booking.customerId),
+    ]);
+
+    const updated = await documentModel.upsertDocument(record.booking.id, {
+      statementLetterUrl,
+      ktpUrl,
+      simUrl,
+    });
     return {
       bookingId: record.booking.id,
       bookingCode: record.booking.bookingCode,

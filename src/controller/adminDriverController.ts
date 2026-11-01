@@ -9,6 +9,47 @@ import {
   updateDriverSchema,
 } from '../validators/driverSchemas.js';
 import type { DriverWithAssignment } from '../model/driverModel.js';
+import { simpanMediaDariBase64, tautanStabil } from '../lib/mediaService.js';
+
+/**
+ * Menyiapkan foto SIM supir untuk disimpan.
+ *
+ * Menerima data URL Base64 dari dashboard lama maupun tautan media yang sudah
+ * jadi. Base64 tidak ditulis ke kolom `licensePhotoUrl`: isinya dinormalkan
+ * sharp lebih dulu lalu disimpan sebagai berkas media, sehingga satu baris
+ * tabel supir tidak lagi membawa ratusan kilobita teks.
+ *
+ * `undefined` berarti foto tidak diubah, sedangkan string kosong berarti foto
+ * dihapus. Keduanya harus dibedakan supaya menyunting nama supir tidak
+ * menghapus fotonya tanpa sengaja.
+ */
+async function selesaikanFotoSim(
+  nilai: string | null | undefined,
+  ownerUserId: string,
+): Promise<string | null | undefined> {
+  if (nilai === undefined) return undefined;
+  if (nilai === null) return null;
+
+  const bersih = nilai.trim();
+  if (!bersih) return null;
+
+  if (bersih.startsWith('/api/v1/media/')) return bersih;
+
+  if (bersih.startsWith('data:')) {
+    const media = await simpanMediaDariBase64({
+      base64: bersih,
+      kategori: 'DRIVER_LICENSE',
+      ownerUserId,
+    });
+    return tautanStabil(media.id);
+  }
+
+  throw new AppError(
+    'LICENSE_PHOTO_INVALID',
+    'Foto SIM harus diunggah sebagai berkas gambar, bukan berupa alamat luar.',
+    400,
+  );
+}
 
 /**
  * Controller roster supir.
@@ -168,7 +209,8 @@ export const adminDriverController = {
         phoneNumber: payload.phoneNumber ?? null,
         licenseNumber: payload.licenseNumber ?? null,
         licenseType: payload.licenseType ?? null,
-        licensePhotoUrl: payload.licensePhotoUrl ?? null,
+        licensePhotoUrl:
+          (await selesaikanFotoSim(payload.licensePhotoUrl, staffUser.userId)) ?? null,
         routeScope: payload.routeScope,
         actorId: staffUser.userId,
       });
@@ -213,8 +255,7 @@ export const adminDriverController = {
       if (payload.phoneNumber !== undefined) changes.phoneNumber = payload.phoneNumber ?? null;
       if (payload.licenseNumber !== undefined)
         changes.licenseNumber = payload.licenseNumber ?? null;
-      if (payload.licenseType !== undefined)
-        changes.licenseType = payload.licenseType ?? null;
+      if (payload.licenseType !== undefined) changes.licenseType = payload.licenseType ?? null;
       /* Foto SIM tidak disalin ke audit: isinya Base64 ratusan kilobita, dan
          mencatat "foto berubah" sudah cukup untuk keperluan penelusuran. */
       if (payload.licensePhotoUrl !== undefined)
@@ -232,7 +273,9 @@ export const adminDriverController = {
           licenseType:
             payload.licenseType === undefined ? undefined : (payload.licenseType ?? null),
           licensePhotoUrl:
-            payload.licensePhotoUrl === undefined ? undefined : (payload.licensePhotoUrl ?? null),
+            payload.licensePhotoUrl === undefined
+              ? undefined
+              : await selesaikanFotoSim(payload.licensePhotoUrl, staffUser.userId),
           routeScope: payload.routeScope,
         },
         changes,

@@ -7,11 +7,27 @@ export const createPaymentSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const uploadPaymentProofSchema = z.object({
-  proofImageUrl: z.string().min(1, 'URL atau bukti transfer wajib diisi'),
-  senderAccount: z.string().optional(),
-  bankName: z.string().optional(),
-});
+/**
+ * Bukti transfer boleh dikirim dengan salah satu cara:
+ *
+ * - `proofMediaId`: hasil unggahan ke `/api/v1/media` (cara baru);
+ * - `proofImageUrl`: data URL Base64 atau tautan media internal (cara lama,
+ *   tetap diterima supaya APK yang sudah beredar tidak rusak).
+ *
+ * Batas panjang Base64 di sini hanya pagar pertama. Batas sebenarnya diperiksa
+ * setelah isinya diukur, karena panjang string tidak sama dengan ukuran berkas.
+ */
+export const uploadPaymentProofSchema = z
+  .object({
+    proofImageUrl: z.string().optional(),
+    proofMediaId: z.string().uuid('ID media tidak valid').optional(),
+    senderAccount: z.string().optional(),
+    bankName: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.proofImageUrl || data.proofMediaId), {
+    message: 'Bukti transfer wajib diunggah.',
+    path: ['proofImageUrl'],
+  });
 
 export const adminVerifyPaymentSchema = z.object({
   action: z.enum(['APPROVE', 'REJECT']),
