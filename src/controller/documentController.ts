@@ -25,13 +25,17 @@ export const documentController = {
    */
   async getStatementTemplatePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { buffer, judul, versi } = await documentTemplateService.buatPdf({});
+      const { template, isi } = await documentTemplateService.bacaBerkasAktif();
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="Form_Kesanggupan_v${versi}.pdf"`);
-      res.setHeader('X-Document-Title', encodeURIComponent(judul));
-      res.setHeader('Content-Length', buffer.length);
-      res.end(buffer);
+      res.setHeader('Content-Type', template.berkasMime);
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
+      );
+      res.setHeader('X-Document-Title', encodeURIComponent(template.judul));
+      res.setHeader('X-Document-Version', String(template.versi));
+      res.setHeader('Content-Length', String(isi.length));
+      res.end(isi);
     } catch (error) {
       next(error);
     }

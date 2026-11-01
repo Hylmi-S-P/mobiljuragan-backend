@@ -117,12 +117,12 @@ export type MediaObject = Prisma.MediaObjectModel
  * Model DocumentTemplate
  * Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
  * 
- * Isi surat pernyataan berubah seiring waktu, jadi tidak boleh ditanam di kode.
- * Admin mengelola isinya lewat dashboard, dan pelanggan selalu mengunduh versi
- * yang sedang aktif.
+ * Admin mengunggah berkas PDF atau Word yang sudah jadi, lalu pelanggan
+ * mengunduh berkas itu apa adanya. Aplikasi tidak menyusun ulang isinya, jadi
+ * yang dicetak dan ditandatangani pelanggan persis berkas dari admin.
  * 
- * Setiap baris adalah satu versi. Saat template aktif diubah, baris baru dibuat
- * dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan begitu dokumen
- * yang sudah ditandatangani pelanggan tetap bisa ditelusuri memakai versi mana.
+ * Setiap baris adalah satu versi. Saat admin mengunggah berkas baru, baris
+ * baru dibuat dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan
+ * begitu dokumen yang sudah ditandatangani tetap bisa ditelusuri.
  */
 export type DocumentTemplate = Prisma.DocumentTemplateModel

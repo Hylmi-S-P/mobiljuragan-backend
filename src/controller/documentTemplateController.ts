@@ -1,84 +1,101 @@
 import type { NextFunction, Request, Response } from 'express';
+
 import { AppError, sendSuccess } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
-import { KODE_FORM_KESANGGUPAN } from '../lib/documentTemplateDefault.js';
 
-/** Nama berkas unduhan yang aman dipakai di semua sistem operasi. */
-function namaBerkas(judul: string, versi: number, ekstensi: string): string {
-  const bersih = judul
-    .replace(/[^\w\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '_')
-    .slice(0, 60);
-  return `${bersih || 'Dokumen'}_v${versi}.${ekstensi}`;
-}
-
-function kirimPdf(
-  res: Response,
-  buffer: Buffer,
-  judul: string,
-  versi: number,
-  unduh: boolean,
-): void {
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader(
-    'Content-Disposition',
-    `${unduh ? 'attachment' : 'inline'}; filename="${namaBerkas(judul, versi, 'pdf')}"`,
-  );
-  res.setHeader('Content-Length', buffer.length);
-  res.end(buffer);
-}
-
+/**
+ * Controller template dokumen.
+ *
+ * Admin mengunggah berkas dokumen resmi (PDF atau Word), lalu pelanggan
+ * mengunduh berkas yang sedang aktif. Tidak ada penyusunan isi di sisi
+ * aplikasi: yang diunggah admin adalah yang dicetak dan ditandatangani.
+ */
 export const documentTemplateController = {
   /**
-   * GET /api/v1/documents/form-kesanggupan.pdf
+   * GET /api/v1/documents/form-kesanggupan
    *
-   * Formulir kosong untuk diunduh pelanggan. Publik karena isinya belum memuat
-   * data siapa pun, dan pelanggan perlu mencetaknya sebelum punya sesi.
+   * Unduhan publik untuk pelanggan. Nama berkas mengikuti berkas asli dari
+   * admin, supaya pelanggan menerima dokumen dengan nama yang dikenali.
    */
-  async unduhFormulirKosong(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async unduhFormulirKosong(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { buffer, judul, versi } = await documentTemplateService.buatPdf({});
-      const unduh = req.query.unduh === '1' || req.query.unduh === 'true';
-      kirimPdf(res, buffer, judul, versi, unduh);
+      const { template, isi } = await documentTemplateService.bacaBerkasAktif();
+
+      res.setHeader('Content-Type', template.berkasMime);
+      res.setHeader('Content-Length', String(isi.length));
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
+      );
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      /* Versi dokumen ikut dikirim supaya bisa ditelusuri dari sisi klien. */
+      res.setHeader('X-Document-Version', String(template.versi));
+
+      res.end(isi);
     } catch (error) {
       next(error);
     }
   },
 
   /**
-   * GET /api/v1/admin/document-templates
+   * GET /api/v1/admin/document-templates/:id/berkas
    *
-   * Daftar seluruh versi template untuk dashboard.
+   * Berkas versi tertentu untuk dipratinjau admin. Dikirim `inline` supaya PDF
+   * terbuka langsung di peramban, bukan terunduh.
    */
+  async berkasVersi(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { template, isi } = await documentTemplateService.bacaBerkas(req.params.id);
+
+      res.setHeader('Content-Type', template.berkasMime);
+      res.setHeader('Content-Length', String(isi.length));
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
+      );
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      res.end(isi);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** GET /api/v1/admin/document-templates */
   async daftar(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const kode = typeof req.query.kode === 'string' ? req.query.kode : KODE_FORM_KESANGGUPAN;
+      const kode = typeof req.query.kode === 'string' ? req.query.kode : undefined;
       const items = await documentTemplateService.daftarVersi(kode);
-      sendSuccess(res, { items });
+      sendSuccess(res, { items, total: items.length });
     } catch (error) {
       next(error);
     }
   },
 
-  /**
-   * GET /api/v1/admin/document-templates/aktif
-   *
-   * Isi template yang sedang aktif, dipakai editor di dashboard.
-   */
-  async ambilAktif(req: Request, res: Response, next: NextFunction): Promise<void> {
+  /** GET /api/v1/admin/document-templates/aktif */
+  async ambilAktif(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const kode = typeof req.query.kode === 'string' ? req.query.kode : KODE_FORM_KESANGGUPAN;
-      const template = await documentTemplateService.ambilAktif(kode);
-      sendSuccess(res, template);
+      const aktif = await documentTemplateService.ambilAktif();
+      sendSuccess(res, {
+        id: aktif.id,
+        kode: aktif.kode,
+        judul: aktif.judul,
+        versi: aktif.versi,
+        berkasNama: aktif.berkasNama,
+        berkasMime: aktif.berkasMime,
+        berkasByte: aktif.berkasByte,
+        catatan: aktif.catatan,
+        dibuatOleh: aktif.dibuatOleh,
+        createdAt: aktif.createdAt,
+      });
     } catch (error) {
       next(error);
     }
   },
 
-  /**
-   * GET /api/v1/admin/document-templates/:id
-   */
+  /** GET /api/v1/admin/document-templates/:id */
   async ambilSatu(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const template = await documentTemplateService.ambilSatu(req.params.id);
@@ -91,68 +108,65 @@ export const documentTemplateController = {
   /**
    * POST /api/v1/admin/document-templates
    *
-   * Menyimpan isi sebagai versi baru dan langsung mengaktifkannya.
+   * Menerima unggahan multipart berisi `berkas` (wajib), `judul` dan `catatan`
+   * (opsional). Berkas langsung menjadi versi baru yang aktif.
    */
-  async simpan(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async unggah(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = req.user;
-      if (!user) {
-        throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
+      const berkas = req.file;
+
+      if (!berkas) {
+        throw new AppError(
+          'DOCUMENT_REQUIRED',
+          'Berkas dokumen wajib disertakan pada field "berkas".',
+          400,
+        );
       }
 
-      const { kode, judul, isi, catatan } = req.body as {
-        kode?: string;
-        judul?: string;
-        isi: unknown;
-        catatan?: string;
-      };
+      const judul = typeof req.body?.judul === 'string' ? req.body.judul : undefined;
+      const catatan = typeof req.body?.catatan === 'string' ? req.body.catatan : undefined;
 
-      const template = await documentTemplateService.simpanVersiBaru({
-        kode,
+      const tersimpan = await documentTemplateService.simpanVersiBaru({
+        buffer: berkas.buffer,
+        namaAsli: berkas.originalname,
         judul,
-        isi,
         catatan,
-        oleh: user.fullName || user.userId,
+        aktor: req.user?.fullName ?? req.user?.userId,
       });
 
-      sendSuccess(res, template, 201);
+      sendSuccess(
+        res,
+        {
+          id: tersimpan.id,
+          judul: tersimpan.judul,
+          versi: tersimpan.versi,
+          berkasNama: tersimpan.berkasNama,
+          berkasMime: tersimpan.berkasMime,
+          berkasByte: tersimpan.berkasByte,
+          isActive: tersimpan.isActive,
+        },
+        201,
+      );
     } catch (error) {
       next(error);
     }
   },
 
-  /**
-   * POST /api/v1/admin/document-templates/:id/aktifkan
-   *
-   * Mengembalikan versi lama menjadi aktif tanpa membuat versi baru.
-   */
+  /** POST /api/v1/admin/document-templates/:id/aktifkan */
   async aktifkan(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = req.user;
-      if (!user) {
-        throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
-      }
-
       const template = await documentTemplateService.aktifkanVersi(
         req.params.id,
-        user.fullName || user.userId,
+        req.user?.fullName ?? undefined,
       );
-      sendSuccess(res, template);
-    } catch (error) {
-      next(error);
-    }
-  },
 
-  /**
-   * GET /api/v1/admin/document-templates/:id/preview.pdf
-   *
-   * Pratinjau PDF dari versi tertentu, supaya admin bisa memeriksa hasil cetak
-   * sebelum mengaktifkannya.
-   */
-  async pratinjau(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { buffer, judul, versi } = await documentTemplateService.buatPdfVersi(req.params.id);
-      kirimPdf(res, buffer, judul, versi, false);
+      sendSuccess(res, {
+        id: template.id,
+        judul: template.judul,
+        versi: template.versi,
+        berkasNama: template.berkasNama,
+        isActive: template.isActive,
+      });
     } catch (error) {
       next(error);
     }

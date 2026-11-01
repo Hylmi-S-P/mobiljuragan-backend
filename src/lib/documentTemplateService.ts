@@ -1,250 +1,256 @@
+import { readFile } from 'node:fs/promises';
+
 import { db } from '../db.js';
 import { AppError } from './response.js';
 import {
-  ISI_BAWAAN_FORM_KESANGGUPAN,
-  KODE_FORM_KESANGGUPAN,
-  type IsiTemplateDokumen,
-} from './documentTemplateDefault.js';
-import { buatPdfFormKesanggupan } from './documentTemplatePdf.js';
+  BERKAS_BAWAAN,
+  bacaDokumen,
+  simpanDokumen,
+  type DokumenSiapSimpan,
+} from './documentTemplateBerkas.js';
+
+/** Kode template Form Kesanggupan. Satu-satunya dokumen yang dipakai saat ini. */
+export const KODE_FORM_KESANGGUPAN = 'FORM_KESANGGUPAN';
 
 /**
- * Pengelolaan template dokumen resmi.
+ * Template dokumen resmi.
  *
- * Aturan pentingnya: template tidak pernah diubah di tempat. Setiap penyuntingan
- * menghasilkan baris baru dengan nomor versi bertambah, dan versi lama
- * dinonaktifkan. Pelanggan selalu mendapat versi aktif, sedangkan dokumen yang
- * sudah ditandatangani tetap bisa ditelusuri memakai versi mana.
+ * Admin mengunggah berkas PDF atau Word yang sudah jadi. Aplikasi tidak
+ * menyusun ulang isinya, karena yang dicetak dan ditandatangani pelanggan harus
+ * persis berkas resmi perusahaan.
+ *
+ * Setiap unggahan menjadi versi baru dan langsung aktif. Versi lama tetap
+ * tersimpan tanpa berkasnya dihapus, sehingga dokumen yang sudah ditandatangani
+ * pelanggan tetap bisa ditelusuri memakai versi mana.
  */
 
-/** Penjaga agar penyemaian bawaan tidak berjalan bersamaan. */
 let penyemaianBerjalan: Promise<void> | null = null;
 
-/** Memastikan isi template punya bentuk yang bisa dicetak. */
-function periksaIsi(isi: unknown): IsiTemplateDokumen {
-  if (!isi || typeof isi !== 'object') {
-    throw new AppError('TEMPLATE_ISI_INVALID', 'Isi template wajib berupa objek.', 400);
+/**
+ * Menyiapkan versi pertama dari berkas bawaan bila belum ada sama sekali.
+ *
+ * Berkas bawaan disertakan bersama aplikasi supaya formulir sudah bisa diunduh
+ * pelanggan sejak hari pertama, sebelum admin sempat mengunggah dokumennya
+ * sendiri. Begitu admin mengunggah, versi ini kalah dan tidak dipakai lagi.
+ */
+async function semaiBilaKosong(): Promise<void> {
+  const jumlah = await db.documentTemplate.count({ where: { kode: KODE_FORM_KESANGGUPAN } });
+  if (jumlah > 0) return;
+
+  let isiBerkas: Buffer;
+  try {
+    isiBerkas = await readFile(BERKAS_BAWAAN);
+  } catch {
+    /*
+     * Berkas bawaan tidak ada. Ini bukan kegagalan yang perlu menghentikan
+     * aplikasi: admin tetap bisa mengunggah dokumen, dan sampai itu terjadi
+     * pelanggan menerima pesan bahwa dokumen belum tersedia.
+     */
+    return;
   }
 
-  const kandidat = isi as Partial<IsiTemplateDokumen>;
+  const tersimpan = await simpanDokumen(isiBerkas, 'Form Kesanggupan.pdf');
 
-  if (!kandidat.kop || typeof kandidat.kop.nama !== 'string' || !kandidat.kop.nama.trim()) {
-    throw new AppError('TEMPLATE_ISI_INVALID', 'Kop dokumen wajib memuat nama perusahaan.', 400);
-  }
-
-  if (typeof kandidat.judul !== 'string' || !kandidat.judul.trim()) {
-    throw new AppError('TEMPLATE_ISI_INVALID', 'Judul dokumen wajib diisi.', 400);
-  }
-
-  if (!Array.isArray(kandidat.butir) || kandidat.butir.length === 0) {
-    throw new AppError('TEMPLATE_ISI_INVALID', 'Dokumen wajib memuat minimal satu butir.', 400);
-  }
-
-  for (const [i, butir] of kandidat.butir.entries()) {
-    if (!butir || typeof butir.teks !== 'string' || !butir.teks.trim()) {
-      throw new AppError('TEMPLATE_ISI_INVALID', `Butir nomor ${i + 1} tidak boleh kosong.`, 400);
-    }
-  }
-
-  if (!kandidat.tabelPembayaran || !Array.isArray(kandidat.tabelPembayaran.kolom)) {
-    throw new AppError('TEMPLATE_ISI_INVALID', 'Tabel pembayaran wajib memuat daftar kolom.', 400);
-  }
-
-  return kandidat as IsiTemplateDokumen;
+  await db.documentTemplate.create({
+    data: {
+      kode: KODE_FORM_KESANGGUPAN,
+      judul: 'Form Kesanggupan',
+      versi: 1,
+      berkasObjectKey: tersimpan.objectKey,
+      berkasNama: tersimpan.nama,
+      berkasMime: tersimpan.mime,
+      berkasByte: tersimpan.byte,
+      berkasSha256: tersimpan.sha256,
+      isActive: true,
+      catatan: 'Dokumen bawaan. Ganti dengan berkas resmi perusahaan lewat menu Template Dokumen.',
+      dibuatOleh: 'sistem',
+    },
+  });
 }
 
-export const documentTemplateService = {
-  /**
-   * Menyiapkan template bawaan bila belum ada di database.
-   *
-   * Aman dipanggil berkali-kali. Dipakai saat server mulai, dan juga dipanggil
-   * otomatis oleh `ambilAktif` kalau tabelnya masih kosong. Cara kedua penting
-   * supaya instalasi baru tetap bisa melayani unduhan walaupun penyemaian saat
-   * start terlewat, misalnya karena database baru siap setelah server menyala.
-   */
-  async pastikanTemplateBawaan(): Promise<void> {
-    if (penyemaianBerjalan) return penyemaianBerjalan;
-
-    penyemaianBerjalan = (async () => {
-      const jumlah = await db.documentTemplate.count({ where: { kode: KODE_FORM_KESANGGUPAN } });
-      if (jumlah > 0) return;
-
-      await db.documentTemplate.create({
-        data: {
-          kode: KODE_FORM_KESANGGUPAN,
-          judul: 'Form Kesanggupan Penyewa',
-          versi: 1,
-          isi: ISI_BAWAAN_FORM_KESANGGUPAN as unknown as object,
-          isActive: true,
-          catatan: 'Versi awal, disalin dari surat pernyataan resmi perusahaan.',
-          dibuatOleh: 'sistem',
-        },
-      });
-    })().finally(() => {
+/** Menjalankan penyemaian sekali saja walaupun dipanggil bersamaan. */
+export async function pastikanTemplateBawaan(): Promise<void> {
+  if (!penyemaianBerjalan) {
+    penyemaianBerjalan = semaiBilaKosong().catch((error: unknown) => {
+      // Dikosongkan lagi supaya penyemaian dicoba ulang pada permintaan berikutnya.
       penyemaianBerjalan = null;
+      throw error;
     });
+  }
+  return penyemaianBerjalan;
+}
 
-    return penyemaianBerjalan;
-  },
+/** Mengambil versi yang sedang aktif, menyemai lebih dulu bila perlu. */
+export async function ambilAktif(kode = KODE_FORM_KESANGGUPAN) {
+  await pastikanTemplateBawaan();
 
-  /** Template aktif yang dipakai pelanggan. */
-  async ambilAktif(kode: string = KODE_FORM_KESANGGUPAN) {
-    let template = await db.documentTemplate.findFirst({
-      where: { kode, isActive: true },
-      orderBy: { versi: 'desc' },
-    });
+  const aktif = await db.documentTemplate.findFirst({
+    where: { kode, isActive: true },
+    orderBy: { versi: 'desc' },
+  });
 
-    /*
-     * Tabel kosong pada instalasi baru bukan alasan untuk menolak melayani.
-     * Template bawaan disemai lebih dulu, lalu pembacaan diulang sekali.
-     */
-    if (!template) {
-      await this.pastikanTemplateBawaan();
-      template = await db.documentTemplate.findFirst({
-        where: { kode, isActive: true },
-        orderBy: { versi: 'desc' },
-      });
-    }
+  if (!aktif) {
+    throw new AppError(
+      'TEMPLATE_NOT_AVAILABLE',
+      'Dokumen belum tersedia. Admin perlu mengunggah berkas dokumen terlebih dahulu.',
+      404,
+    );
+  }
 
-    if (!template) {
-      throw new AppError(
-        'TEMPLATE_NOT_FOUND',
-        `Template dokumen '${kode}' belum tersedia. Hubungi admin.`,
-        404,
-      );
-    }
+  return aktif;
+}
 
-    return template;
-  },
+/** Daftar seluruh versi, terbaru lebih dulu. */
+export async function daftarVersi(kode = KODE_FORM_KESANGGUPAN) {
+  await pastikanTemplateBawaan();
 
-  /** Seluruh versi dari satu kode, terbaru lebih dulu. */
-  async daftarVersi(kode: string = KODE_FORM_KESANGGUPAN) {
-    return db.documentTemplate.findMany({
+  return db.documentTemplate.findMany({
+    where: { kode },
+    orderBy: { versi: 'desc' },
+    select: {
+      id: true,
+      kode: true,
+      judul: true,
+      versi: true,
+      berkasNama: true,
+      berkasMime: true,
+      berkasByte: true,
+      isActive: true,
+      catatan: true,
+      dibuatOleh: true,
+      diperbaruiOleh: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+/** Satu versi berdasarkan ID. */
+export async function ambilSatu(id: string) {
+  const template = await db.documentTemplate.findUnique({ where: { id } });
+  if (!template) {
+    throw new AppError('TEMPLATE_NOT_FOUND', 'Versi dokumen tidak ditemukan.', 404);
+  }
+  return template;
+}
+
+/**
+ * Menyimpan berkas yang diunggah admin sebagai versi baru yang langsung aktif.
+ *
+ * Versi lama tidak dihapus, hanya dinonaktifkan. Penonaktifan dan pembuatan
+ * versi baru dijalankan dalam satu transaksi supaya tidak pernah ada keadaan
+ * dengan dua versi aktif atau tanpa versi aktif sama sekali.
+ */
+export async function simpanVersiBaru(params: {
+  buffer: Buffer;
+  namaAsli: string;
+  judul?: string;
+  catatan?: string;
+  aktor?: string;
+  kode?: string;
+}) {
+  const kode = params.kode ?? KODE_FORM_KESANGGUPAN;
+  const tersimpan: DokumenSiapSimpan = await simpanDokumen(params.buffer, params.namaAsli);
+
+  return db.$transaction(async (tx) => {
+    const terakhir = await tx.documentTemplate.findFirst({
       where: { kode },
       orderBy: { versi: 'desc' },
-      select: {
-        id: true,
-        kode: true,
-        judul: true,
-        versi: true,
-        isActive: true,
-        catatan: true,
-        dibuatOleh: true,
-        diperbaruiOleh: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-  },
-
-  async ambilSatu(id: string) {
-    const template = await db.documentTemplate.findUnique({ where: { id } });
-    if (!template) {
-      throw new AppError('TEMPLATE_NOT_FOUND', 'Template dokumen tidak ditemukan.', 404);
-    }
-    return template;
-  },
-
-  /**
-   * Menyimpan perubahan sebagai versi baru.
-   *
-   * Versi lama tidak dihapus dan tidak diubah isinya, hanya dinonaktifkan.
-   * Kalau admin menyimpan tanpa mengubah apa pun, versi baru tetap dibuat agar
-   * jejak siapa mengubah kapan tetap tercatat.
-   */
-  async simpanVersiBaru(params: {
-    kode?: string;
-    judul?: string;
-    isi: unknown;
-    catatan?: string;
-    oleh: string;
-  }) {
-    const kode = params.kode ?? KODE_FORM_KESANGGUPAN;
-    const isi = periksaIsi(params.isi);
-
-    const terakhir = await db.documentTemplate.findFirst({
-      where: { kode },
-      orderBy: { versi: 'desc' },
-      select: { versi: true },
+      select: { versi: true, judul: true },
     });
 
     const versiBaru = (terakhir?.versi ?? 0) + 1;
 
-    return db.$transaction(async (tx) => {
-      // Hanya satu versi aktif per kode.
-      await tx.documentTemplate.updateMany({
-        where: { kode, isActive: true },
-        data: { isActive: false },
-      });
-
-      return tx.documentTemplate.create({
-        data: {
-          kode,
-          judul: params.judul?.trim() || isi.judul,
-          versi: versiBaru,
-          isi: isi as unknown as object,
-          isActive: true,
-          catatan: params.catatan ?? null,
-          dibuatOleh: params.oleh,
-          diperbaruiOleh: params.oleh,
-        },
-      });
+    await tx.documentTemplate.updateMany({
+      where: { kode, isActive: true },
+      data: { isActive: false, diperbaruiOleh: params.aktor ?? null },
     });
-  },
 
-  /**
-   * Mengaktifkan kembali versi lama.
-   *
-   * Berguna kalau versi terbaru ternyata salah. Versi lain dinonaktifkan, dan
-   * tidak ada baris baru yang dibuat karena isinya memang sudah ada.
-   */
-  async aktifkanVersi(id: string, oleh: string) {
-    const target = await this.ambilSatu(id);
-
-    return db.$transaction(async (tx) => {
-      await tx.documentTemplate.updateMany({
-        where: { kode: target.kode, isActive: true },
-        data: { isActive: false },
-      });
-
-      return tx.documentTemplate.update({
-        where: { id },
-        data: { isActive: true, diperbaruiOleh: oleh },
-      });
+    return tx.documentTemplate.create({
+      data: {
+        kode,
+        judul: params.judul?.trim() || terakhir?.judul || 'Form Kesanggupan',
+        versi: versiBaru,
+        berkasObjectKey: tersimpan.objectKey,
+        berkasNama: tersimpan.nama,
+        berkasMime: tersimpan.mime,
+        berkasByte: tersimpan.byte,
+        berkasSha256: tersimpan.sha256,
+        isActive: true,
+        catatan: params.catatan?.trim() || null,
+        dibuatOleh: params.aktor ?? null,
+      },
     });
-  },
+  });
+}
 
-  /**
-   * Membentuk PDF dari template aktif.
-   *
-   * `terisi` dipakai saat data pemesan sudah diketahui, misalnya dari halaman
-   * status pesanan. Tanpa itu, formulir tercetak kosong untuk diisi tangan.
-   */
-  async buatPdf(params: {
-    kode?: string;
-    terisi?: {
-      nama?: string | null;
-      nomorHp?: string | null;
-      alamat?: string | null;
-      namaMobil?: string | null;
-      kodeBooking?: string | null;
-    };
-  }): Promise<{ buffer: Buffer; judul: string; versi: number }> {
-    const template = await this.ambilAktif(params.kode);
-    const isi = template.isi as unknown as IsiTemplateDokumen;
+/** Mengaktifkan kembali versi lama tanpa membuat versi baru. */
+export async function aktifkanVersi(id: string, aktor?: string) {
+  const template = await ambilSatu(id);
 
-    const buffer = await buatPdfFormKesanggupan(isi, { terisi: params.terisi });
+  return db.$transaction(async (tx) => {
+    await tx.documentTemplate.updateMany({
+      where: { kode: template.kode, isActive: true },
+      data: { isActive: false, diperbaruiOleh: aktor ?? null },
+    });
 
-    return { buffer, judul: template.judul, versi: template.versi };
-  },
+    return tx.documentTemplate.update({
+      where: { id },
+      data: { isActive: true, diperbaruiOleh: aktor ?? null },
+    });
+  });
+}
 
-  /** PDF dari versi tertentu, dipakai saat menelusuri dokumen lama. */
-  async buatPdfVersi(
-    id: string,
-    terisi?: { nama?: string | null; kodeBooking?: string | null },
-  ): Promise<{ buffer: Buffer; judul: string; versi: number }> {
-    const template = await this.ambilSatu(id);
-    const isi = template.isi as unknown as IsiTemplateDokumen;
-    const buffer = await buatPdfFormKesanggupan(isi, { terisi });
-    return { buffer, judul: template.judul, versi: template.versi };
-  },
+/** Isi berkas dari versi tertentu. */
+export async function bacaBerkas(id: string) {
+  const template = await ambilSatu(id);
+  const isi = await bacaDokumen(template.berkasObjectKey);
+  return { template, isi };
+}
+
+/** Isi berkas dari versi yang sedang aktif. */
+export async function bacaBerkasAktif() {
+  const template = await ambilAktif();
+  const isi = await bacaDokumen(template.berkasObjectKey);
+  return { template, isi };
+}
+
+/**
+ * Keterangan ringkas dokumen aktif untuk ditampilkan di aplikasi mobile.
+ *
+ * Aplikasi tidak lagi menampilkan isi klausul sebagai teks, karena dokumennya
+ * bisa berupa PDF atau Word yang tidak bisa dibaca sebagai teks biasa. Yang
+ * dikirim adalah keterangan berkasnya, dan pelanggan mengunduh berkasnya.
+ */
+export async function keteranganDokumenAktif() {
+  const template = await ambilAktif();
+
+  return {
+    kode: template.kode,
+    judul: template.judul,
+    versi: template.versi,
+    namaBerkas: template.berkasNama,
+    mime: template.berkasMime,
+    byte: template.berkasByte,
+    diperbarui: template.createdAt,
+  };
+}
+
+/**
+ * Bentuk objek dari fungsi-fungsi di atas.
+ *
+ * Dipakai controller dan service lain supaya pemanggilnya cukup mengimpor satu
+ * nama, dan pengelompokan ini juga menandai mana yang bagian dari antarmuka
+ * publik modul ini.
+ */
+export const documentTemplateService = {
+  pastikanTemplateBawaan,
+  ambilAktif,
+  daftarVersi,
+  ambilSatu,
+  simpanVersiBaru,
+  aktifkanVersi,
+  bacaBerkas,
+  bacaBerkasAktif,
+  keteranganDokumenAktif,
 };

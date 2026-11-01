@@ -589,32 +589,41 @@ model MediaObject {
 
 /// Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
 ///
-/// Isi surat pernyataan berubah seiring waktu, jadi tidak boleh ditanam di kode.
-/// Admin mengelola isinya lewat dashboard, dan pelanggan selalu mengunduh versi
-/// yang sedang aktif.
+/// Admin mengunggah berkas PDF atau Word yang sudah jadi, lalu pelanggan
+/// mengunduh berkas itu apa adanya. Aplikasi tidak menyusun ulang isinya, jadi
+/// yang dicetak dan ditandatangani pelanggan persis berkas dari admin.
 ///
-/// Setiap baris adalah satu versi. Saat template aktif diubah, baris baru dibuat
-/// dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan begitu dokumen
-/// yang sudah ditandatangani pelanggan tetap bisa ditelusuri memakai versi mana.
+/// Setiap baris adalah satu versi. Saat admin mengunggah berkas baru, baris
+/// baru dibuat dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan
+/// begitu dokumen yang sudah ditandatangani tetap bisa ditelusuri.
 model DocumentTemplate {
   id String @id @default(uuid())
 
   /// Kode stabil yang dipakai kode program, misalnya FORM_KESANGGUPAN.
   kode String @db.VarChar(64)
 
-  /// Judul yang tampil pada dokumen dan di dashboard.
+  /// Judul yang tampil di dashboard.
   judul String @db.VarChar(200)
 
   /// Nomor versi, mulai dari 1.
   versi Int @default(1)
 
-  /// Isi terstruktur: kop, pembuka, identitas, butir, penutup, dan tabel.
-  isi Json
+  /// Lokasi berkas di penyimpanan objek.
+  berkasObjectKey String @db.VarChar(255)
+
+  /// Nama berkas asli dari admin, dipakai saat pelanggan mengunduh.
+  berkasNama String @db.VarChar(255)
+
+  /// Tipe MIME berkas, menentukan bagaimana peramban menyajikannya.
+  berkasMime String @db.VarChar(100)
+
+  berkasByte   Int
+  berkasSha256 String @db.Char(64)
 
   /// Hanya satu versi aktif per `kode`.
   isActive Boolean @default(false)
 
-  /// Catatan perubahan yang diisi admin saat menyimpan.
+  /// Catatan perubahan yang diisi admin saat mengunggah.
   catatan String? @db.Text
 
   dibuatOleh     String?
