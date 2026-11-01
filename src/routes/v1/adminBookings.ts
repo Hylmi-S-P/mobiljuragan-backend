@@ -6,6 +6,7 @@ import { UserRole } from '../../generated/prisma/client.js';
 import {
   adminBookingQuerySchema,
   assignDriverSchema,
+  createLineItemSchema,
   updateBookingStatusSchema,
 } from '../../validators/bookingSchemas.js';
 
@@ -30,3 +31,12 @@ adminBookingRouter.patch(
   validateBody(assignDriverSchema),
   adminBookingController.assignDriver,
 );
+
+/* Penyesuaian biaya manual. Didaftarkan sebelum `/:id` tidak masalah karena
+   metode dan kedalaman jalurnya berbeda, tetapi urutannya tetap dijaga. */
+adminBookingRouter.post(
+  '/:id/line-items',
+  validateBody(createLineItemSchema),
+  adminBookingController.createLineItem,
+);
+adminBookingRouter.delete('/:id/line-items/:lineItemId', adminBookingController.cancelLineItem);

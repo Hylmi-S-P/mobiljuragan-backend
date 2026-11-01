@@ -62,6 +62,20 @@ export type Driver = Prisma.DriverModel
  */
 export type Booking = Prisma.BookingModel
 /**
+ * Model BookingLineItem
+ * Penyesuaian biaya manual (surcharge) yang ditetapkan admin per booking.
+ * 
+ * Sebelumnya rincian ini hanya hidup di state React: admin mengisi deskripsi,
+ * nominal, dan justifikasi audit, melihat barisnya muncul di tabel, lalu
+ * semuanya hilang begitu halaman dimuat ulang. Tidak ada jejak audit sama
+ * sekali, padahal justifikasi itu diminta sebagai catatan internal.
+ * 
+ * Nominal disimpan sebagai angka positif ditambah `arah`, bukan sebagai angka
+ * bertanda. Dengan begitu laporan bisa menjumlahkan penambahan dan pengurangan
+ * secara terpisah, dan tidak ada risiko tanda yang tertukar saat dibaca.
+ */
+export type BookingLineItem = Prisma.BookingLineItemModel
+/**
  * Model BookingStatusHistory
  * Riwayat tiap perubahan status booking (business rule minimum #5).
  */

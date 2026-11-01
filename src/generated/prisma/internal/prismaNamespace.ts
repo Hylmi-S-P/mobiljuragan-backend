@@ -401,6 +401,7 @@ export const ModelName = {
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
+  BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -694,6 +695,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BookingCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BookingCountAggregateOutputType> | number
+        }
+      }
+    }
+    BookingLineItem: {
+      payload: Prisma.$BookingLineItemPayload<ExtArgs>
+      fields: Prisma.BookingLineItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookingLineItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookingLineItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        findFirst: {
+          args: Prisma.BookingLineItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookingLineItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        findMany: {
+          args: Prisma.BookingLineItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>[]
+        }
+        create: {
+          args: Prisma.BookingLineItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        createMany: {
+          args: Prisma.BookingLineItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.BookingLineItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        update: {
+          args: Prisma.BookingLineItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookingLineItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookingLineItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.BookingLineItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        aggregate: {
+          args: Prisma.BookingLineItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingLineItem>
+        }
+        groupBy: {
+          args: Prisma.BookingLineItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingLineItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookingLineItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingLineItemCountAggregateOutputType> | number
         }
       }
     }
@@ -1671,6 +1738,24 @@ export const BookingScalarFieldEnum = {
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
 
 
+export const BookingLineItemScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  nominal: 'nominal',
+  arah: 'arah',
+  justifikasi: 'justifikasi',
+  dibatalkanPada: 'dibatalkanPada',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingLineItemScalarFieldEnum = (typeof BookingLineItemScalarFieldEnum)[keyof typeof BookingLineItemScalarFieldEnum]
+
+
 export const BookingStatusHistoryScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
@@ -1964,6 +2049,19 @@ export const BookingOrderByRelevanceFieldEnum = {
 export type BookingOrderByRelevanceFieldEnum = (typeof BookingOrderByRelevanceFieldEnum)[keyof typeof BookingOrderByRelevanceFieldEnum]
 
 
+export const BookingLineItemOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  justifikasi: 'justifikasi',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh'
+} as const
+
+export type BookingLineItemOrderByRelevanceFieldEnum = (typeof BookingLineItemOrderByRelevanceFieldEnum)[keyof typeof BookingLineItemOrderByRelevanceFieldEnum]
+
+
 export const BookingStatusHistoryOrderByRelevanceFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
@@ -2235,6 +2333,13 @@ export type EnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 
 
 /**
+ * Reference to a field of type 'LineItemDirection'
+ */
+export type EnumLineItemDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LineItemDirection'>
+    
+
+
+/**
  * Reference to a field of type 'BookingStatusActor'
  */
 export type EnumBookingStatusActorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatusActor'>
@@ -2458,6 +2563,7 @@ export type GlobalOmitConfig = {
   vehicle?: Prisma.VehicleOmit
   driver?: Prisma.DriverOmit
   booking?: Prisma.BookingOmit
+  bookingLineItem?: Prisma.BookingLineItemOmit
   bookingStatusHistory?: Prisma.BookingStatusHistoryOmit
   otpVerification?: Prisma.OtpVerificationOmit
   supportTicket?: Prisma.SupportTicketOmit
