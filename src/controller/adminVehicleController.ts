@@ -2,7 +2,7 @@ import { vehicleModel } from '../model/vehicleModel.js';
 import type { NextFunction, Request, Response } from 'express';
 import type { OperationalStatus } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import { simpanMedia, tautanMedia } from '../lib/mediaService.js';
+import { simpanMedia, simpanMediaDariBase64, tautanMedia } from '../lib/mediaService.js';
 
 /**
  * Controller manajemen armada untuk portal staf/admin.
@@ -45,7 +45,8 @@ export const adminVehicleController = {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const staffUser = req.user!;
-      const created = await vehicleModel.createVehicle(req.body, staffUser.userId);
+      const body = await normalkanFotoKendaraan(req.body, staffUser.userId);
+      const created = await vehicleModel.createVehicle(body, staffUser.userId);
       sendSuccess(res, created, 201);
     } catch (error) {
       next(error);
@@ -56,7 +57,8 @@ export const adminVehicleController = {
     try {
       const { id } = req.params;
       const staffUser = req.user!;
-      const updated = await vehicleModel.updateVehicle(id, req.body, staffUser.userId);
+      const body = await normalkanFotoKendaraan(req.body, staffUser.userId);
+      const updated = await vehicleModel.updateVehicle(id, body, staffUser.userId);
       sendSuccess(res, updated);
     } catch (error: any) {
       if (error?.message === 'VEHICLE_NOT_FOUND') {
@@ -151,3 +153,45 @@ export const adminVehicleController = {
     }
   },
 };
+
+/**
+ * Mengubah foto Base64 pada isi permintaan menjadi tautan media.
+ *
+ * Dashboard lama mengirim foto armada sebagai data URL di dalam JSON. Kalau
+ * dibiarkan, kolom `vehicles.imageUrl` menyimpan blok Base64 berukuran
+ * ratusan kilobita: satu unit armada membengkak, dan foto tidak pernah
+ * dinormalkan sharp sehingga orientasi EXIF serta metadata lokasi ikut
+ * tersimpan.
+ *
+ * Di sini Base64 diubah menjadi berkas media lebih dulu, lalu yang diteruskan
+ * ke model hanya tautannya. Nilai yang sudah berupa tautan media dibiarkan apa
+ * adanya, dan nilai kosong tetap berarti "hapus foto".
+ */
+async function normalkanFotoKendaraan<T extends { imageUrl?: string }>(
+  body: T,
+  ownerUserId: string,
+): Promise<T> {
+  const nilai = body?.imageUrl;
+
+  if (typeof nilai !== 'string') return body;
+
+  const bersih = nilai.trim();
+  if (!bersih) return body;
+
+  if (bersih.startsWith('/api/v1/media/')) return body;
+
+  if (bersih.startsWith('data:')) {
+    const media = await simpanMediaDariBase64({
+      base64: bersih,
+      kategori: 'FLEET_PHOTO',
+      ownerUserId,
+    });
+    return { ...body, imageUrl: tautanMedia(media.id, media.kategori) };
+  }
+
+  /*
+   * Nilai lain sudah ditolak validator skema sebelum sampai ke sini, jadi
+   * cabang ini hanya jaring pengaman.
+   */
+  return body;
+}
