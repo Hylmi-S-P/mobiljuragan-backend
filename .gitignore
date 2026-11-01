@@ -31,3 +31,6 @@ docs/design/
 
 # Berkas unggahan pelanggan (KTP/SIM/foto bukti)
 uploads/
+
+# Rekonsiliasi backfill (berisi nominal pelanggan)
+backfill/

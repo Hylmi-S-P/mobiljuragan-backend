@@ -490,8 +490,14 @@ model Payment {
   booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   baseAmount      Decimal        @db.Decimal(12, 2)
-  uniqueCode      Int            @default(0) // 1 s.d. 100 untuk pencocokan mutasi otomatis
-  totalAmount     Decimal        @db.Decimal(12, 2) // baseAmount + uniqueCode
+  /// USANG: dulu berisi kode 1-100 untuk mencocokkan mutasi otomatis.
+  /// Sekarang selalu 0 karena verifikasi pembayaran dilakukan manual memakai
+  /// nominal + bukti transfer. Kolom dipertahankan agar data lama tetap terbaca;
+  /// lihat scripts/lepas-kode-unik-pembayaran.ts untuk penyelarasan totalAmount.
+  uniqueCode      Int            @default(0)
+  /// Nominal yang harus dibayar. Sejak kode unik dihapus, nilainya sama dengan
+  /// baseAmount.
+  totalAmount     Decimal        @db.Decimal(12, 2)
 
   method          PaymentMethod  @default(QRIS)
   status          PaymentStatus  @default(UNPAID)

@@ -143,46 +143,14 @@ export const paymentService = {
 
       const baseAmount = Number(booking.quotedAmount);
 
-      // 2. Alokasi kode unik (1 s.d. 100) bebas bentrok di dalam transaksi
-      let uniqueCode = 0;
-      let totalAmount = baseAmount;
-
-      if (params.method === PaymentMethod.QRIS || params.method === PaymentMethod.BANK_TRANSFER) {
-        // Cari semua kode unik yang sedang aktif pada pembayaran berstatus UNPAID / PENDING_VERIFICATION
-        // dengan tarif dasar yang sama untuk menghindari ambiguitas nominal mutasi
-        const activePayments = await tx.payment.findMany({
-          where: {
-            status: { in: [PaymentStatus.UNPAID, PaymentStatus.PENDING_VERIFICATION] },
-            baseAmount: baseAmount,
-          },
-          select: { uniqueCode: true },
-        });
-
-        const usedCodes = new Set(activePayments.map((p) => p.uniqueCode));
-
-        // Acak kandidat kode unik antara 1 dan 100
-        let candidate = Math.floor(Math.random() * 100) + 1;
-        if (usedCodes.has(candidate)) {
-          // Cari angka pertama yang belum terpakai dalam rentang 1..100
-          candidate = 0;
-          for (let c = 1; c <= 100; c++) {
-            if (!usedCodes.has(c)) {
-              candidate = c;
-              break;
-            }
-          }
-          if (candidate === 0) {
-            throw new AppError(
-              'UNIQUE_CODE_EXHAUSTED',
-              'Antrean kode unik pembayaran sedang penuh. Silakan coba beberapa saat lagi.',
-              409
-            );
-          }
-        }
-
-        uniqueCode = candidate;
-        totalAmount = baseAmount + uniqueCode;
-      }
+      /* Nominal tagihan sama dengan tarif yang disepakati.
+         Sebelumnya server menambahkan "kode unik" 1-100 ke total, sementara
+         aplikasi mobile menghitung kode 3 digit sendiri dari hash id pesanan.
+         Dua angka berbeda itu tidak mungkin dicocokkan dengan mutasi bank, jadi
+         verifikasi kini murni manual memakai nominal dan bukti transfer.
+         Kolom `uniqueCode` tetap ada (usang, selalu 0) agar data lama terbaca. */
+      const uniqueCode = 0;
+      const totalAmount = baseAmount;
 
       // 3. Setup QRIS jika metode QRIS
       let qrisPayload: string | null = null;
@@ -232,7 +200,7 @@ export const paymentService = {
           toStatus: booking.status,
           actor: BookingStatusActor.SYSTEM,
           actorUserId: params.actorUserId || booking.customerId,
-          note: `Tagihan pembayaran dibuat via ${params.method} sebesar Rp ${totalAmount.toLocaleString('id-ID')} (Kode Unik: ${uniqueCode}).`,
+          note: `Tagihan pembayaran dibuat via ${params.method} sebesar Rp ${totalAmount.toLocaleString('id-ID')}.`,
         },
       });
 
