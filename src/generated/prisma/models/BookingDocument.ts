@@ -32,6 +32,7 @@ export type BookingDocumentMinAggregateOutputType = {
   simUrl: string | null
   status: $Enums.DocumentStatus | null
   rejectionReason: string | null
+  rejectionTargets: string | null
   verifiedAt: Date | null
   verifiedBy: string | null
   createdAt: Date | null
@@ -46,6 +47,7 @@ export type BookingDocumentMaxAggregateOutputType = {
   simUrl: string | null
   status: $Enums.DocumentStatus | null
   rejectionReason: string | null
+  rejectionTargets: string | null
   verifiedAt: Date | null
   verifiedBy: string | null
   createdAt: Date | null
@@ -60,6 +62,7 @@ export type BookingDocumentCountAggregateOutputType = {
   simUrl: number
   status: number
   rejectionReason: number
+  rejectionTargets: number
   verifiedAt: number
   verifiedBy: number
   createdAt: number
@@ -76,6 +79,7 @@ export type BookingDocumentMinAggregateInputType = {
   simUrl?: true
   status?: true
   rejectionReason?: true
+  rejectionTargets?: true
   verifiedAt?: true
   verifiedBy?: true
   createdAt?: true
@@ -90,6 +94,7 @@ export type BookingDocumentMaxAggregateInputType = {
   simUrl?: true
   status?: true
   rejectionReason?: true
+  rejectionTargets?: true
   verifiedAt?: true
   verifiedBy?: true
   createdAt?: true
@@ -104,6 +109,7 @@ export type BookingDocumentCountAggregateInputType = {
   simUrl?: true
   status?: true
   rejectionReason?: true
+  rejectionTargets?: true
   verifiedAt?: true
   verifiedBy?: true
   createdAt?: true
@@ -191,6 +197,7 @@ export type BookingDocumentGroupByOutputType = {
   simUrl: string | null
   status: $Enums.DocumentStatus
   rejectionReason: string | null
+  rejectionTargets: string | null
   verifiedAt: Date | null
   verifiedBy: string | null
   createdAt: Date
@@ -226,6 +233,7 @@ export type BookingDocumentWhereInput = {
   simUrl?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   status?: Prisma.EnumDocumentStatusFilter<"BookingDocument"> | $Enums.DocumentStatus
   rejectionReason?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
+  rejectionTargets?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   verifiedAt?: Prisma.DateTimeNullableFilter<"BookingDocument"> | Date | string | null
   verifiedBy?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BookingDocument"> | Date | string
@@ -241,6 +249,7 @@ export type BookingDocumentOrderByWithRelationInput = {
   simUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectionTargets?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -260,6 +269,7 @@ export type BookingDocumentWhereUniqueInput = Prisma.AtLeast<{
   simUrl?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   status?: Prisma.EnumDocumentStatusFilter<"BookingDocument"> | $Enums.DocumentStatus
   rejectionReason?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
+  rejectionTargets?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   verifiedAt?: Prisma.DateTimeNullableFilter<"BookingDocument"> | Date | string | null
   verifiedBy?: Prisma.StringNullableFilter<"BookingDocument"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BookingDocument"> | Date | string
@@ -275,6 +285,7 @@ export type BookingDocumentOrderByWithAggregationInput = {
   simUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectionTargets?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -295,6 +306,7 @@ export type BookingDocumentScalarWhereWithAggregatesInput = {
   simUrl?: Prisma.StringNullableWithAggregatesFilter<"BookingDocument"> | string | null
   status?: Prisma.EnumDocumentStatusWithAggregatesFilter<"BookingDocument"> | $Enums.DocumentStatus
   rejectionReason?: Prisma.StringNullableWithAggregatesFilter<"BookingDocument"> | string | null
+  rejectionTargets?: Prisma.StringNullableWithAggregatesFilter<"BookingDocument"> | string | null
   verifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BookingDocument"> | Date | string | null
   verifiedBy?: Prisma.StringNullableWithAggregatesFilter<"BookingDocument"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BookingDocument"> | Date | string
@@ -308,6 +320,7 @@ export type BookingDocumentCreateInput = {
   simUrl?: string | null
   status?: $Enums.DocumentStatus
   rejectionReason?: string | null
+  rejectionTargets?: string | null
   verifiedAt?: Date | string | null
   verifiedBy?: string | null
   createdAt?: Date | string
@@ -323,6 +336,7 @@ export type BookingDocumentUncheckedCreateInput = {
   simUrl?: string | null
   status?: $Enums.DocumentStatus
   rejectionReason?: string | null
+  rejectionTargets?: string | null
   verifiedAt?: Date | string | null
   verifiedBy?: string | null
   createdAt?: Date | string
@@ -336,6 +350,7 @@ export type BookingDocumentUpdateInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -351,6 +366,7 @@ export type BookingDocumentUncheckedUpdateInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -365,6 +381,7 @@ export type BookingDocumentCreateManyInput = {
   simUrl?: string | null
   status?: $Enums.DocumentStatus
   rejectionReason?: string | null
+  rejectionTargets?: string | null
   verifiedAt?: Date | string | null
   verifiedBy?: string | null
   createdAt?: Date | string
@@ -378,6 +395,7 @@ export type BookingDocumentUpdateManyMutationInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -392,6 +410,7 @@ export type BookingDocumentUncheckedUpdateManyInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -417,6 +436,7 @@ export type BookingDocumentCountOrderByAggregateInput = {
   simUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  rejectionTargets?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
   verifiedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -431,6 +451,7 @@ export type BookingDocumentMaxOrderByAggregateInput = {
   simUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  rejectionTargets?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
   verifiedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -445,6 +466,7 @@ export type BookingDocumentMinOrderByAggregateInput = {
   simUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  rejectionTargets?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
   verifiedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -494,6 +516,7 @@ export type BookingDocumentCreateWithoutBookingInput = {
   simUrl?: string | null
   status?: $Enums.DocumentStatus
   rejectionReason?: string | null
+  rejectionTargets?: string | null
   verifiedAt?: Date | string | null
   verifiedBy?: string | null
   createdAt?: Date | string
@@ -507,6 +530,7 @@ export type BookingDocumentUncheckedCreateWithoutBookingInput = {
   simUrl?: string | null
   status?: $Enums.DocumentStatus
   rejectionReason?: string | null
+  rejectionTargets?: string | null
   verifiedAt?: Date | string | null
   verifiedBy?: string | null
   createdAt?: Date | string
@@ -536,6 +560,7 @@ export type BookingDocumentUpdateWithoutBookingInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -549,6 +574,7 @@ export type BookingDocumentUncheckedUpdateWithoutBookingInput = {
   simUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionTargets?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -565,6 +591,7 @@ export type BookingDocumentSelect<ExtArgs extends runtime.Types.Extensions.Inter
   simUrl?: boolean
   status?: boolean
   rejectionReason?: boolean
+  rejectionTargets?: boolean
   verifiedAt?: boolean
   verifiedBy?: boolean
   createdAt?: boolean
@@ -582,13 +609,14 @@ export type BookingDocumentSelectScalar = {
   simUrl?: boolean
   status?: boolean
   rejectionReason?: boolean
+  rejectionTargets?: boolean
   verifiedAt?: boolean
   verifiedBy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BookingDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "statementLetterUrl" | "ktpUrl" | "simUrl" | "status" | "rejectionReason" | "verifiedAt" | "verifiedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["bookingDocument"]>
+export type BookingDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "statementLetterUrl" | "ktpUrl" | "simUrl" | "status" | "rejectionReason" | "rejectionTargets" | "verifiedAt" | "verifiedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["bookingDocument"]>
 export type BookingDocumentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }
@@ -606,6 +634,13 @@ export type $BookingDocumentPayload<ExtArgs extends runtime.Types.Extensions.Int
     simUrl: string | null
     status: $Enums.DocumentStatus
     rejectionReason: string | null
+    /**
+     * Dokumen yang ditolak, disimpan sebagai JSON array: ["KTP","SIM","STATEMENT"].
+     * Dipisah dari rejectionReason supaya aplikasi mobile tidak perlu menebak dari
+     * teks bebas dokumen mana yang harus difoto ulang. Null berarti tidak ada
+     * penolakan aktif (atau baris lama yang belum sempat dimigrasikan).
+     */
+    rejectionTargets: string | null
     verifiedAt: Date | null
     verifiedBy: string | null
     createdAt: Date
@@ -987,6 +1022,7 @@ export interface BookingDocumentFieldRefs {
   readonly simUrl: Prisma.FieldRef<"BookingDocument", 'String'>
   readonly status: Prisma.FieldRef<"BookingDocument", 'DocumentStatus'>
   readonly rejectionReason: Prisma.FieldRef<"BookingDocument", 'String'>
+  readonly rejectionTargets: Prisma.FieldRef<"BookingDocument", 'String'>
   readonly verifiedAt: Prisma.FieldRef<"BookingDocument", 'DateTime'>
   readonly verifiedBy: Prisma.FieldRef<"BookingDocument", 'String'>
   readonly createdAt: Prisma.FieldRef<"BookingDocument", 'DateTime'>

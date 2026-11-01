@@ -114,6 +114,8 @@ export const documentModel = {
     data: {
       status: DocumentStatus;
       rejectionReason?: string | null;
+      /** JSON array target penolakan; null saat dokumen disetujui. */
+      rejectionTargets?: string | null;
       verifiedAt?: Date | null;
       verifiedBy?: string | null;
     },
@@ -123,6 +125,7 @@ export const documentModel = {
       data: {
         status: data.status,
         rejectionReason: data.rejectionReason ?? null,
+        rejectionTargets: data.rejectionTargets ?? null,
         verifiedAt: data.verifiedAt ?? new Date(),
         verifiedBy: data.verifiedBy ?? null,
       },

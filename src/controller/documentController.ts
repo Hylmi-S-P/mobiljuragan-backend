@@ -176,7 +176,7 @@ export const documentController = {
   async adminVerifyDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { action, rejectionReason } = req.body;
+      const { action, rejectionReason, targets } = req.body;
 
       if (action !== 'APPROVE' && action !== 'REJECT') {
         throw new AppError(
@@ -190,6 +190,7 @@ export const documentController = {
       const result = await documentService.adminVerifyDocuments(id, {
         action,
         rejectionReason,
+        targets,
         verifierName,
       });
 

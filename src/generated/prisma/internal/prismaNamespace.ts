@@ -1708,6 +1708,7 @@ export const BookingDocumentScalarFieldEnum = {
   simUrl: 'simUrl',
   status: 'status',
   rejectionReason: 'rejectionReason',
+  rejectionTargets: 'rejectionTargets',
   verifiedAt: 'verifiedAt',
   verifiedBy: 'verifiedBy',
   createdAt: 'createdAt',
@@ -1929,6 +1930,7 @@ export const BookingDocumentOrderByRelevanceFieldEnum = {
   ktpUrl: 'ktpUrl',
   simUrl: 'simUrl',
   rejectionReason: 'rejectionReason',
+  rejectionTargets: 'rejectionTargets',
   verifiedBy: 'verifiedBy'
 } as const
 

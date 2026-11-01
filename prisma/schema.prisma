@@ -531,6 +531,12 @@ model BookingDocument {
   status              DocumentStatus  @default(PENDING_UPLOAD)
   rejectionReason     String?         @db.Text
 
+  /// Dokumen yang ditolak, disimpan sebagai JSON array: ["KTP","SIM","STATEMENT"].
+  /// Dipisah dari rejectionReason supaya aplikasi mobile tidak perlu menebak dari
+  /// teks bebas dokumen mana yang harus difoto ulang. Null berarti tidak ada
+  /// penolakan aktif (atau baris lama yang belum sempat dimigrasikan).
+  rejectionTargets   String?         @db.Text
+
   verifiedAt          DateTime?
   verifiedBy          String?
 

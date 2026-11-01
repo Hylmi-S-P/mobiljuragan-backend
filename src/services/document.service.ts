@@ -2,6 +2,32 @@ import { documentModel } from '../model/documentModel.js';
 import { DocumentStatus } from '../generated/prisma/client.js';
 import { assertBookingDocumentsMutable } from '../lib/bookingStage.js';
 import { AppError } from '../lib/response.js';
+import {
+  documentTargetsFromLegacyReason,
+  parseDocumentTargets,
+  requireDocumentTargets,
+  serializeDocumentTargets,
+  type DocumentTarget,
+} from '../lib/documentTargets.js';
+
+/**
+ * Mengubah kolom `rejectionTargets` (JSON) menjadi array untuk klien.
+ *
+ * Baris lama belum punya kolom ini. Kalau kosong tetapi statusnya REJECTED,
+ * target diturunkan dari teks alasan supaya aplikasi versi lama tetap menandai
+ * dokumen yang benar.
+ */
+function toClientDocument<T extends { rejectionReason?: string | null; rejectionTargets?: string | null; status?: string }>(
+  doc: T,
+): Omit<T, 'rejectionTargets'> & { rejectionTargets: DocumentTarget[] } {
+  const stored = parseDocumentTargets(doc.rejectionTargets);
+  const targets =
+    stored.length > 0 || doc.status !== 'REJECTED'
+      ? stored
+      : documentTargetsFromLegacyReason(doc.rejectionReason);
+
+  return { ...doc, rejectionTargets: targets };
+}
 
 export const documentService = {
   /**
@@ -346,15 +372,18 @@ export const documentService = {
       bookingCode: record.booking.bookingCode,
       rentalType: record.booking.rentalType,
       isSelfDrive: record.booking.rentalType === 'WITHOUT_DRIVER',
-      document: record.document ?? {
-        status: DocumentStatus.PENDING_UPLOAD,
-        statementLetterUrl: null,
-        ktpUrl: null,
-        simUrl: null,
-        rejectionReason: null,
-        verifiedAt: null,
-        verifiedBy: null,
-      },
+      document: record.document
+        ? toClientDocument(record.document)
+        : {
+            status: DocumentStatus.PENDING_UPLOAD,
+            statementLetterUrl: null,
+            ktpUrl: null,
+            simUrl: null,
+            rejectionReason: null,
+            rejectionTargets: [] as DocumentTarget[],
+            verifiedAt: null,
+            verifiedBy: null,
+          },
     };
   },
 
@@ -382,7 +411,7 @@ export const documentService = {
     return {
       bookingId: record.booking.id,
       bookingCode: record.booking.bookingCode,
-      document: updated,
+      document: toClientDocument(updated),
     };
   },
 
@@ -399,6 +428,8 @@ export const documentService = {
     input: {
       action: 'APPROVE' | 'REJECT';
       rejectionReason?: string;
+      /** Dokumen yang ditolak; wajib berisi minimal satu saat action = REJECT. */
+      targets?: unknown;
       verifierName?: string;
     },
   ) {
@@ -424,9 +455,36 @@ export const documentService = {
     const status =
       input.action === 'APPROVE' ? DocumentStatus.VERIFIED : DocumentStatus.REJECTED;
 
+    let targets: DocumentTarget[] = [];
+    if (input.action === 'REJECT') {
+      try {
+        targets = requireDocumentTargets(input.targets);
+      } catch {
+        throw new AppError(
+          'INVALID_DOCUMENT_TARGET',
+          'Dokumen yang ditolak harus dipilih dari e-KTP, SIM A, atau Surat Pernyataan.',
+          400,
+        );
+      }
+
+      /* Penolakan tanpa target membuat pelanggan menebak dokumen mana yang harus
+         difoto ulang, dan dulu berakhir dengan semua baris ditandai merah. */
+      if (targets.length === 0) {
+        throw new AppError(
+          'REJECTION_TARGET_REQUIRED',
+          'Pilih minimal satu dokumen yang bermasalah sebelum menolak.',
+          400,
+        );
+      }
+    }
+
     const updated = await documentModel.updateVerification(record.booking.id, {
       status,
-      rejectionReason: input.action === 'REJECT' ? input.rejectionReason ?? 'Dokumen belum memenuhi syarat.' : null,
+      rejectionReason:
+        input.action === 'REJECT'
+          ? input.rejectionReason ?? 'Dokumen belum memenuhi syarat.'
+          : null,
+      rejectionTargets: serializeDocumentTargets(targets),
       verifiedAt: new Date(),
       verifiedBy: input.verifierName ?? 'Admin MobilJuragan',
     });
@@ -434,7 +492,7 @@ export const documentService = {
     return {
       bookingId: record.booking.id,
       bookingCode: record.booking.bookingCode,
-      document: updated,
+      document: toClientDocument(updated),
     };
   },
 };
