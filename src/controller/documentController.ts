@@ -1,6 +1,18 @@
 import type { NextFunction, Request, Response } from 'express';
 import { documentService } from '../services/document.service.js';
 import { sendSuccess, AppError } from '../lib/response.js';
+import type { UserRole } from '../generated/prisma/client.js';
+
+/** Identitas pemanggil setelah `requireAuth` lolos. */
+type Actor = { userId: string; role: UserRole };
+
+function actorOf(req: Request): Actor {
+  const user = req.user;
+  if (!user) {
+    throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
+  }
+  return { userId: user.userId, role: user.role };
+}
 
 export const documentController = {
   /**
@@ -24,27 +36,6 @@ export const documentController = {
   },
 
   /**
-   * Mengunduh berkas surat pernyataan yang sudah terisi otomatis data reservasi pemesan.
-   * GET /api/v1/bookings/:id/statement-pdf
-   */
-  async getBookingStatementPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { buffer, bookingCode } = await documentService.getBookingStatementPdfBuffer(id);
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename="Surat_Pernyataan_Lepas_Kunci_${bookingCode}.pdf"`,
-      );
-      res.setHeader('Content-Length', buffer.length);
-      res.end(buffer);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
    * Mengambil struktur teks pernyataan untuk pratinjau in-app pada mobile app.
    * GET /api/v1/documents/template/surat-pernyataan-lepas-kunci/text
    */
@@ -60,11 +51,13 @@ export const documentController = {
   /**
    * Mengambil dokumen yang terikat pada suatu booking.
    * GET /api/v1/bookings/:id/documents
+   *
+   * Pemilik pemesanan atau staf/admin. Pelanggan lain ditolak 403.
    */
   async getBookingDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const data = await documentService.getBookingDocuments(id);
+      const data = await documentService.getBookingDocuments(id, actorOf(req));
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -88,11 +81,15 @@ export const documentController = {
         );
       }
 
-      const result = await documentService.uploadBookingDocuments(id, {
-        statementLetterUrl,
-        ktpUrl,
-        simUrl,
-      });
+      const result = await documentService.uploadBookingDocuments(
+        id,
+        {
+          statementLetterUrl,
+          ktpUrl,
+          simUrl,
+        },
+        actorOf(req),
+      );
 
       sendSuccess(res, result, 200);
     } catch (error) {
