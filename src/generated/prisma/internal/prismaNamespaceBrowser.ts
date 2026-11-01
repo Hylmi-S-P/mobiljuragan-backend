@@ -66,7 +66,8 @@ export const ModelName = {
   Faq: 'Faq',
   Payment: 'Payment',
   BookingDocument: 'BookingDocument',
-  MediaObject: 'MediaObject'
+  MediaObject: 'MediaObject',
+  DocumentTemplate: 'DocumentTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -357,6 +358,23 @@ export const MediaObjectScalarFieldEnum = {
 export type MediaObjectScalarFieldEnum = (typeof MediaObjectScalarFieldEnum)[keyof typeof MediaObjectScalarFieldEnum]
 
 
+export const DocumentTemplateScalarFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  versi: 'versi',
+  isi: 'isi',
+  isActive: 'isActive',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DocumentTemplateScalarFieldEnum = (typeof DocumentTemplateScalarFieldEnum)[keyof typeof DocumentTemplateScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -371,6 +389,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -586,4 +611,16 @@ export const MediaObjectOrderByRelevanceFieldEnum = {
 } as const
 
 export type MediaObjectOrderByRelevanceFieldEnum = (typeof MediaObjectOrderByRelevanceFieldEnum)[keyof typeof MediaObjectOrderByRelevanceFieldEnum]
+
+
+export const DocumentTemplateOrderByRelevanceFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh'
+} as const
+
+export type DocumentTemplateOrderByRelevanceFieldEnum = (typeof DocumentTemplateOrderByRelevanceFieldEnum)[keyof typeof DocumentTemplateOrderByRelevanceFieldEnum]
 

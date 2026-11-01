@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { documentService } from '../services/document.service.js';
 import { sendSuccess, AppError } from '../lib/response.js';
+import { documentTemplateService } from '../lib/documentTemplateService.js';
 import type { UserRole } from '../generated/prisma/client.js';
 
 /** Identitas pemanggil setelah `requireAuth` lolos. */
@@ -18,18 +19,19 @@ export const documentController = {
   /**
    * Mengunduh berkas template surat pernyataan resmi dalam format PDF standar.
    * GET /api/v1/documents/template/surat-pernyataan-lepas-kunci.pdf
+   *
+   * Alamat lama dipertahankan supaya APK yang sudah beredar tidak langsung
+   * rusak. Isinya sekarang diambil dari template aktif di database.
    */
   async getStatementTemplatePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const pdfBuffer = documentService.getStatementTemplatePdfBuffer();
+      const { buffer, judul, versi } = await documentTemplateService.buatPdf({});
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        'inline; filename="Surat_Pernyataan_Sewa_Lepas_Kunci_MobilJuragan.pdf"',
-      );
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.end(pdfBuffer);
+      res.setHeader('Content-Disposition', `inline; filename="Form_Kesanggupan_v${versi}.pdf"`);
+      res.setHeader('X-Document-Title', encodeURIComponent(judul));
+      res.setHeader('Content-Length', buffer.length);
+      res.end(buffer);
     } catch (error) {
       next(error);
     }
@@ -41,7 +43,7 @@ export const documentController = {
    */
   async getStatementTemplateText(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = documentService.getStatementTemplateText();
+      const data = await documentService.getStatementTemplateText();
       sendSuccess(res, data);
     } catch (error) {
       next(error);

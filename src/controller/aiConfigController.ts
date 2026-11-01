@@ -2,14 +2,10 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ensureAiDefaults } from '../services/aiKnowledgeSeed.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as crypto from 'node:crypto';
-
-const execFileAsync = promisify(execFile);
 
 /**
  * Menghasilkan correlation trace identifier (W3C/OpenTelemetry Session Context)
@@ -80,7 +76,11 @@ function get9RouterCliToken(): string | null {
     if (!fs.existsSync(machineIdFile) || !fs.existsSync(cliSecretFile)) return null;
     const rawMachineId = fs.readFileSync(machineIdFile, 'utf8').trim();
     const cliSecret = fs.readFileSync(cliSecretFile, 'utf8').trim();
-    return crypto.createHash('sha256').update(rawMachineId + '9r-cli-auth' + cliSecret).digest('hex').substring(0, 16);
+    return crypto
+      .createHash('sha256')
+      .update(rawMachineId + '9r-cli-auth' + cliSecret)
+      .digest('hex')
+      .substring(0, 16);
   } catch {
     return null;
   }
@@ -117,7 +117,7 @@ async function fetch9RouterRawLogs(): Promise<string[]> {
         .replace(/oc\/longcat-2\.5-preview-free/g, 'mj/internal-model')
         .replace(/oc\/[a-zA-Z0-9.-]+/g, 'mj/internal-model')
         .replace(/https:\/\/opencode\.ai\/[^\s]+/g, 'https://gateway.internal.mobiljuragan.com')
-        .replace(/FreeUsageLimitError/g, 'ClusterThroughputLimit')
+        .replace(/FreeUsageLimitError/g, 'ClusterThroughputLimit'),
     );
   } catch {
     return [];
@@ -246,9 +246,13 @@ export async function updateAiConfig(req: Request, res: Response): Promise<void>
         ...(apiKey !== undefined ? { apiKey: String(apiKey).trim() } : {}),
         ...(activeModel !== undefined ? { activeModel: String(activeModel).trim() } : {}),
         ...(fallbackModel !== undefined ? { fallbackModel: String(fallbackModel).trim() } : {}),
-        ...(fallbackGatewayUrl !== undefined ? { fallbackGatewayUrl: String(fallbackGatewayUrl).trim() } : {}),
+        ...(fallbackGatewayUrl !== undefined
+          ? { fallbackGatewayUrl: String(fallbackGatewayUrl).trim() }
+          : {}),
         ...(fallbackApiKey !== undefined ? { fallbackApiKey: String(fallbackApiKey).trim() } : {}),
-        ...(autoFallbackEnabled !== undefined ? { autoFallbackEnabled: Boolean(autoFallbackEnabled) } : {}),
+        ...(autoFallbackEnabled !== undefined
+          ? { autoFallbackEnabled: Boolean(autoFallbackEnabled) }
+          : {}),
         ...(proxyUrl !== undefined ? { proxyUrl: String(proxyUrl).trim() } : {}),
         ...(systemPrompt !== undefined ? { systemPrompt: String(systemPrompt) } : {}),
         ...(temperature !== undefined ? { temperature: Number(temperature) } : {}),
@@ -261,9 +265,12 @@ export async function updateAiConfig(req: Request, res: Response): Promise<void>
         apiKey: apiKey ? String(apiKey).trim() : '',
         activeModel: activeModel ? String(activeModel).trim() : 'gemini-2.5-flash',
         fallbackModel: fallbackModel ? String(fallbackModel).trim() : 'gemini-2.5-flash',
-        fallbackGatewayUrl: fallbackGatewayUrl ? String(fallbackGatewayUrl).trim() : 'https://generativelanguage.googleapis.com/v1beta/openai',
+        fallbackGatewayUrl: fallbackGatewayUrl
+          ? String(fallbackGatewayUrl).trim()
+          : 'https://generativelanguage.googleapis.com/v1beta/openai',
         fallbackApiKey: fallbackApiKey ? String(fallbackApiKey).trim() : '',
-        autoFallbackEnabled: autoFallbackEnabled !== undefined ? Boolean(autoFallbackEnabled) : true,
+        autoFallbackEnabled:
+          autoFallbackEnabled !== undefined ? Boolean(autoFallbackEnabled) : true,
         proxyUrl: proxyUrl ? String(proxyUrl).trim() : '',
         healthStatus: 'HEALTHY',
         systemPrompt: systemPrompt ? String(systemPrompt) : 'Asisten MobilJuragan',
@@ -313,10 +320,12 @@ export async function checkAiGatewayHealth(req: Request, res: Response): Promise
 
       if (pingRes.status === 429) {
         status = 'RATE_LIMITED';
-        message = 'Upstream provider terkena rate limit (HTTP 429). Auto-fallback circuit breaker siaga.';
+        message =
+          'Upstream provider terkena rate limit (HTTP 429). Auto-fallback circuit breaker siaga.';
       } else if (pingRes.status === 403) {
         status = 'DEGRADED';
-        message = 'Akses ditolak oleh upstream (HTTP 403 FreeTierError / Cloudflare block). Perlu rotasi session/key.';
+        message =
+          'Akses ditolak oleh upstream (HTTP 403 FreeTierError / Cloudflare block). Perlu rotasi session/key.';
       } else if (!pingRes.ok) {
         status = 'DEGRADED';
         message = `Gateway merespons dengan status HTTP ${pingRes.status}.`;
@@ -471,15 +480,26 @@ export async function deleteKnowledgeDocument(req: Request, res: Response): Prom
 }
 
 /**
- * Ekstraksi dokumen otomatis untuk RAG: membaca PDF, DOCX, MD, TXT
- * Menggunakan anydoc CLI workstation untuk ekstraksi instan ke format Markdown.
+ * Ekstraksi dokumen untuk basis pengetahuan RAG.
+ *
+ * Hanya menerima Markdown (.md) dan teks biasa (.txt).
+ *
+ * Dulu endpoint ini juga memanggil `anydoc` untuk PDF, DOCX, ODT, PPTX, dan
+ * XLSX. Ketergantungan itu dicabut karena `anydoc` adalah biner eksternal yang
+ * harus dipasang terpisah di server, dan kalau tidak ada, unggahan admin gagal
+ * dengan galat 500. Berkas biner juga membuka permukaan serangan yang tidak
+ * sebanding dengan manfaatnya untuk basis pengetahuan teks.
+ *
+ * Untuk dokumen PDF atau Word, admin mengubahnya menjadi Markdown lebih dulu.
  */
 export async function parseKnowledgeFile(req: Request, res: Response): Promise<void> {
   try {
     const { filename, contentBase64 } = req.body;
 
     if (!filename || !contentBase64) {
-      res.status(400).json({ status: 'error', message: 'Nama file dan konten base64 wajib disertakan.' });
+      res
+        .status(400)
+        .json({ status: 'error', message: 'Nama file dan konten base64 wajib disertakan.' });
       return;
     }
 
@@ -487,94 +507,58 @@ export async function parseKnowledgeFile(req: Request, res: Response): Promise<v
     const cleanTitle = cleanFilename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
     const ext = path.extname(cleanFilename).toLowerCase();
 
-    const buffer = Buffer.from(contentBase64, 'base64');
-
-    // 1. Format teks murni (Markdown, TXT, CSV, JSON)
-    if (ext === '.txt' || ext === '.md' || ext === '.json' || ext === '.csv') {
-      const text = buffer.toString('utf-8');
-      recordGatewayLog({
-        event: 'DOC_PARSED',
-        model: 'fast-text-parser',
-        status: 200,
-        latencyMs: 5,
-        details: `File ${cleanFilename} diekstrak (${text.split('\n').length} baris)`,
-      });
-
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          title: cleanTitle,
-          content: text.trim(),
-          format: ext.replace('.', ''),
-          lineCount: text.split('\n').length,
-        },
+    if (ext !== '.md' && ext !== '.txt') {
+      res.status(400).json({
+        status: 'error',
+        message: `Format berkas ${ext || '(tanpa ekstensi)'} tidak didukung. Basis pengetahuan hanya menerima Markdown (.md) atau teks biasa (.txt).`,
       });
       return;
     }
 
-    // 2. Format dokumen digital kaya (PDF, DOCX, DOC, ODT, PPTX, XLSX)
-    if (ext === '.docx' || ext === '.doc' || ext === '.pdf' || ext === '.odt' || ext === '.pptx' || ext === '.xlsx') {
-      const tempDir = os.tmpdir();
-      const tempFilePath = path.join(tempDir, `parse_${Date.now()}_${path.basename(cleanFilename)}`);
+    const buffer = Buffer.from(contentBase64, 'base64');
 
-      await fs.promises.writeFile(tempFilePath, buffer);
-
-      const parseStart = Date.now();
-      try {
-        const { stdout } = await execFileAsync('anydoc', [tempFilePath], { timeout: 15000 });
-        await fs.promises.unlink(tempFilePath).catch(() => {});
-
-        const markdownResult = (stdout || '').trim();
-        if (!markdownResult) {
-          res.status(422).json({
-            status: 'error',
-            message: 'Dokumen berhasil diproses namun tidak menghasilkan teks digital.',
-          });
-          return;
-        }
-
-        const parseLatency = Date.now() - parseStart;
-        recordGatewayLog({
-          event: 'DOC_PARSED',
-          model: 'anydoc-engine',
-          status: 200,
-          latencyMs: parseLatency,
-          details: `Dokumen ${cleanFilename} diekstrak via anydoc (${markdownResult.split('\n').length} baris)`,
-        });
-
-        res.status(200).json({
-          status: 'ok',
-          data: {
-            title: cleanTitle,
-            content: markdownResult,
-            format: ext.replace('.', ''),
-            lineCount: markdownResult.split('\n').length,
-          },
-        });
-        return;
-      } catch (execErr: any) {
-        await fs.promises.unlink(tempFilePath).catch(() => {});
-        if (execErr.code === 3) {
-          res.status(422).json({
-            status: 'error',
-            needsOcr: true,
-            message: 'Dokumen terdeteksi sebagai scan gambar tanpa lapisan teks digital. Silakan gunakan dokumen teks asli atau aktifkan modul OCR lokal.',
-          });
-          return;
-        }
-
-        logger.warn({ execErr }, 'Gagal mengekstrak dokumen dengan anydoc');
-        res.status(500).json({
-          status: 'error',
-          message: `Gagal membaca format dokumen ${ext}: ${execErr.message || 'Format tidak didukung.'}`,
-        });
-        return;
-      }
+    /*
+     * Berkas teks besar tidak ada gunanya untuk RAG: isinya akan terpotong saat
+     * dipecah menjadi potongan kecil. Batas 2 MB sudah jauh lebih besar daripada
+     * artikel pengetahuan yang wajar.
+     */
+    const BATAS_BYTE = 2 * 1024 * 1024;
+    if (buffer.length > BATAS_BYTE) {
+      res.status(413).json({
+        status: 'error',
+        message: `Ukuran berkas melebihi batas ${BATAS_BYTE / 1024 / 1024} MB.`,
+      });
+      return;
     }
 
-    res.status(400).json({
-      status: 'error',
-      message: `Format berkas ${ext} tidak didukung. Harap unggah PDF, Word (.docx), Markdown (.md), atau TXT.`,
+    const text = buffer.toString('utf-8');
+
+    if (text.trim().length === 0) {
+      res.status(422).json({
+        status: 'error',
+        message: 'Berkas tidak memuat teks yang bisa dibaca.',
+      });
+      return;
+    }
+
+    const lineCount = text.split('\n').length;
+
+    recordGatewayLog({
+      event: 'DOC_PARSED',
+      model: 'fast-text-parser',
+      status: 200,
+      latencyMs: 5,
+      details: `File ${cleanFilename} diekstrak (${lineCount} baris)`,
+    });
+
+    res.status(200).json({
+      status: 'ok',
+      data: {
+        title: cleanTitle,
+        content: text.trim(),
+        format: ext.replace('.', ''),
+        lineCount,
+      },
     });
   } catch (error) {
     logger.error({ error }, 'Gagal memproses file dokumen RAG');
@@ -585,7 +569,8 @@ export async function parseKnowledgeFile(req: Request, res: Response): Promise<v
 export async function fetchGatewayModels(req: Request, res: Response): Promise<void> {
   try {
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const gatewayUrl = (req.query.gatewayUrl as string) || config?.gatewayUrl || 'http://localhost:20128/v1';
+    const gatewayUrl =
+      (req.query.gatewayUrl as string) || config?.gatewayUrl || 'http://localhost:20128/v1';
     const apiKey = (req.query.apiKey as string) || config?.apiKey || '';
 
     const targetUrl = gatewayUrl.replace(/\/+$/, '') + '/models';
@@ -678,9 +663,13 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         ? String(reqPrompt).trim()
         : config?.systemPrompt || 'Anda adalah asisten MobilJuragan Merauke.';
     const temperature =
-      reqTemp !== undefined && !isNaN(Number(reqTemp)) ? Number(reqTemp) : config?.temperature ?? 0.7;
+      reqTemp !== undefined && !isNaN(Number(reqTemp))
+        ? Number(reqTemp)
+        : (config?.temperature ?? 0.7);
     const maxTokens =
-      reqTokens !== undefined && !isNaN(Number(reqTokens)) ? Number(reqTokens) : config?.maxTokens ?? 1200;
+      reqTokens !== undefined && !isNaN(Number(reqTokens))
+        ? Number(reqTokens)
+        : (config?.maxTokens ?? 1200);
     const enableRag = config?.enableRag ?? true;
 
     // 1. Ambil dokumen pengetahuan aktif dan seluruh FAQ aktif jika RAG diaktifkan
@@ -705,7 +694,8 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       referencedDocuments = activeDocs.map((d) => d.title);
 
       if (activeDocs.length > 0) {
-        ragContextText += '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG CONTEXT) ===\n';
+        ragContextText +=
+          '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG CONTEXT) ===\n';
         for (const doc of activeDocs) {
           ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
         }
@@ -721,7 +711,8 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       }
 
       if (activeDocs.length > 0 || activeFaqs.length > 0) {
-        ragContextText += '\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
+        ragContextText +=
+          '\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
       }
     }
 
@@ -796,7 +787,8 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
         if (trimmed.startsWith('{')) {
           try {
             const json = JSON.parse(trimmed);
-            replyContent = json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
+            replyContent =
+              json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
             tokens = json.usage?.total_tokens || null;
           } catch {
             // parse SSE
@@ -812,7 +804,8 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
               if (dataStr === '[DONE]') continue;
               try {
                 const chunk = JSON.parse(dataStr);
-                accumulated += chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
+                accumulated +=
+                  chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
                 if (chunk.usage?.total_tokens) {
                   tokens = chunk.usage.total_tokens;
                 }
