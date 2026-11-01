@@ -772,6 +772,10 @@ export type $VehiclePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     seatingCapacity: number
     transmission: string | null
     category: string | null
+    /**
+     * LONGTEXT sejak migrasi media. Sebelumnya VARCHAR(191) memotong Base64
+     * sehingga foto armada berukuran wajar gagal disimpan.
+     */
     imageUrl: string | null
     pricePerDay: number
     operationalStatus: $Enums.OperationalStatus

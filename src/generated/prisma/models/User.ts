@@ -212,6 +212,7 @@ export type UserWhereInput = {
   otpVerifications?: Prisma.OtpVerificationListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   assignedTickets?: Prisma.SupportTicketListRelationFilter
+  mediaObjects?: Prisma.MediaObjectListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -229,6 +230,7 @@ export type UserOrderByWithRelationInput = {
   otpVerifications?: Prisma.OtpVerificationOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   assignedTickets?: Prisma.SupportTicketOrderByRelationAggregateInput
+  mediaObjects?: Prisma.MediaObjectOrderByRelationAggregateInput
   _relevance?: Prisma.UserOrderByRelevanceInput
 }
 
@@ -250,6 +252,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   otpVerifications?: Prisma.OtpVerificationListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   assignedTickets?: Prisma.SupportTicketListRelationFilter
+  mediaObjects?: Prisma.MediaObjectListRelationFilter
 }, "id" | "phoneNumber">
 
 export type UserOrderByWithAggregationInput = {
@@ -295,6 +298,7 @@ export type UserCreateInput = {
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -312,6 +316,7 @@ export type UserUncheckedCreateInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUpdateInput = {
@@ -329,6 +334,7 @@ export type UserUpdateInput = {
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -346,6 +352,7 @@ export type UserUncheckedUpdateInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -540,6 +547,22 @@ export type UserUpdateOneWithoutAuditLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.UserUpdateWithoutAuditLogsInput>, Prisma.UserUncheckedUpdateWithoutAuditLogsInput>
 }
 
+export type UserCreateNestedOneWithoutMediaObjectsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMediaObjectsInput, Prisma.UserUncheckedCreateWithoutMediaObjectsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMediaObjectsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutMediaObjectsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMediaObjectsInput, Prisma.UserUncheckedCreateWithoutMediaObjectsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMediaObjectsInput
+  upsert?: Prisma.UserUpsertWithoutMediaObjectsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMediaObjectsInput, Prisma.UserUpdateWithoutMediaObjectsInput>, Prisma.UserUncheckedUpdateWithoutMediaObjectsInput>
+}
+
 export type UserCreateWithoutBookingsInput = {
   id?: string
   fullName: string
@@ -554,6 +577,7 @@ export type UserCreateWithoutBookingsInput = {
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutBookingsInput = {
@@ -570,6 +594,7 @@ export type UserUncheckedCreateWithoutBookingsInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutBookingsInput = {
@@ -602,6 +627,7 @@ export type UserUpdateWithoutBookingsInput = {
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBookingsInput = {
@@ -618,6 +644,7 @@ export type UserUncheckedUpdateWithoutBookingsInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutOtpVerificationsInput = {
@@ -634,6 +661,7 @@ export type UserCreateWithoutOtpVerificationsInput = {
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutOtpVerificationsInput = {
@@ -650,6 +678,7 @@ export type UserUncheckedCreateWithoutOtpVerificationsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutOtpVerificationsInput = {
@@ -682,6 +711,7 @@ export type UserUpdateWithoutOtpVerificationsInput = {
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
@@ -698,6 +728,7 @@ export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutTicketsInput = {
@@ -714,6 +745,7 @@ export type UserCreateWithoutTicketsInput = {
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutTicketsInput = {
@@ -730,6 +762,7 @@ export type UserUncheckedCreateWithoutTicketsInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutTicketsInput = {
@@ -751,6 +784,7 @@ export type UserCreateWithoutAssignedTicketsInput = {
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutAssignedTicketsInput = {
@@ -767,6 +801,7 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutAssignedTicketsInput = {
@@ -799,6 +834,7 @@ export type UserUpdateWithoutTicketsInput = {
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTicketsInput = {
@@ -815,6 +851,7 @@ export type UserUncheckedUpdateWithoutTicketsInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUpsertWithoutAssignedTicketsInput = {
@@ -842,6 +879,7 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
@@ -858,6 +896,7 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutSentMessagesInput = {
@@ -874,6 +913,7 @@ export type UserCreateWithoutSentMessagesInput = {
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutSentMessagesInput = {
@@ -890,6 +930,7 @@ export type UserUncheckedCreateWithoutSentMessagesInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutSentMessagesInput = {
@@ -922,6 +963,7 @@ export type UserUpdateWithoutSentMessagesInput = {
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSentMessagesInput = {
@@ -938,6 +980,7 @@ export type UserUncheckedUpdateWithoutSentMessagesInput = {
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -954,6 +997,7 @@ export type UserCreateWithoutAuditLogsInput = {
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
   assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -970,6 +1014,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
   assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -1002,6 +1047,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
   assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -1018,6 +1064,91 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
   assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserCreateWithoutMediaObjectsInput = {
+  id?: string
+  fullName: string
+  phoneNumber: string
+  role?: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  passwordHash?: string | null
+  isActive?: boolean
+  bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
+  sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+}
+
+export type UserUncheckedCreateWithoutMediaObjectsInput = {
+  id?: string
+  fullName: string
+  phoneNumber: string
+  role?: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  passwordHash?: string | null
+  isActive?: boolean
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
+  sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+}
+
+export type UserCreateOrConnectWithoutMediaObjectsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMediaObjectsInput, Prisma.UserUncheckedCreateWithoutMediaObjectsInput>
+}
+
+export type UserUpsertWithoutMediaObjectsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMediaObjectsInput, Prisma.UserUncheckedUpdateWithoutMediaObjectsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMediaObjectsInput, Prisma.UserUncheckedCreateWithoutMediaObjectsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMediaObjectsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMediaObjectsInput, Prisma.UserUncheckedUpdateWithoutMediaObjectsInput>
+}
+
+export type UserUpdateWithoutMediaObjectsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
+  sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMediaObjectsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
+  sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
 }
 
 
@@ -1032,6 +1163,7 @@ export type UserCountOutputType = {
   otpVerifications: number
   auditLogs: number
   assignedTickets: number
+  mediaObjects: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1041,6 +1173,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   otpVerifications?: boolean | UserCountOutputTypeCountOtpVerificationsArgs
   auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
   assignedTickets?: boolean | UserCountOutputTypeCountAssignedTicketsArgs
+  mediaObjects?: boolean | UserCountOutputTypeCountMediaObjectsArgs
 }
 
 /**
@@ -1095,6 +1228,13 @@ export type UserCountOutputTypeCountAssignedTicketsArgs<ExtArgs extends runtime.
   where?: Prisma.SupportTicketWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountMediaObjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MediaObjectWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1111,6 +1251,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   otpVerifications?: boolean | Prisma.User$otpVerificationsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   assignedTickets?: boolean | Prisma.User$assignedTicketsArgs<ExtArgs>
+  mediaObjects?: boolean | Prisma.User$mediaObjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1135,6 +1276,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   otpVerifications?: boolean | Prisma.User$otpVerificationsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   assignedTickets?: boolean | Prisma.User$assignedTicketsArgs<ExtArgs>
+  mediaObjects?: boolean | Prisma.User$mediaObjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 
@@ -1150,6 +1292,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * Tiket yang sedang dipegang admin ini. Lihat SupportTicket.assignedAdminId.
      */
     assignedTickets: Prisma.$SupportTicketPayload<ExtArgs>[]
+    /**
+     * Berkas media yang diunggah pengguna ini.
+     */
+    mediaObjects: Prisma.$MediaObjectPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1506,6 +1652,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   otpVerifications<T extends Prisma.User$otpVerificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$otpVerificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OtpVerificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignedTickets<T extends Prisma.User$assignedTicketsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SupportTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  mediaObjects<T extends Prisma.User$mediaObjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$mediaObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MediaObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2032,6 +2179,30 @@ export type User$assignedTicketsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.SupportTicketScalarFieldEnum | Prisma.SupportTicketScalarFieldEnum[]
+}
+
+/**
+ * User.mediaObjects
+ */
+export type User$mediaObjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MediaObject
+   */
+  select?: Prisma.MediaObjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MediaObject
+   */
+  omit?: Prisma.MediaObjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MediaObjectInclude<ExtArgs> | null
+  where?: Prisma.MediaObjectWhereInput
+  orderBy?: Prisma.MediaObjectOrderByWithRelationInput | Prisma.MediaObjectOrderByWithRelationInput[]
+  cursor?: Prisma.MediaObjectWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MediaObjectScalarFieldEnum | Prisma.MediaObjectScalarFieldEnum[]
 }
 
 /**
