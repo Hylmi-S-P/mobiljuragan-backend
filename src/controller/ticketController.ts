@@ -21,6 +21,33 @@ const TIKET_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED]
 
 const MAKS_PANJANG_PESAN = 2000;
 
+/* Judul dan deskripsi tiket sebelumnya tidak dibatasi sama sekali: kiriman
+   sepanjang apa pun diterima, lalu memecahkan tata letak kartu tiket di
+   dashboard dan daftar riwayat. Batas di klien saja tidak cukup karena API
+   bisa dipanggil langsung. */
+const MAKS_PANJANG_JUDUL = 100;
+
+/** Deskripsi dipakai sebagai pesan pertama percakapan, jadi tidak boleh lebih
+    panjang dari satu pesan biasa. */
+const MAKS_PANJANG_DESKRIPSI = MAKS_PANJANG_PESAN;
+
+function validateTicketText(title: string, description: string): void {
+  if (title.length > MAKS_PANJANG_JUDUL) {
+    throw new AppError(
+      'TITLE_TOO_LONG',
+      `Judul tiket maksimal ${MAKS_PANJANG_JUDUL} karakter. Judul Anda ${title.length} karakter.`,
+      400,
+    );
+  }
+  if (description.length > MAKS_PANJANG_DESKRIPSI) {
+    throw new AppError(
+      'DESCRIPTION_TOO_LONG',
+      `Deskripsi tiket maksimal ${MAKS_PANJANG_DESKRIPSI} karakter. Deskripsi Anda ${description.length} karakter.`,
+      400,
+    );
+  }
+}
+
 const CATEGORY_MAP: Record<string, TicketCategory> = {
   RESERVASI: TicketCategory.GENERAL,
   PEMBAYARAN: TicketCategory.PAYMENT_CONFIRMATION,
@@ -367,6 +394,7 @@ export const ticketController = {
       if (!description) {
         throw new AppError('VALIDATION_ERROR', 'Deskripsi tiket wajib diisi.', 400);
       }
+      validateTicketText(title, description);
 
       const category = parseTicketCategory(req.body?.category as string | undefined);
       const ticketNumber = await ticketModel.nextTicketNumber(new Date());
@@ -458,6 +486,8 @@ export const ticketController = {
         throw new AppError('VALIDATION_ERROR', 'Deskripsi tiket wajib diisi.', 400);
       }
 
+      validateTicketText(title, description);
+
       const category = parseTicketCategory(req.body?.category as string | undefined);
       const ticketNumber = await ticketModel.nextTicketNumber(new Date());
 
@@ -502,7 +532,7 @@ export const ticketController = {
       const judulAwal =
         ((req.body?.title as string | undefined)?.trim() || 'Percakapan dengan asisten AI').slice(
           0,
-          120,
+          MAKS_PANJANG_JUDUL,
         );
 
       // Sesi yang masih berjalan dipakai ulang, supaya tidak menumpuk tiket baru
