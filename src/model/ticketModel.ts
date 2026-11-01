@@ -1,5 +1,9 @@
 import { db } from '../db.js';
 import { TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
+import { AppError } from '../lib/response.js';
+
+/** Status tiket yang sudah final dan tidak boleh menerima pesan baru. */
+const STATUS_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
 
 /**
  * Mengambil id tiket dari berbagai bentuk relasi yang diterima Prisma.
@@ -136,6 +140,24 @@ export const ticketModel = {
     }
 
     return db.$transaction(async (tx) => {
+      /* Penjagaan status diletakkan di model, bukan hanya di controller.
+         Pesan bisa dibuat dari beberapa jalur (pelanggan, admin, asisten AI),
+         dan satu jalur yang lupa memeriksa akan menyisipkan pesan ke tiket yang
+         sudah tidak dipantau siapa pun: pelanggan mengira terkirim, admin tidak
+         pernah melihatnya. */
+      const tiket = await tx.supportTicket.findUnique({
+        where: { id: ticketId },
+        select: { status: true },
+      });
+
+      if (tiket && STATUS_FINAL.includes(tiket.status)) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah selesai dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
+          409,
+        );
+      }
+
       const terakhir = await tx.ticketMessage.findFirst({
         where: { ticketId },
         orderBy: { sequence: 'desc' },

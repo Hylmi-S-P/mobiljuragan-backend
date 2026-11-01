@@ -136,8 +136,10 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
         tulis(res, { jenis: 'handover', ticketId: id, handoverAt: handoverSekarang, versi });
       }
 
-      // Tiket yang sudah ditutup tidak akan berubah lagi; tidak perlu menahan sambungan.
-      if (terkini.status === 'CLOSED') {
+      /* Tiket final tidak akan berubah lagi, jadi sambungan ditutup setelah
+         perubahan terakhir dikirim. RESOLVED ikut dihentikan karena tiket itu
+         juga sudah menolak pesan baru. */
+      if (terkini.status === 'CLOSED' || terkini.status === 'RESOLVED') {
         berhenti();
       }
     } catch (error) {

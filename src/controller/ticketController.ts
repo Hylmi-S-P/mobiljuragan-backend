@@ -16,6 +16,9 @@ const CATEGORY_VALUES = Object.values(TicketCategory);
 
 /* Batas panjang satu pesan tiket. Dipakai bersama oleh balasan admin dan pesan
    pelanggan, dan ditegakkan di server supaya tidak bisa dilewati lewat API. */
+/** Status tiket yang final: tidak menerima pesan baru lagi. */
+const TIKET_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
+
 const MAKS_PANJANG_PESAN = 2000;
 
 const CATEGORY_MAP: Record<string, TicketCategory> = {
@@ -178,16 +181,17 @@ export const ticketController = {
         );
       }
 
-      /* Tiket yang sudah ditutup tidak menerima pesan baru.
+      /* Tiket yang sudah selesai (RESOLVED) maupun ditutup (CLOSED) tidak
+       * menerima pesan baru.
        *
        * Kalau dibiarkan, pesan akan masuk ke tiket yang tidak lagi dipantau
        * siapa pun: pelanggan mengira sudah mengirim, admin tidak pernah melihat,
        * dan tiketnya tidak muncul di daftar aktif. Lebih baik ditolak terang-
        * terangan supaya pelanggan membuat tiket baru. */
-      if (existing.status === TicketStatus.CLOSED) {
+      if (TIKET_FINAL.includes(existing.status)) {
         throw new AppError(
           'TICKET_CLOSED',
-          'Tiket ini sudah ditutup dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
+          'Tiket ini sudah selesai dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
           409,
         );
       }
@@ -558,6 +562,19 @@ export const ticketController = {
         throw new AppError('FORBIDDEN', 'Anda tidak memiliki hak akses untuk tiket ini.', 403);
       }
 
+      /* Bug produksi: pelanggan masih bisa mengirim pesan ke tiket yang sudah
+         selesai, dan tiket RESOLVED bahkan dibuka kembali menjadi IN_PROGRESS.
+         Akibatnya percakapan yang sudah ditutup hidup lagi tanpa ada yang
+         menanganinya. Tiket final kini menolak pesan; pelanggan diarahkan
+         membuat tiket baru. */
+      if (TIKET_FINAL.includes(existing.status)) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah selesai dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
+          409,
+        );
+      }
+
       const message = await ticketModel.createMessage({
         ticket: { connect: { id } },
         sender: { connect: { id: actor.userId } },
@@ -565,11 +582,8 @@ export const ticketController = {
         isCustomer: true,
       });
 
-      // Kembalikan tiket ke proses tim jika sebelumnya menunggu pelanggan atau selesai
-      if (
-        existing.status === TicketStatus.WAITING_CUSTOMER ||
-        existing.status === TicketStatus.RESOLVED
-      ) {
+      // Kembalikan tiket ke proses tim jika sebelumnya menunggu pelanggan.
+      if (existing.status === TicketStatus.WAITING_CUSTOMER) {
         await ticketModel.updateStatus(id, TicketStatus.IN_PROGRESS);
       }
 
