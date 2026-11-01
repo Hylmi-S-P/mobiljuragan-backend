@@ -318,6 +318,21 @@ export const documentService = {
   },
 
   /**
+   * Menerjemahkan id atau kode booking menjadi rujukan kanonik.
+   *
+   * Klien mobile mengirim kode (mis. `MJ-W06`) sementara portal memakai id
+   * database. Tanpa penyeragaman, berkas yang sama tersimpan di dua folder
+   * berbeda dan URL lamanya berhenti berlaku.
+   */
+  async resolveBookingRef(bookingIdOrCode: string): Promise<{ id: string; bookingCode: string }> {
+    const record = await documentModel.findByBookingIdOrCode(bookingIdOrCode);
+    if (!record) {
+      throw new AppError('BOOKING_NOT_FOUND', 'Pemesanan tidak ditemukan.', 404);
+    }
+    return { id: record.booking.id, bookingCode: record.booking.bookingCode };
+  },
+
+  /**
    * Mengambil status dokumen pemesanan.
    */
   async getBookingDocuments(bookingIdOrCode: string) {

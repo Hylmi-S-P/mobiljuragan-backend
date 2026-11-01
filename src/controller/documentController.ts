@@ -106,7 +106,11 @@ export const documentController = {
         );
       }
 
-      const prefix = `${id}`;
+      /* Folder penyimpanan memakai id kanonik booking, bukan parameter mentah,
+         supaya unggahan lewat kode (mobile) dan lewat id (portal) menuju folder
+         yang sama. */
+      const bookingRef = await documentService.resolveBookingRef(id);
+      const prefix = bookingRef.id;
       const [statementLetterUrl, ktpUrl, simUrl] = await Promise.all([
         statementLetter ? processAndStoreImage(statementLetter, { prefix }) : Promise.resolve(undefined),
         ktp ? processAndStoreImage(ktp, { prefix }) : Promise.resolve(undefined),
