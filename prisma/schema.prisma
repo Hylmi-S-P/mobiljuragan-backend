@@ -109,27 +109,30 @@ enum DocumentStatus {
   REJECTED
 }
 
-
 model User {
-  id            String    @id @default(uuid())
-  fullName      String
-  phoneNumber   String    @unique
-  role          UserRole  @default(CUSTOMER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String   @id @default(uuid())
+  fullName    String
+  phoneNumber String   @unique
+  role        UserRole @default(CUSTOMER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Optional credential khusus rol staff/admin (backend auth, bukan OTP customer).
-  passwordHash  String?
-  isActive      Boolean   @default(true)
+  passwordHash String?
+  isActive     Boolean @default(true)
 
-  bookings      Booking[]
-  tickets       SupportTicket[]
-  sentMessages  TicketMessage[]
+  bookings         Booking[]
+  tickets          SupportTicket[]
+  sentMessages     TicketMessage[]
   otpVerifications OtpVerification[]
-  auditLogs     AuditLog[]
+  auditLogs        AuditLog[]
 
   /// Tiket yang sedang dipegang admin ini. Lihat SupportTicket.assignedAdminId.
   assignedTickets SupportTicket[] @relation("TicketAssignee")
+
+  /// Berkas media yang diunggah pengguna ini.
+  mediaObjects MediaObject[]
+
   @@map("users")
 }
 
@@ -144,13 +147,15 @@ model Vehicle {
   seatingCapacity   Int
   transmission      String? // AUTOMATIC | MANUAL
   category          String? // MENANGANI isi referensi fleet (towncar/pickup/man)
-  imageUrl          String?
+  /// LONGTEXT sejak migrasi media. Sebelumnya VARCHAR(191) memotong Base64
+  /// sehingga foto armada berukuran wajar gagal disimpan.
+  imageUrl          String?           @db.LongText
   pricePerDay       Int               @default(400000)
   operationalStatus OperationalStatus @default(AVAILABLE)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  bookings          Booking[]
+  bookings Booking[]
 
   @@index([operationalStatus])
   @@index([externalId])
@@ -175,28 +180,28 @@ enum DriverLicenseType {
 }
 
 model Driver {
-  id            String          @id @default(uuid())
+  id              String             @id @default(uuid())
   /// Slug stabil untuk klien, misalnya markus-gebze.
-  externalId    String          @unique
-  fullName      String
-  phoneNumber   String?
+  externalId      String             @unique
+  fullName        String
+  phoneNumber     String?
   /// Nomor SIM tetap disimpan untuk keperluan administratif, tetapi TIDAK diisi
   /// dari formulir: Ami meminta kolomnya dihapus karena SIM dicek fisik saat
   /// wawancara. Halimah meminta jenis SIM tetap bisa dipilih, dan itu diwakili
   /// oleh licenseType di bawah.
-  licenseNumber String?
+  licenseNumber   String?
   /// Golongan SIM. Nullable karena data supir yang sudah ada belum punya nilai.
-  licenseType   DriverLicenseType?
+  licenseType     DriverLicenseType?
   /// Foto SIM sebagai data URL. LONGTEXT karena Base64 mudah melewati batas
   /// VARCHAR — masalah yang sudah pernah terjadi pada proofImageUrl pembayaran.
-  licensePhotoUrl String?  @db.LongText
-  routeScope    DriverRoute     @default(DALAM_KOTA)
-  readiness     DriverReadiness @default(SIAGA)
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  licensePhotoUrl String?            @db.LongText
+  routeScope      DriverRoute        @default(DALAM_KOTA)
+  readiness       DriverReadiness    @default(SIAGA)
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  bookings      Booking[]
+  bookings Booking[]
 
   @@index([readiness])
   @@index([isActive])
@@ -204,34 +209,34 @@ model Driver {
 }
 
 model Booking {
-  id                  String             @id @default(uuid())
-  bookingCode         String             @unique
-  customerId          String
-  customer            User               @relation(fields: [customerId], references: [id])
-  vehicleId           String
-  vehicle             Vehicle            @relation(fields: [vehicleId], references: [id])
+  id          String  @id @default(uuid())
+  bookingCode String  @unique
+  customerId  String
+  customer    User    @relation(fields: [customerId], references: [id])
+  vehicleId   String
+  vehicle     Vehicle @relation(fields: [vehicleId], references: [id])
   /// Supir hanya wajib untuk rentalType WITH_DRIVER, dan diisi saat konfirmasi.
-  driverId            String?
-  driver              Driver?            @relation(fields: [driverId], references: [id])
+  driverId    String?
+  driver      Driver? @relation(fields: [driverId], references: [id])
 
-  startDateTime       DateTime
-  endDateTime         DateTime
-  rentalType          RentalType
-  pickupLocation      String?
-  customerRequest     String?
-  numberGuests        Int?
+  startDateTime   DateTime
+  endDateTime     DateTime
+  rentalType      RentalType
+  pickupLocation  String?
+  customerRequest String?
+  numberGuests    Int?
 
-  tariffStatus        TariffStatus       @default(PENDING_TEAM_CONFIRMATION)
+  tariffStatus TariffStatus @default(PENDING_TEAM_CONFIRMATION)
   // Boleh null sampai tarif dikonfirmasi tim MobilJuragan.
-  quotedAmount        Decimal?           @db.Decimal(12, 2)
+  quotedAmount Decimal?     @db.Decimal(12, 2)
 
-  status              BookingStatus      @default(CREATED)
-  statusHistory       BookingStatusHistory[]
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  status        BookingStatus          @default(CREATED)
+  statusHistory BookingStatusHistory[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
-  payment             Payment?
-  document            BookingDocument?
+  payment  Payment?
+  document BookingDocument?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -243,15 +248,15 @@ model Booking {
 
 /// Riwayat tiap perubahan status booking (business rule minimum #5).
 model BookingStatusHistory {
-  id         String           @id @default(uuid())
-  bookingId  String
-  booking    Booking          @relation(fields: [bookingId], references: [id])
-  fromStatus BookingStatus?
-  toStatus   BookingStatus
-  actor      BookingStatusActor
-  actorUserId String?         // staff/admin/customer id saat ini
-  note       String?          // catatan internal
-  changedAt  DateTime         @default(now())
+  id          String             @id @default(uuid())
+  bookingId   String
+  booking     Booking            @relation(fields: [bookingId], references: [id])
+  fromStatus  BookingStatus?
+  toStatus    BookingStatus
+  actor       BookingStatusActor
+  actorUserId String? // staff/admin/customer id saat ini
+  note        String? // catatan internal
+  changedAt   DateTime           @default(now())
 
   @@index([bookingId])
   @@map("booking_status_history")
@@ -259,16 +264,16 @@ model BookingStatusHistory {
 
 /// OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan demi keamanan.
 model OtpVerification {
-  id            String    @id @default(uuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  phoneNumber   String    // nomor tujuan
-  otpHash       String    // hanya hash (Argon2id saat backend auth diterapkan)
-  purpose       String    // mis. "CUSTOMER_LOGIN" | "BOOKING_CONFIRM"
-  expiresAt     DateTime
-  attemptCount  Int       @default(0)
-  consumedAt    DateTime?
-  createdAt     DateTime  @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  phoneNumber  String // nomor tujuan
+  otpHash      String // hanya hash (Argon2id saat backend auth diterapkan)
+  purpose      String // mis. "CUSTOMER_LOGIN" | "BOOKING_CONFIRM"
+  expiresAt    DateTime
+  attemptCount Int       @default(0)
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([userId, phoneNumber])
   @@index([expiresAt])
@@ -283,23 +288,23 @@ enum TicketHandler {
 }
 
 model SupportTicket {
-  id          String         @id @default(uuid())
-  ticketNumber String        @unique
-  customerId  String
-  customer    User           @relation(fields: [customerId], references: [id])
-  title       String
-  category    TicketCategory
-  description String
-  status      TicketStatus   @default(OPEN)
+  id           String         @id @default(uuid())
+  ticketNumber String         @unique
+  customerId   String
+  customer     User           @relation(fields: [customerId], references: [id])
+  title        String
+  category     TicketCategory
+  description  String
+  status       TicketStatus   @default(OPEN)
 
   /// Tiket yang lahir dari percakapan AI dimulai dengan penangan AI. Tiket yang
   /// dibuat pelanggan langsung lewat formulir bantuan dimulai dengan penangan
   /// manusia, supaya alur lama tidak berubah.
-  handledBy   TicketHandler  @default(HUMAN)
+  handledBy TicketHandler @default(HUMAN)
 
   /// Diisi saat AI menyerahkan tiket ke admin. Null berarti belum pernah
   /// diserahkan, dan selama itu balasan admin ditolak.
-  handoverAt  DateTime?
+  handoverAt DateTime?
 
   /// Kapan percakapan terakhir kali bergerak, dihitung dari pesan terbaru atau
   /// saat tiket dibuat.
@@ -308,7 +313,7 @@ model SupportTicket {
   /// supaya antrean tidak menumpuk dengan percakapan yang sudah ditinggalkan.
   /// Tidak memakai updatedAt karena kolom itu ikut berubah saat admin hanya
   /// mengganti kategori, dan itu bukan tanda percakapan masih hidup.
-  lastActivityAt DateTime  @default(now())
+  lastActivityAt DateTime @default(now())
 
   /// Admin yang sedang memegang tiket ini.
   ///
@@ -323,11 +328,11 @@ model SupportTicket {
 
   /// Kapan tiket diambil alih. Dipakai menampilkan lama kepemilikan, dan
   /// memungkinkan pelepasan klaim secara sadar oleh admin atau super admin.
-  assignedAt      DateTime?
+  assignedAt DateTime?
 
-  messages    TicketMessage[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  messages  TicketMessage[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   @@index([customerId])
   @@index([status])
@@ -338,26 +343,26 @@ model SupportTicket {
 }
 
 model TicketMessage {
-  id          String        @id @default(uuid())
-  ticketId    String
-  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  id       String        @id @default(uuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id])
 
   /// Kosong untuk pesan yang dibuat asisten AI, karena tidak ada pengguna yang
   /// mengirimnya. Pesan dari pelanggan maupun tim selalu terisi.
-  senderId    String?
-  sender      User?         @relation(fields: [senderId], references: [id])
+  senderId String?
+  sender   User?   @relation(fields: [senderId], references: [id])
 
   /// Isi pesan.
   ///
   /// Sebelumnya bertipe `String` biasa, yang di MySQL menjadi `varchar(191)`.
   /// Balasan asisten AI panjangnya bisa melewati 500 karakter, sehingga isinya
   /// terpotong tanpa galat apa pun. `@db.Text` memberi ruang sampai 64 KB.
-  body        String        @db.Text
-  isCustomer  Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
+  body       String  @db.Text
+  isCustomer Boolean // pembeda arah pesan (independen saat backend; lihat catatan)
 
   /// Menandai balasan yang dihasilkan asisten AI, supaya riwayat percakapan bisa
   /// dibaca admin tanpa menebak mana yang dijawab mesin.
-  isAi        Boolean       @default(false)
+  isAi Boolean @default(false)
 
   /// Urutan pesan di dalam satu tiket, mulai dari 1.
   ///
@@ -365,9 +370,9 @@ model TicketMessage {
   /// tetapi begitu pesan datang bersamaan dari jaringan nyata, dua pesan bisa
   /// mendapat `sentAt` yang sama dan urutannya menjadi tidak pasti. Kolom ini
   /// memberi urutan yang tegas dan tahan terhadap reconnect.
-  sequence    Int           @default(0)
+  sequence Int @default(0)
 
-  sentAt      DateTime      @default(now())
+  sentAt DateTime @default(now())
 
   @@unique([ticketId, sequence])
   @@index([ticketId])
@@ -376,20 +381,19 @@ model TicketMessage {
 
 /// Audit trail aktivitas penting admin (untuk staff/admin role).
 model AuditLog {
-  id        String   @id @default(uuid())
-  actorId   String?
-  actor     User?    @relation(fields: [actorId], references: [id])
-  action    String   // mis. "BOOKING_STATUS_CHANGED", "ADMIN_LOGIN"
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String // mis. "BOOKING_STATUS_CHANGED", "ADMIN_LOGIN"
   entityType String
-  entityId  String?
-  metadata  Json?
-  createdAt DateTime @default(now())
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
 }
-
 
 /// Konfigurasi AI Gateway (9Router / LiteLLM / OpenRouter) & Parameter Model
 model AiSetting {
@@ -426,14 +430,14 @@ model AiSetting {
 /// disimpan dokumen supaya nama tampilan bisa diubah tanpa menyentuh dokumen
 /// yang sudah ada.
 model KnowledgeCategory {
-  id        String   @id @default(uuid())
-  slug      String   @unique
-  label     String
+  id         String   @id @default(uuid())
+  slug       String   @unique
+  label      String
   /// Urutan tampil. Kategori bawaan memakai puluhan supaya kategori baru bisa
   /// disisipkan di antaranya tanpa menomori ulang semuanya.
-  orderIndex Int     @default(100)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  orderIndex Int      @default(100)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([orderIndex])
   @@map("knowledge_categories")
@@ -442,7 +446,7 @@ model KnowledgeCategory {
 model KnowledgeDocument {
   id        String   @id @default(uuid())
   title     String
-  category  String   // merujuk ke KnowledgeCategory.slug
+  category  String // merujuk ke KnowledgeCategory.slug
   content   String   @db.Text
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -456,14 +460,14 @@ model KnowledgeDocument {
 /// Tanya Jawab Umum (FAQ) Resmi MobilJuragan Merauke.
 /// Ditampilkan dinamis di aplikasi mobile (HelpCenterScreen) dan diintegrasikan ke RAG AI Gateway.
 model Faq {
-  id          String   @id @default(uuid())
-  question    String   @db.Text
-  answer      String   @db.Text
-  category    String   // 'Booking & Sewa' | 'Pembayaran' | 'Armada' | Kustom
-  orderIndex  Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  question   String   @db.Text
+  answer     String   @db.Text
+  category   String // 'Booking & Sewa' | 'Pembayaran' | 'Armada' | Kustom
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([category])
   @@index([isActive])
@@ -473,31 +477,31 @@ model Faq {
 
 /// Pembayaran & Pemisahan Arus Kas Riil (Payment Lifecycle)
 model Payment {
-  id              String         @id @default(uuid())
-  bookingId       String         @unique
-  booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  baseAmount      Decimal        @db.Decimal(12, 2)
-  uniqueCode      Int            @default(0) // 1 s.d. 100 untuk pencocokan mutasi otomatis
-  totalAmount     Decimal        @db.Decimal(12, 2) // baseAmount + uniqueCode
+  baseAmount  Decimal @db.Decimal(12, 2)
+  uniqueCode  Int     @default(0) // 1 s.d. 100 untuk pencocokan mutasi otomatis
+  totalAmount Decimal @db.Decimal(12, 2) // baseAmount + uniqueCode
 
-  method          PaymentMethod  @default(QRIS)
-  status          PaymentStatus  @default(UNPAID)
+  method PaymentMethod @default(QRIS)
+  status PaymentStatus @default(UNPAID)
 
-  qrisPayload     String?        @db.Text
-  proofImageUrl   String?        @db.LongText
-  bankName        String?
-  senderAccount   String?
+  qrisPayload   String? @db.Text
+  proofImageUrl String? @db.LongText
+  bankName      String?
+  senderAccount String?
 
-  verifiedAt      DateTime?
-  verifiedBy      String?
-  acknowledgedAt  DateTime?
-  acknowledgedBy  String?
-  notes           String?        @db.Text
-  expiresAt       DateTime?
+  verifiedAt     DateTime?
+  verifiedBy     String?
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  notes          String?   @db.Text
+  expiresAt      DateTime?
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([bookingId])
   @@index([status])
@@ -508,26 +512,67 @@ model Payment {
 
 /// Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
 model BookingDocument {
-  id                  String          @id @default(uuid())
-  bookingId           String          @unique
-  booking             Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  statementLetterUrl  String?         @db.LongText
-  ktpUrl              String?         @db.LongText
-  simUrl              String?         @db.LongText
+  statementLetterUrl String? @db.LongText
+  ktpUrl             String? @db.LongText
+  simUrl             String? @db.LongText
 
-  status              DocumentStatus  @default(PENDING_UPLOAD)
-  rejectionReason     String?         @db.Text
+  status          DocumentStatus @default(PENDING_UPLOAD)
+  rejectionReason String?        @db.Text
 
-  verifiedAt          DateTime?
-  verifiedBy          String?
+  verifiedAt DateTime?
+  verifiedBy String?
 
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([bookingId])
   @@index([status])
   @@map("booking_documents")
 }
 
+/// Berkas media yang sudah dinormalisasi sharp sebelum disimpan.
+///
+/// Tabel ini sengaja terpisah dari kolom URL di tabel domain. Kolom URL lama
+/// menyimpan Base64 utuh di dalam baris database, sehingga satu foto KTP bisa
+/// membengkak ratusan kilobyte dan ikut terbawa pada setiap query yang tidak
+/// selektif. Dengan tabel ini, baris domain cukup menyimpan pengenal pendek.
+model MediaObject {
+  id String @id @default(uuid())
 
+  /// SHA-256 isi berkas setelah normalisasi. Unik supaya unggahan berkas yang
+  /// sama tidak menyimpan salinan kedua.
+  sha256 String @unique @db.Char(64)
+
+  /// Jalur objek relatif di penyimpanan, misalnya media/2026/11/<sha256>.webp
+  objectKey String @db.VarChar(255)
+
+  /// Selalu image/webp karena sharp menormalkan seluruh berkas.
+  mimeType String @db.VarChar(64)
+  byteSize Int
+  width    Int
+  height   Int
+
+  /// Jenis berkas asli yang dikirim pelanggan, hanya untuk catatan.
+  sourceType  String @db.VarChar(16)
+  sourceBytes Int
+
+  /// Klasifikasi pemakaian, misalnya FLEET_PHOTO, PAYMENT_PROOF, KTP, SIM,
+  /// STATEMENT_LETTER, DRIVER_LICENSE. Dipakai untuk menetapkan masa simpan
+  /// dan siapa yang boleh melihat.
+  kategori String @db.VarChar(32)
+
+  /// Pemilik objek. Null berarti belum terikat ke pengguna mana pun.
+  ownerUserId String?
+  owner       User?   @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([kategori])
+  @@index([ownerUserId])
+  @@index([createdAt])
+  @@map("media_objects")
+}

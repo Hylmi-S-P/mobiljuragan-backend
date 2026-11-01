@@ -127,3 +127,13 @@ export type Payment = Prisma.PaymentModel
  * Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
  */
 export type BookingDocument = Prisma.BookingDocumentModel
+/**
+ * Model MediaObject
+ * Berkas media yang sudah dinormalisasi sharp sebelum disimpan.
+ * 
+ * Tabel ini sengaja terpisah dari kolom URL di tabel domain. Kolom URL lama
+ * menyimpan Base64 utuh di dalam baris database, sehingga satu foto KTP bisa
+ * membengkak ratusan kilobyte dan ikut terbawa pada setiap query yang tidak
+ * selektif. Dengan tabel ini, baris domain cukup menyimpan pengenal pendek.
+ */
+export type MediaObject = Prisma.MediaObjectModel

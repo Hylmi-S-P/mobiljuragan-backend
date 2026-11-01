@@ -17,6 +17,8 @@ import { paymentRouter } from './paymentRoutes.js';
 import { adminPaymentRouter } from './adminPaymentRoutes.js';
 import { ticketRouter } from './tickets.js';
 import { customerAiRouter } from './customerAiRoutes.js';
+import { mediaRouter } from './mediaRoutes.js';
+import { documentRouter } from './documentRoutes.js';
 
 export const v1Router: Router = Router();
 
@@ -74,8 +76,8 @@ v1Router.use('/tickets', ticketRouter);
 // Asisten AI interaktif sisi pelanggan / mobile: /api/v1/ai/*
 v1Router.use('/ai', customerAiRouter);
 
+// Penyimpanan berkas gambar hasil normalisasi sharp: /api/v1/media/*
+v1Router.use('/media', mediaRouter);
+
 // Pengunduhan template & verifikasi dokumen lepas kunci: /api/v1/documents/*, /api/v1/bookings/:id/documents
-import { documentRouter } from './documentRoutes.js';
 v1Router.use('/', documentRouter);
-
-

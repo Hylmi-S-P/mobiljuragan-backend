@@ -411,7 +411,8 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
-  BookingDocument: 'BookingDocument'
+  BookingDocument: 'BookingDocument',
+  MediaObject: 'MediaObject'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1421,6 +1422,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MediaObject: {
+      payload: Prisma.$MediaObjectPayload<ExtArgs>
+      fields: Prisma.MediaObjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MediaObjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MediaObjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        findFirst: {
+          args: Prisma.MediaObjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MediaObjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        findMany: {
+          args: Prisma.MediaObjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>[]
+        }
+        create: {
+          args: Prisma.MediaObjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        createMany: {
+          args: Prisma.MediaObjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.MediaObjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        update: {
+          args: Prisma.MediaObjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.MediaObjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MediaObjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.MediaObjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        aggregate: {
+          args: Prisma.MediaObjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMediaObject>
+        }
+        groupBy: {
+          args: Prisma.MediaObjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaObjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MediaObjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaObjectCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1714,6 +1781,24 @@ export const BookingDocumentScalarFieldEnum = {
 export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
 
 
+export const MediaObjectScalarFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  byteSize: 'byteSize',
+  width: 'width',
+  height: 'height',
+  sourceType: 'sourceType',
+  sourceBytes: 'sourceBytes',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type MediaObjectScalarFieldEnum = (typeof MediaObjectScalarFieldEnum)[keyof typeof MediaObjectScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1930,6 +2015,19 @@ export const BookingDocumentOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
+
+
+export const MediaObjectOrderByRelevanceFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  sourceType: 'sourceType',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId'
+} as const
+
+export type MediaObjectOrderByRelevanceFieldEnum = (typeof MediaObjectOrderByRelevanceFieldEnum)[keyof typeof MediaObjectOrderByRelevanceFieldEnum]
 
 
 
@@ -2264,6 +2362,7 @@ export type GlobalOmitConfig = {
   faq?: Prisma.FaqOmit
   payment?: Prisma.PaymentOmit
   bookingDocument?: Prisma.BookingDocumentOmit
+  mediaObject?: Prisma.MediaObjectOmit
 }
 
 /* Types for Logging */

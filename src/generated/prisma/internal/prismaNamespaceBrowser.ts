@@ -65,7 +65,8 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
-  BookingDocument: 'BookingDocument'
+  BookingDocument: 'BookingDocument',
+  MediaObject: 'MediaObject'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -338,6 +339,24 @@ export const BookingDocumentScalarFieldEnum = {
 export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
 
 
+export const MediaObjectScalarFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  byteSize: 'byteSize',
+  width: 'width',
+  height: 'height',
+  sourceType: 'sourceType',
+  sourceBytes: 'sourceBytes',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type MediaObjectScalarFieldEnum = (typeof MediaObjectScalarFieldEnum)[keyof typeof MediaObjectScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -554,4 +573,17 @@ export const BookingDocumentOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
+
+
+export const MediaObjectOrderByRelevanceFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  sourceType: 'sourceType',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId'
+} as const
+
+export type MediaObjectOrderByRelevanceFieldEnum = (typeof MediaObjectOrderByRelevanceFieldEnum)[keyof typeof MediaObjectOrderByRelevanceFieldEnum]
 
