@@ -6,8 +6,44 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 export const app: Express = express();
 
+/*
+ * Menyembunyikan jejak Express dari header respons. Bukan pengaman sungguhan,
+ * hanya mengurangi informasi yang dibagikan ke publik tanpa perlu.
+ */
+app.disable('x-powered-by');
+
+/*
+ * Daftar asal yang boleh memanggil API dari peramban.
+ *
+ * Di production daftar ini WAJIB diisi. Kalau kosong, seluruh origin diizinkan
+ * dan itu berbahaya begitu dashboard dan API punya hostname berbeda. Di
+ * pengembangan daftar kosong tetap diizinkan supaya tidak menghambat kerja.
+ */
+const daftarOrigin = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+if (daftarOrigin.length === 0 && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'CORS_ORIGINS wajib diisi saat NODE_ENV=production, misalnya https://mj.tapakvia.com. ' +
+      'Tanpa itu setiap situs boleh memanggil API ini dari peramban.',
+  );
+}
+
 // Middleware dasar
-app.use(cors());
+app.use(cors(daftarOrigin.length > 0 ? { origin: daftarOrigin } : {}));
+
+/*
+ * Di balik Cloudflare Tunnel, alamat asli pengunjung ada di X-Forwarded-For.
+ * Tanpa pengaturan ini `req.ip` berisi alamat tunnel untuk semua orang, sehingga
+ * pembatas laju menjadi satu kuota bersama dan kolom ip di audit log tidak berarti.
+ */
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy && trustProxy !== 'false') {
+  app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
+}
+
 /* Batas 10 MB karena foto armada dikirim sebagai data URL base64: berkas 5 MB
    menjadi sekitar 6,7 MB teks. Batas bawaan 100 KB membuat foto sah ditolak
    sebelum validasi sempat berjalan. */
