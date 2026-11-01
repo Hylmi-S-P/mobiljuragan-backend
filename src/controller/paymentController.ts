@@ -1,12 +1,22 @@
 import type { NextFunction, Request, Response } from 'express';
-import { sendSuccess } from '../lib/response.js';
-import { paymentService } from '../services/payment.service.js';
+import { sendSuccess, AppError } from '../lib/response.js';
+import { paymentService, type PaymentActor } from '../services/payment.service.js';
+import type { UserRole } from '../generated/prisma/client.js';
 import {
   adminVerifyPaymentSchema,
   createPaymentSchema,
   listPaymentQuerySchema,
   uploadPaymentProofSchema,
 } from '../validators/paymentSchemas.js';
+
+/** Identitas pemanggil setelah `requireAuth` lolos. */
+function actorOf(req: Request): PaymentActor {
+  const user = req.user;
+  if (!user) {
+    throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
+  }
+  return { userId: user.userId, role: user.role as UserRole };
+}
 
 export const paymentController = {
   /**
@@ -18,12 +28,15 @@ export const paymentController = {
       const body = createPaymentSchema.parse(req.body);
       const actorUserId = req.user?.userId;
 
-      const payment = await paymentService.createPayment({
-        bookingId: body.bookingId,
-        method: body.method,
-        notes: body.notes,
-        actorUserId,
-      });
+      const payment = await paymentService.createPayment(
+        {
+          bookingId: body.bookingId,
+          method: body.method,
+          notes: body.notes,
+          actorUserId,
+        },
+        actorOf(req),
+      );
 
       sendSuccess(res, payment, 201);
     } catch (error) {
@@ -38,7 +51,7 @@ export const paymentController = {
   async getPaymentByBookingId(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { bookingId } = req.params;
-      const payment = await paymentService.getPaymentByBookingId(bookingId);
+      const payment = await paymentService.getPaymentByBookingId(bookingId, actorOf(req));
       sendSuccess(res, payment);
     } catch (error) {
       next(error);
@@ -52,7 +65,7 @@ export const paymentController = {
   async getPaymentById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const payment = await paymentService.getPaymentById(id);
+      const payment = await paymentService.getPaymentById(id, actorOf(req));
       sendSuccess(res, payment);
     } catch (error) {
       next(error);
@@ -69,12 +82,16 @@ export const paymentController = {
       const body = uploadPaymentProofSchema.parse(req.body);
       const actorUserId = req.user?.userId;
 
-      const updated = await paymentService.uploadPaymentProof(id, {
-        proofImageUrl: body.proofImageUrl,
-        senderAccount: body.senderAccount,
-        bankName: body.bankName,
-        actorUserId,
-      });
+      const updated = await paymentService.uploadPaymentProof(
+        id,
+        {
+          proofImageUrl: body.proofImageUrl,
+          senderAccount: body.senderAccount,
+          bankName: body.bankName,
+          actorUserId,
+        },
+        actorOf(req),
+      );
 
       sendSuccess(res, updated);
     } catch (error) {

@@ -6,10 +6,33 @@ import {
   PaymentMethod,
   PaymentStatus,
   RentalType,
+  UserRole,
   type Prisma,
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
 import { generateDynamicQris } from '../utils/qris.js';
+
+/** Identitas pemanggil yang sudah lolos `requireAuth`. */
+export type PaymentActor = { userId: string; role: UserRole };
+
+/**
+ * Memastikan pemanggil berhak menyentuh pembayaran ini.
+ *
+ * Staf dan admin boleh melihat seluruh pembayaran karena tugasnya memverifikasi.
+ * Pelanggan hanya boleh menyentuh pembayaran milik pemesanannya sendiri.
+ */
+function pastikanBolehAkses(customerId: string, actor: PaymentActor): void {
+  const staf = actor.role === UserRole.ADMIN || actor.role === UserRole.STAFF;
+  if (staf) return;
+
+  if (customerId !== actor.userId) {
+    throw new AppError(
+      'FORBIDDEN',
+      'Anda tidak memiliki hak akses untuk pembayaran pesanan ini.',
+      403,
+    );
+  }
+}
 
 export interface CreatePaymentParams {
   bookingId: string;
@@ -47,12 +70,14 @@ export type PaymentWithRelations = Prisma.PaymentGetPayload<{
   };
 }>;
 
-
 let paymentAllocationLock: Promise<unknown> = Promise.resolve();
 
 function withPaymentLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = paymentAllocationLock.then(fn, fn);
-  paymentAllocationLock = next.then(() => {}, () => {});
+  paymentAllocationLock = next.then(
+    () => {},
+    () => {},
+  );
   return next;
 }
 
@@ -61,197 +86,192 @@ export const paymentService = {
    * Pembuatan tagihan pembayaran baru dengan alokasi kode unik (1-100) bebas bentrok
    * dan injeksi QRIS dinamis mandiri (EMVCo Tag 54).
    */
-  async createPayment(params: CreatePaymentParams) {
+  async createPayment(params: CreatePaymentParams, actor: PaymentActor) {
     return withPaymentLock(() =>
       db.$transaction(async (tx) => {
-      // 1. Cari booking berdasarkan ID atau bookingCode
-      const booking = await tx.booking.findFirst({
-        where: {
-          OR: [{ id: params.bookingId }, { bookingCode: params.bookingId }],
-        },
-        include: {
-          payment: true,
-          vehicle: true,
-          customer: {
-            select: { id: true, fullName: true, phoneNumber: true },
-          },
-        },
-      });
-
-      if (!booking) {
-        throw new AppError(
-          'BOOKING_NOT_FOUND',
-          `Pesanan sewa '${params.bookingId}' tidak ditemukan.`,
-          404
-        );
-      }
-
-      // Pastikan tarif sewa sudah dikonfirmasi
-      if (!booking.quotedAmount || Number(booking.quotedAmount) <= 0) {
-        throw new AppError(
-          'BOOKING_NOT_QUOTED',
-          'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dibuat.',
-          400
-        );
-      }
-
-      // Pastikan dokumen sewa lepas kunci sudah diverifikasi sebelum tagihan dibuat
-      if (booking.rentalType === RentalType.WITHOUT_DRIVER) {
-        const doc = await tx.bookingDocument.findUnique({
-          where: { bookingId: booking.id },
-        });
-        if (doc?.status !== DocumentStatus.VERIFIED) {
-          throw new AppError(
-            'DOCUMENTS_NOT_VERIFIED',
-            'Dokumen persyaratan lepas kunci wajib diverifikasi admin sebelum tagihan pembayaran dapat dibuat.',
-            400
-          );
-        }
-      }
-
-      // 1:1 Constraint: Cek apakah pembayaran sudah pernah dibuat
-      if (booking.payment) {
-        if (booking.payment.status === PaymentStatus.PAID) {
-          throw new AppError(
-            'PAYMENT_ALREADY_SETTLED',
-            'Pesanan ini sudah lunas terbayar.',
-            400
-          );
-        }
-        throw new AppError(
-          'PAYMENT_ALREADY_EXISTS',
-          'Tagihan pembayaran untuk pesanan ini sudah ada.',
-          409,
-          { paymentId: booking.payment.id, status: booking.payment.status }
-        );
-      }
-
-      const baseAmount = Number(booking.quotedAmount);
-
-      // 2. Alokasi kode unik (1 s.d. 100) bebas bentrok di dalam transaksi
-      let uniqueCode = 0;
-      let totalAmount = baseAmount;
-
-      if (params.method === PaymentMethod.QRIS || params.method === PaymentMethod.BANK_TRANSFER) {
-        // Cari semua kode unik yang sedang aktif pada pembayaran berstatus UNPAID / PENDING_VERIFICATION
-        // dengan tarif dasar yang sama untuk menghindari ambiguitas nominal mutasi
-        const activePayments = await tx.payment.findMany({
+        // 1. Cari booking berdasarkan ID atau bookingCode
+        const booking = await tx.booking.findFirst({
           where: {
-            status: { in: [PaymentStatus.UNPAID, PaymentStatus.PENDING_VERIFICATION] },
-            baseAmount: baseAmount,
+            OR: [{ id: params.bookingId }, { bookingCode: params.bookingId }],
           },
-          select: { uniqueCode: true },
+          include: {
+            payment: true,
+            vehicle: true,
+            customer: {
+              select: { id: true, fullName: true, phoneNumber: true },
+            },
+          },
         });
 
-        const usedCodes = new Set(activePayments.map((p) => p.uniqueCode));
+        if (!booking) {
+          throw new AppError(
+            'BOOKING_NOT_FOUND',
+            `Pesanan sewa '${params.bookingId}' tidak ditemukan.`,
+            404,
+          );
+        }
 
-        // Acak kandidat kode unik antara 1 dan 100
-        let candidate = Math.floor(Math.random() * 100) + 1;
-        if (usedCodes.has(candidate)) {
-          // Cari angka pertama yang belum terpakai dalam rentang 1..100
-          candidate = 0;
-          for (let c = 1; c <= 100; c++) {
-            if (!usedCodes.has(c)) {
-              candidate = c;
-              break;
-            }
-          }
-          if (candidate === 0) {
+        pastikanBolehAkses(booking.customerId, actor);
+
+        // Pastikan tarif sewa sudah dikonfirmasi
+        if (!booking.quotedAmount || Number(booking.quotedAmount) <= 0) {
+          throw new AppError(
+            'BOOKING_NOT_QUOTED',
+            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dibuat.',
+            400,
+          );
+        }
+
+        // Pastikan dokumen sewa lepas kunci sudah diverifikasi sebelum tagihan dibuat
+        if (booking.rentalType === RentalType.WITHOUT_DRIVER) {
+          const doc = await tx.bookingDocument.findUnique({
+            where: { bookingId: booking.id },
+          });
+          if (doc?.status !== DocumentStatus.VERIFIED) {
             throw new AppError(
-              'UNIQUE_CODE_EXHAUSTED',
-              'Antrean kode unik pembayaran sedang penuh. Silakan coba beberapa saat lagi.',
-              409
+              'DOCUMENTS_NOT_VERIFIED',
+              'Dokumen persyaratan lepas kunci wajib diverifikasi admin sebelum tagihan pembayaran dapat dibuat.',
+              400,
             );
           }
         }
 
-        uniqueCode = candidate;
-        totalAmount = baseAmount + uniqueCode;
-      }
+        // 1:1 Constraint: Cek apakah pembayaran sudah pernah dibuat
+        if (booking.payment) {
+          if (booking.payment.status === PaymentStatus.PAID) {
+            throw new AppError('PAYMENT_ALREADY_SETTLED', 'Pesanan ini sudah lunas terbayar.', 400);
+          }
+          throw new AppError(
+            'PAYMENT_ALREADY_EXISTS',
+            'Tagihan pembayaran untuk pesanan ini sudah ada.',
+            409,
+            { paymentId: booking.payment.id, status: booking.payment.status },
+          );
+        }
 
-      // 3. Setup QRIS jika metode QRIS
-      let qrisPayload: string | null = null;
-      let bankName = params.method === PaymentMethod.QRIS ? 'GOPAY' : null;
-      if (params.method === PaymentMethod.BANK_TRANSFER) {
-        bankName = 'BRI';
-      }
+        const baseAmount = Number(booking.quotedAmount);
 
-      if (params.method === PaymentMethod.QRIS) {
-        qrisPayload = generateDynamicQris(totalAmount);
-      }
+        // 2. Alokasi kode unik (1 s.d. 100) bebas bentrok di dalam transaksi
+        let uniqueCode = 0;
+        let totalAmount = baseAmount;
 
-      // Batas waktu pembayaran 2 jam dari sekarang
-      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        if (params.method === PaymentMethod.QRIS || params.method === PaymentMethod.BANK_TRANSFER) {
+          // Cari semua kode unik yang sedang aktif pada pembayaran berstatus UNPAID / PENDING_VERIFICATION
+          // dengan tarif dasar yang sama untuk menghindari ambiguitas nominal mutasi
+          const activePayments = await tx.payment.findMany({
+            where: {
+              status: { in: [PaymentStatus.UNPAID, PaymentStatus.PENDING_VERIFICATION] },
+              baseAmount: baseAmount,
+            },
+            select: { uniqueCode: true },
+          });
 
-      // 4. Buat record pembayaran
-      const payment = await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          baseAmount,
-          uniqueCode,
-          totalAmount,
-          method: params.method,
-          status: PaymentStatus.UNPAID,
-          qrisPayload,
-          bankName,
-          expiresAt,
-          notes: params.notes || null,
-        },
-        include: {
-          booking: {
-            include: {
-              vehicle: true,
-              customer: {
-                select: { id: true, fullName: true, phoneNumber: true },
+          const usedCodes = new Set(activePayments.map((p) => p.uniqueCode));
+
+          // Acak kandidat kode unik antara 1 dan 100
+          let candidate = Math.floor(Math.random() * 100) + 1;
+          if (usedCodes.has(candidate)) {
+            // Cari angka pertama yang belum terpakai dalam rentang 1..100
+            candidate = 0;
+            for (let c = 1; c <= 100; c++) {
+              if (!usedCodes.has(c)) {
+                candidate = c;
+                break;
+              }
+            }
+            if (candidate === 0) {
+              throw new AppError(
+                'UNIQUE_CODE_EXHAUSTED',
+                'Antrean kode unik pembayaran sedang penuh. Silakan coba beberapa saat lagi.',
+                409,
+              );
+            }
+          }
+
+          uniqueCode = candidate;
+          totalAmount = baseAmount + uniqueCode;
+        }
+
+        // 3. Setup QRIS jika metode QRIS
+        let qrisPayload: string | null = null;
+        let bankName = params.method === PaymentMethod.QRIS ? 'GOPAY' : null;
+        if (params.method === PaymentMethod.BANK_TRANSFER) {
+          bankName = 'BRI';
+        }
+
+        if (params.method === PaymentMethod.QRIS) {
+          qrisPayload = generateDynamicQris(totalAmount);
+        }
+
+        // Batas waktu pembayaran 2 jam dari sekarang
+        const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+        // 4. Buat record pembayaran
+        const payment = await tx.payment.create({
+          data: {
+            bookingId: booking.id,
+            baseAmount,
+            uniqueCode,
+            totalAmount,
+            method: params.method,
+            status: PaymentStatus.UNPAID,
+            qrisPayload,
+            bankName,
+            expiresAt,
+            notes: params.notes || null,
+          },
+          include: {
+            booking: {
+              include: {
+                vehicle: true,
+                customer: {
+                  select: { id: true, fullName: true, phoneNumber: true },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      // 5. Catat riwayat status
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId: booking.id,
-          fromStatus: booking.status,
-          toStatus: booking.status,
-          actor: BookingStatusActor.SYSTEM,
-          actorUserId: params.actorUserId || booking.customerId,
-          note: `Tagihan pembayaran dibuat via ${params.method} sebesar Rp ${totalAmount.toLocaleString('id-ID')} (Kode Unik: ${uniqueCode}).`,
-        },
-      });
-
-      // 6. Catat audit log
-      await tx.auditLog.create({
-        data: {
-          actorId: params.actorUserId || booking.customerId,
-          action: 'CREATE_PAYMENT',
-          entityType: 'Payment',
-          entityId: payment.id,
-          metadata: {
-            bookingCode: booking.bookingCode,
-            totalAmount,
-            uniqueCode,
-            method: params.method,
+        // 5. Catat riwayat status
+        await tx.bookingStatusHistory.create({
+          data: {
+            bookingId: booking.id,
+            fromStatus: booking.status,
+            toStatus: booking.status,
+            actor: BookingStatusActor.SYSTEM,
+            actorUserId: params.actorUserId || booking.customerId,
+            note: `Tagihan pembayaran dibuat via ${params.method} sebesar Rp ${totalAmount.toLocaleString('id-ID')} (Kode Unik: ${uniqueCode}).`,
           },
-        },
-      });
+        });
 
-      return payment;
-      })
+        // 6. Catat audit log
+        await tx.auditLog.create({
+          data: {
+            actorId: params.actorUserId || booking.customerId,
+            action: 'CREATE_PAYMENT',
+            entityType: 'Payment',
+            entityId: payment.id,
+            metadata: {
+              bookingCode: booking.bookingCode,
+              totalAmount,
+              uniqueCode,
+              method: params.method,
+            },
+          },
+        });
+
+        return payment;
+      }),
     );
   },
 
   /**
    * Mengambil detail pembayaran berdasarkan bookingId atau bookingCode.
    */
-  async getPaymentByBookingId(bookingId: string) {
+  async getPaymentByBookingId(bookingId: string, actor: PaymentActor) {
     const payment = await db.payment.findFirst({
       where: {
-        OR: [
-          { bookingId: bookingId },
-          { booking: { bookingCode: bookingId } },
-        ],
+        OR: [{ bookingId: bookingId }, { booking: { bookingCode: bookingId } }],
       },
       include: {
         booking: {
@@ -269,9 +289,11 @@ export const paymentService = {
       throw new AppError(
         'PAYMENT_NOT_FOUND',
         `Pembayaran untuk pesanan '${bookingId}' tidak ditemukan.`,
-        404
+        404,
       );
     }
+
+    pastikanBolehAkses(payment.booking.customerId, actor);
 
     return payment;
   },
@@ -279,7 +301,7 @@ export const paymentService = {
   /**
    * Mengambil pembayaran berdasarkan payment ID.
    */
-  async getPaymentById(paymentId: string) {
+  async getPaymentById(paymentId: string, actor: PaymentActor) {
     const payment = await db.payment.findUnique({
       where: { id: paymentId },
       include: {
@@ -298,9 +320,11 @@ export const paymentService = {
       throw new AppError(
         'PAYMENT_NOT_FOUND',
         `Pembayaran dengan ID '${paymentId}' tidak ditemukan.`,
-        404
+        404,
       );
     }
+
+    pastikanBolehAkses(payment.booking.customerId, actor);
 
     return payment;
   },
@@ -309,7 +333,7 @@ export const paymentService = {
    * Unggah bukti transfer manual pelanggan (Bank Transfer).
    * Status berpindah menjadi PENDING_VERIFICATION.
    */
-  async uploadPaymentProof(paymentId: string, params: UploadProofParams) {
+  async uploadPaymentProof(paymentId: string, params: UploadProofParams, actor: PaymentActor) {
     return db.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
@@ -317,20 +341,18 @@ export const paymentService = {
       });
 
       if (!payment) {
-        throw new AppError(
-          'PAYMENT_NOT_FOUND',
-          `Pembayaran '${paymentId}' tidak ditemukan.`,
-          404
-        );
+        throw new AppError('PAYMENT_NOT_FOUND', `Pembayaran '${paymentId}' tidak ditemukan.`, 404);
       }
 
       if (payment.status === PaymentStatus.PAID) {
         throw new AppError(
           'PAYMENT_ALREADY_SETTLED',
           'Pembayaran sudah lunas dan tidak perlu mengunggah bukti lagi.',
-          400
+          400,
         );
       }
+
+      pastikanBolehAkses(payment.booking.customerId, actor);
 
       const updated = await tx.payment.update({
         where: { id: paymentId },
@@ -371,7 +393,13 @@ export const paymentService = {
           entityId: payment.id,
           metadata: {
             bookingCode: payment.booking.bookingCode,
-            proofImageUrl: params.proofImageUrl,
+            /*
+             * Isi berkas sengaja TIDAK dicatat di sini. Sebelumnya seluruh
+             * Base64 bukti transfer disalin ke audit_logs, sehingga satu foto
+             * tersimpan dua kali dan ikut terbawa di respons admin.
+             */
+            ukuranBukti: params.proofImageUrl.length,
+            bankName: params.bankName ?? null,
           },
         },
       });
@@ -467,7 +495,7 @@ export const paymentService = {
         throw new AppError(
           'PAYMENT_NOT_FOUND',
           `Pembayaran dengan ID '${paymentId}' tidak ditemukan.`,
-          404
+          404,
         );
       }
 
@@ -516,7 +544,9 @@ export const paymentService = {
             verifiedBy: params.verifierUserId,
             acknowledgedAt: now,
             acknowledgedBy,
-            notes: params.notes ? `${payment.notes ? payment.notes + ' | ' : ''}${params.notes}` : payment.notes,
+            notes: params.notes
+              ? `${payment.notes ? payment.notes + ' | ' : ''}${params.notes}`
+              : payment.notes,
           },
           include: {
             booking: {
