@@ -11,6 +11,7 @@ import {
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
 import { generateDynamicQris } from '../utils/qris.js';
+import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
 
 /** Identitas pemanggil yang sudah lolos `requireAuth`. */
 export type PaymentActor = { userId: string; role: UserRole };
@@ -42,7 +43,19 @@ export interface CreatePaymentParams {
 }
 
 export interface UploadProofParams {
-  proofImageUrl: string;
+  /**
+   * Bukti transfer. Boleh berupa salah satu:
+   *
+   * - `mediaId` hasil unggahan ke `/api/v1/media` (cara baru, paling ringkas);
+   * - data URL Base64 (cara lama, masih diterima supaya APK yang sudah beredar
+   *   tidak rusak — isinya dinormalkan sharp lalu disimpan sebagai media);
+   * - tautan `/api/v1/media/...` yang sudah jadi.
+   *
+   * Yang tidak diterima adalah alamat sembarang di internet, karena bukti
+   * transfer harus berada di penyimpanan kita sendiri agar bisa dipercaya.
+   */
+  proofImageUrl?: string;
+  proofMediaId?: string;
   senderAccount?: string;
   bankName?: string;
   actorUserId?: string;
@@ -71,6 +84,71 @@ export type PaymentWithRelations = Prisma.PaymentGetPayload<{
 }>;
 
 let paymentAllocationLock: Promise<unknown> = Promise.resolve();
+
+/**
+ * Membuat ulang tautan bukti transfer sebelum data dikirim ke pemanggil.
+ *
+ * Kolom `proofImageUrl` menyimpan rujukan stabil tanpa tanda tangan, karena
+ * tautan bertanda tangan akan kedaluwarsa dan tidak bisa dipakai lagi besok.
+ * Tanda tangan baru dibuat di sini, sehingga setiap pembacaan menghasilkan
+ * tautan yang masih berlaku.
+ */
+async function denganBuktiSegar<T extends { proofImageUrl?: string | null }>(
+  payment: T,
+): Promise<T> {
+  if (!payment.proofImageUrl) return payment;
+  return { ...payment, proofImageUrl: await segarkanTautanMedia(payment.proofImageUrl) };
+}
+
+/** Versi daftar dari `denganBuktiSegar`. */
+async function daftarDenganBuktiSegar<T extends { proofImageUrl?: string | null }>(
+  payments: T[],
+): Promise<T[]> {
+  return Promise.all(payments.map((item) => denganBuktiSegar(item)));
+}
+
+/**
+ * Menentukan tautan bukti transfer yang akan disimpan.
+ *
+ * Dijalankan SEBELUM transaksi database, karena menyimpan media berarti menulis
+ * berkas ke disk. Kalau dikerjakan di dalam transaksi, kegagalan database akan
+ * meninggalkan berkas yatim, dan transaksi akan tertahan selama penulisan disk.
+ */
+async function selesaikanBuktiTransfer(
+  params: UploadProofParams,
+  customerId: string,
+): Promise<string | null> {
+  if (params.proofMediaId) {
+    const media = await db.mediaObject.findUnique({ where: { id: params.proofMediaId } });
+    if (!media) {
+      throw new AppError('MEDIA_NOT_FOUND', 'Berkas bukti transfer tidak ditemukan.', 404);
+    }
+    return tautanStabil(media.id);
+  }
+
+  if (!params.proofImageUrl) return null;
+
+  const nilai = params.proofImageUrl.trim();
+
+  // Sudah berupa tautan media internal: pakai apa adanya.
+  if (nilai.startsWith('/api/v1/media/')) return nilai;
+
+  // Base64 lama: normalkan lewat sharp, simpan sebagai media, jangan ke kolom.
+  if (nilai.startsWith('data:')) {
+    const media = await simpanMediaDariBase64({
+      base64: nilai,
+      kategori: 'PAYMENT_PROOF',
+      ownerUserId: customerId,
+    });
+    return tautanStabil(media.id);
+  }
+
+  throw new AppError(
+    'PROOF_INVALID',
+    'Bukti transfer harus diunggah sebagai berkas gambar, bukan berupa alamat luar.',
+    400,
+  );
+}
 
 function withPaymentLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = paymentAllocationLock.then(fn, fn);
@@ -260,7 +338,7 @@ export const paymentService = {
           },
         });
 
-        return payment;
+        return denganBuktiSegar(payment);
       }),
     );
   },
@@ -295,7 +373,7 @@ export const paymentService = {
 
     pastikanBolehAkses(payment.booking.customerId, actor);
 
-    return payment;
+    return denganBuktiSegar(payment);
   },
 
   /**
@@ -326,7 +404,7 @@ export const paymentService = {
 
     pastikanBolehAkses(payment.booking.customerId, actor);
 
-    return payment;
+    return denganBuktiSegar(payment);
   },
 
   /**
@@ -334,6 +412,24 @@ export const paymentService = {
    * Status berpindah menjadi PENDING_VERIFICATION.
    */
   async uploadPaymentProof(paymentId: string, params: UploadProofParams, actor: PaymentActor) {
+    /*
+     * Kepemilikan diperiksa lebih dulu, sebelum berkas apa pun ditulis ke
+     * penyimpanan. Tanpa urutan ini, orang yang tidak berhak tetap bisa
+     * menitipkan berkas ke disk lewat ID pembayaran milik orang lain.
+     */
+    const pemilik = await db.payment.findUnique({
+      where: { id: paymentId },
+      select: { booking: { select: { customerId: true } } },
+    });
+
+    if (!pemilik) {
+      throw new AppError('PAYMENT_NOT_FOUND', `Pembayaran '${paymentId}' tidak ditemukan.`, 404);
+    }
+
+    pastikanBolehAkses(pemilik.booking.customerId, actor);
+
+    const tautanBukti = await selesaikanBuktiTransfer(params, pemilik.booking.customerId);
+
     return db.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
@@ -357,7 +453,7 @@ export const paymentService = {
       const updated = await tx.payment.update({
         where: { id: paymentId },
         data: {
-          proofImageUrl: params.proofImageUrl,
+          proofImageUrl: tautanBukti ?? payment.proofImageUrl,
           senderAccount: params.senderAccount || payment.senderAccount,
           bankName: params.bankName || payment.bankName,
           status: PaymentStatus.PENDING_VERIFICATION,
@@ -397,14 +493,17 @@ export const paymentService = {
              * Isi berkas sengaja TIDAK dicatat di sini. Sebelumnya seluruh
              * Base64 bukti transfer disalin ke audit_logs, sehingga satu foto
              * tersimpan dua kali dan ikut terbawa di respons admin.
+             *
+             * Yang dicatat sekarang hanya panjang tautan media yang tersimpan,
+             * sebagai penanda bahwa bukti memang terlampir.
              */
-            ukuranBukti: params.proofImageUrl.length,
+            ukuranBukti: tautanBukti ? tautanBukti.length : 0,
             bankName: params.bankName ?? null,
           },
         },
       });
 
-      return updated;
+      return denganBuktiSegar(updated);
     });
   },
 
@@ -471,7 +570,7 @@ export const paymentService = {
     ]);
 
     return {
-      items: payments,
+      items: await daftarDenganBuktiSegar(payments),
       pagination: {
         page: params.page,
         limit: params.limit,
@@ -587,7 +686,7 @@ export const paymentService = {
           },
         });
 
-        return updated;
+        return denganBuktiSegar(updated);
       } else {
         // REJECT
         const updated = await tx.payment.update({
@@ -637,7 +736,7 @@ export const paymentService = {
           },
         });
 
-        return updated;
+        return denganBuktiSegar(updated);
       }
     });
   },

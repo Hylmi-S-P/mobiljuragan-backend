@@ -35,13 +35,13 @@ const licenseSchema = z
   .optional();
 
 /**
- * Foto SIM sebagai data URL Base64.
+ * Foto SIM: data URL Base64 dari dashboard lama, atau tautan media internal.
  *
- * Hanya PNG dan JPEG yang diterima. Batas 5 MB dihitung dari panjang string
- * (Base64 kira-kira 4/3 ukuran aslinya), dan itu sudah cukup untuk foto ponsel
- * yang dikompres.
- *
- * Nilai kosong diperbolehkan supaya foto bisa dihapus tanpa menghapus supirnya.
+ * Tautan media harus diterima karena dashboard membaca `licensePhotoUrl` dari
+ * server lalu mengirimkannya kembali saat menyunting. Kalau hanya Base64 yang
+ * diterima, menyunting nama supir akan gagal karena fotonya sudah berbentuk
+ * tautan. Batas 5 MB dihitung dari panjang string; batas sebenarnya diperiksa
+ * setelah isinya diukur di pipeline gambar.
  */
 const BATAS_FOTO_BASE64 = 5 * 1024 * 1024;
 
@@ -50,8 +50,12 @@ const licensePhotoSchema = z
   .nullable()
   .optional()
   .refine(
-    (v) => v == null || v === '' || /^data:image\/(png|jpeg);base64,/.test(v),
-    { message: 'Foto SIM harus berformat PNG atau JPG.' },
+    (v) =>
+      v == null ||
+      v === '' ||
+      /^data:image\/(png|jpeg|webp);base64,/.test(v) ||
+      /^\/api\/v1\/media\/[0-9a-f-]{36}(\?.*)?$/.test(v),
+    { message: 'Foto SIM harus berupa berkas gambar PNG, JPG, atau WebP.' },
   )
   .refine((v) => v == null || v.length <= BATAS_FOTO_BASE64, {
     message: 'Foto SIM maksimal 5 MB.',

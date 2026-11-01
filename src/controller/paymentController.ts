@@ -86,6 +86,7 @@ export const paymentController = {
         id,
         {
           proofImageUrl: body.proofImageUrl,
+          proofMediaId: body.proofMediaId,
           senderAccount: body.senderAccount,
           bankName: body.bankName,
           actorUserId,

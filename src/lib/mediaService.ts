@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { db } from '../db.js';
 import { AppError } from './response.js';
 import { bentukObjectKey, mediaStorage } from './mediaStorage.js';
-import { siapkanGambar } from './imagePipeline.js';
+import { siapkanGambar, siapkanGambarDariBase64, type GambarSiapSimpan } from './imagePipeline.js';
 
 /**
  * Kategori media menentukan siapa yang boleh melihat dan berapa lama disimpan.
@@ -73,6 +73,48 @@ export function tautanMedia(mediaId: string, kategori: string): string {
   return `/api/v1/media/${mediaId}?exp=${kedaluwarsa}&sig=${sig}`;
 }
 
+/**
+ * Tautan stabil untuk DISIMPAN di database, tanpa tanda tangan.
+ *
+ * Tautan bertanda tangan tidak boleh disimpan. Tanda tangannya mengikat waktu
+ * kedaluwarsa, jadi tautan yang ditulis hari ini akan mati dalam hitungan menit
+ * dan bukti transfer tidak bisa dibuka admin lagi besok. Yang disimpan harus
+ * rujukan yang tidak pernah kedaluwarsa; tanda tangan dibuat baru setiap kali
+ * data dibaca lewat `segarkanTautanMedia`.
+ */
+export function tautanStabil(mediaId: string): string {
+  return `/api/v1/media/${mediaId}`;
+}
+
+/** Pola tautan media internal, dengan atau tanpa tanda tangan. */
+const POLA_TAUTAN_MEDIA = /^\/api\/v1\/media\/([0-9a-fA-F-]{36})(?:\?.*)?$/;
+
+/**
+ * Membuat ulang tautan bertanda tangan dari tautan yang tersimpan.
+ *
+ * Dipakai saat menyusun respons, supaya setiap pembacaan menghasilkan tautan
+ * yang masih berlaku. Nilai yang bukan tautan media internal dikembalikan apa
+ * adanya, termasuk `null`.
+ */
+export async function segarkanTautanMedia(
+  nilai: string | null | undefined,
+): Promise<string | null> {
+  if (!nilai) return null;
+
+  const cocok = POLA_TAUTAN_MEDIA.exec(nilai.trim());
+  if (!cocok) return nilai;
+
+  const mediaId = cocok[1];
+  const media = await db.mediaObject.findUnique({
+    where: { id: mediaId },
+    select: { kategori: true },
+  });
+
+  if (!media) return nilai;
+
+  return tautanMedia(mediaId, media.kategori);
+}
+
 export interface PemeriksaanTautan {
   mediaId: string;
   exp?: number;
@@ -113,6 +155,33 @@ export interface SimpanMediaParams {
  */
 export async function simpanMedia(params: SimpanMediaParams) {
   const gambar = await siapkanGambar(params.file);
+  return simpanGambarSiap(gambar, params.kategori, params.ownerUserId);
+}
+
+/**
+ * Menyimpan gambar yang dikirim sebagai Base64 di dalam JSON.
+ *
+ * Endpoint lama masih menerima Base64 karena aplikasi mobile dan dashboard yang
+ * sudah beredar belum diubah. Yang berubah adalah cara menyimpannya: Base64 itu
+ * tidak lagi ditulis ke kolom database, melainkan dinormalkan sharp lebih dulu
+ * lalu disimpan sebagai berkas media. Dengan begitu satu bukti transfer tidak
+ * lagi membengkakkan baris `payments` sampai ratusan kilobita.
+ */
+export async function simpanMediaDariBase64(params: {
+  base64: string;
+  kategori: KategoriMedia;
+  ownerUserId?: string | null;
+}) {
+  const gambar = await siapkanGambarDariBase64(params.base64);
+  return simpanGambarSiap(gambar, params.kategori, params.ownerUserId);
+}
+
+/** Bagian penyimpanan yang dipakai bersama oleh jalur berkas dan jalur Base64. */
+async function simpanGambarSiap(
+  gambar: GambarSiapSimpan,
+  kategori: KategoriMedia,
+  ownerUserId?: string | null,
+) {
   const objectKey = bentukObjectKey(gambar.sha256, gambar.ekstensi);
 
   const sudahAda = await db.mediaObject.findUnique({ where: { sha256: gambar.sha256 } });
@@ -139,8 +208,8 @@ export async function simpanMedia(params: SimpanMediaParams) {
       height: gambar.tinggi,
       sourceType: gambar.jenisAsal,
       sourceBytes: gambar.byteAsal,
-      kategori: params.kategori,
-      ownerUserId: params.ownerUserId ?? null,
+      kategori,
+      ownerUserId: ownerUserId ?? null,
     },
   });
 }
