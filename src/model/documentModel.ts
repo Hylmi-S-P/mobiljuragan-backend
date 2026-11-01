@@ -86,6 +86,27 @@ export const documentModel = {
   },
 
   /**
+   * Memastikan berkas tertentu memang milik dokumen pesanan pelanggan tersebut.
+   *
+   * Dipakai endpoint pengambilan berkas: tanpa pemeriksaan ini, siapa pun yang
+   * menebak nama berkas bisa membaca KTP/SIM pelanggan lain.
+   */
+  async isFileOwnedByCustomer(key: string, customerId: string): Promise<boolean> {
+    const found = await db.bookingDocument.findFirst({
+      where: {
+        booking: { customerId },
+        OR: [
+          { statementLetterUrl: { contains: key } },
+          { ktpUrl: { contains: key } },
+          { simUrl: { contains: key } },
+        ],
+      },
+      select: { id: true },
+    });
+    return Boolean(found);
+  },
+
+  /**
    * Pembaruan verifikasi oleh staf/admin (VERIFIED atau REJECTED).
    */
   async updateVerification(

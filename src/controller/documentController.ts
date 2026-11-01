@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { documentService } from '../services/document.service.js';
+import { fileStorage } from '../services/storage/local-storage.js';
+import { decodeLegacyDataUrl, processAndStoreImage } from '../services/upload/image-processing.js';
 import { sendSuccess, AppError } from '../lib/response.js';
 
 export const documentController = {
@@ -78,15 +80,38 @@ export const documentController = {
   async uploadBookingDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { statementLetterUrl, ktpUrl, simUrl } = req.body;
+      const files = (req.files ?? {}) as Record<string, Express.Multer.File[] | undefined>;
+      const body = (req.body ?? {}) as Record<string, string | undefined>;
 
-      if (!statementLetterUrl && !ktpUrl && !simUrl) {
+      /* Dua bentuk diterima selama masa peralihan:
+         1) multipart/form-data (klien baru) — field statementLetter, ktp, sim
+         2) JSON data URL base64 (klien lama) — tetap diproses dan dikonversi,
+            sehingga tidak ada unggahan yang hilang saat rilis bertahap. */
+      const pickFile = (field: string): Buffer | null => {
+        const uploaded = files[field]?.[0];
+        if (uploaded?.buffer) return uploaded.buffer;
+        const legacy = body[field];
+        return legacy ? decodeLegacyDataUrl(legacy) ?? Buffer.from(legacy, 'base64') : null;
+      };
+
+      const statementLetter = pickFile('statementLetter');
+      const ktp = pickFile('ktp');
+      const sim = pickFile('sim');
+
+      if (!statementLetter && !ktp && !sim) {
         throw new AppError(
           'INVALID_INPUT',
           'Setidaknya salah satu dokumen (surat pernyataan, KTP, atau SIM) harus disertakan.',
           400,
         );
       }
+
+      const prefix = `${id}`;
+      const [statementLetterUrl, ktpUrl, simUrl] = await Promise.all([
+        statementLetter ? processAndStoreImage(statementLetter, { prefix }) : Promise.resolve(undefined),
+        ktp ? processAndStoreImage(ktp, { prefix }) : Promise.resolve(undefined),
+        sim ? processAndStoreImage(sim, { prefix }) : Promise.resolve(undefined),
+      ]);
 
       const result = await documentService.uploadBookingDocuments(id, {
         statementLetterUrl,
@@ -95,6 +120,46 @@ export const documentController = {
       });
 
       sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Mengambil berkas dokumen yang tersimpan di storage.
+   * GET /api/v1/documents/file/<key>
+   *
+   * Bukan static publik: dokumen memuat KTP/SIM, jadi akses diperiksa dulu.
+   */
+  async getStoredFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const bookingFolder = req.params.bookingId;
+      const name = req.params.name;
+      const key = `${bookingFolder}/${name}`;
+
+      if (!bookingFolder || !name || key.includes('..')) {
+        throw new AppError('INVALID_FILE_PATH', 'Nama berkas tidak valid.', 400);
+      }
+
+      const user = req.user;
+      if (!user) {
+        throw new AppError('UNAUTHORIZED', 'Anda harus masuk untuk mengakses berkas ini.', 401);
+      }
+
+      /* Pelanggan hanya boleh membuka berkas miliknya sendiri; staf/admin bebas
+         selama berkasnya ada. Kepemilikan diperiksa dari path yang memuat id
+         booking, bukan dari parameter yang bisa dipalsukan klien. */
+      if (user.role === 'CUSTOMER') {
+        const owns = await documentService.isFileOwnedByCustomer(key, user.userId);
+        if (!owns) {
+          throw new AppError('FORBIDDEN', 'Berkas ini bukan milik pesanan Anda.', 403);
+        }
+      }
+
+      const buffer = await fileStorage.get(key);
+      res.setHeader('Content-Type', 'image/webp');
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.send(buffer);
     } catch (error) {
       next(error);
     }

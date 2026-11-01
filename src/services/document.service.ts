@@ -9,7 +9,7 @@ export const documentService = {
    */
   getStatementTemplateText() {
     return {
-      title: 'SURAT PERNYATAAN SEWA ARMADA LEPAS KUNCI',
+      title: 'FORM KESANGGUPAN SEWA ARMADA LEPAS KUNCI',
       company: 'PT MOBILJURAGAN TRANS MERAUKE',
       documentNumber: 'MJ-SP-LK/2026/OPS',
       introduction:
@@ -17,7 +17,7 @@ export const documentService = {
       clauses: [
         {
           number: 1,
-          title: 'Kepatuhan Hukum & Bebas Narkoba',
+          title: 'Kepatuhan Hukum',
           text: 'Armada kendaraan MobilJuragan Merauke TIDAK AKAN DIGUNAKAN untuk kegiatan yang bertentangan dengan hukum Republik Indonesia, termasuk penyalahgunaan/peredaran narkotika, psikotropika, zat adiktif, minuman keras ilegal, maupun tindak kejahatan lainnya.',
         },
         {
@@ -37,7 +37,7 @@ export const documentService = {
         },
       ],
       closing:
-        'Demikian surat pernyataan ini saya buat dengan penuh kesadaran dan kejujuran tanpa paksaan untuk digunakan sebagai kelengkapan kontrak sewa sah MobilJuragan Merauke.',
+        'Demikian form kesanggupan ini saya buat dengan penuh kesadaran dan kejujuran tanpa paksaan untuk digunakan sebagai kelengkapan kontrak sewa sah MobilJuragan Merauke.',
       instructions: [
         'Cetak dokumen ini pada kertas A4.',
         'Isi identitas diri secara lengkap sesuai e-KTP.',
@@ -78,7 +78,7 @@ export const documentService = {
 
     // Judul Dokumen
     stream += '/F2 12 Tf\n';
-    stream += '60 -36 Td (SURAT PERNYATAAN SEWA ARMADA LEPAS KUNCI) Tj\n';
+    stream += '60 -36 Td (FORM KESANGGUPAN SEWA ARMADA LEPAS KUNCI) Tj\n';
     stream += '/F1 8 Tf\n';
     stream += '40 -12 Td (Nomor Dokumen Resmi: ' + textData.documentNumber + ') Tj\n';
 
@@ -94,7 +94,7 @@ export const documentService = {
 
     // Klausul 1
     stream += '/F2 9 Tf\n';
-    stream += '0 -22 Td (1. Kepatuhan Hukum, Bebas Narkoba & Minuman Keras) Tj\n';
+    stream += '0 -22 Td (1. Kepatuhan Hukum & Larangan Penyalahgunaan) Tj\n';
     stream += '/F1 8.5 Tf\n';
     stream += '12 -12 Td (Armada TIDAK AKAN DIGUNAKAN untuk kegiatan melanggar hukum RI, termasuk penyalahgunaan) Tj\n';
     stream += '0 -11 Td (narkotika, psikotropika, zat adiktif, miras ilegal, maupun tindak kriminal lainnya.) Tj\n';
@@ -122,7 +122,7 @@ export const documentService = {
 
     // Penutup
     stream += '/F1 8.5 Tf\n';
-    stream += '-12 -20 Td (Demikian surat pernyataan ini saya buat secara sadar, jujur, dan tanpa paksaan dari pihak mana pun.) Tj\n';
+    stream += '-12 -20 Td (Demikian form kesanggupan ini saya buat secara sadar, jujur, dan tanpa paksaan dari pihak mana pun.) Tj\n';
 
     // Kolom Tanda Tangan
     stream += '330 -30 Td (Merauke, .................................... 2026) Tj\n';
@@ -220,7 +220,7 @@ export const documentService = {
 
     // Judul Dokumen
     stream += '/F2 11.5 Tf\n';
-    stream += '50 -32 Td (SURAT PERNYATAAN SEWA ARMADA LEPAS KUNCI) Tj\n';
+    stream += '50 -32 Td (FORM KESANGGUPAN SEWA ARMADA LEPAS KUNCI) Tj\n';
     stream += '/F1 8 Tf\n';
     stream += '35 -11 Td (Ref. Reservasi: ' + bookingCode + ' - Dokumen Hukum Resmi) Tj\n';
 
@@ -239,7 +239,7 @@ export const documentService = {
 
     // Klausul 1
     stream += '/F2 8.5 Tf\n';
-    stream += '0 -20 Td (1. Kepatuhan Hukum, Bebas Minuman Keras & Bebas Narkoba) Tj\n';
+    stream += '0 -20 Td (1. Kepatuhan Hukum & Larangan Penyalahgunaan) Tj\n';
     stream += '/F1 8 Tf\n';
     stream += '12 -11 Td (Armada TIDAK AKAN DIGUNAKAN untuk kegiatan melanggar hukum RI, termasuk penyalahgunaan) Tj\n';
     stream += '0 -10 Td (narkotika, psikotropika, miras ilegal, balap liar, maupun tindak kriminal lainnya.) Tj\n';
@@ -267,7 +267,7 @@ export const documentService = {
 
     // Penutup
     stream += '/F1 8 Tf\n';
-    stream += '-12 -17 Td (Demikian surat pernyataan ini saya buat secara sadar, jujur, dan tanpa paksaan dari pihak mana pun.) Tj\n';
+    stream += '-12 -17 Td (Demikian form kesanggupan ini saya buat secara sadar, jujur, dan tanpa paksaan dari pihak mana pun.) Tj\n';
 
     // Kolom Tanda Tangan
     const today = new Date();
@@ -374,6 +374,11 @@ export const documentService = {
   /**
    * Verifikasi oleh admin / staf operasional.
    */
+  /** Cek kepemilikan berkas untuk endpoint pengambilan file dokumen. */
+  async isFileOwnedByCustomer(key: string, customerId: string): Promise<boolean> {
+    return documentModel.isFileOwnedByCustomer(key, customerId);
+  },
+
   async adminVerifyDocuments(
     bookingIdOrCode: string,
     input: {

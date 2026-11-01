@@ -22,6 +22,27 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  /* Kesalahan multer: ukuran/jumlah berkas. Tanpa pemetaan ini, unggahan yang
+     terlalu besar berakhir sebagai 500 dan pesannya tidak berguna bagi pengguna. */
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name?: string }).name === 'MulterError'
+  ) {
+    const code = (err as { code?: string }).code;
+    if (code === 'LIMIT_FILE_SIZE') {
+      sendError(res, 'FILE_TOO_LARGE', 'Ukuran berkas maksimal 5 MB.', 413);
+      return;
+    }
+    if (code === 'LIMIT_FILE_COUNT' || code === 'LIMIT_UNEXPECTED_FILE') {
+      sendError(res, 'TOO_MANY_FILES', 'Maksimal 3 berkas: surat pernyataan, KTP, dan SIM.', 400);
+      return;
+    }
+    sendError(res, 'UPLOAD_FAILED', 'Berkas tidak dapat diproses. Coba lagi.', 400);
+    return;
+  }
+
   if (err instanceof SyntaxError && 'body' in err) {
     sendError(res, 'INVALID_JSON', 'Payload JSON tidak valid.', 400);
     return;
