@@ -1,6 +1,8 @@
 import { app } from './app.js';
 import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startTicketCleanupJob } from './jobs/ticketCleanupJob.js';
+import { documentTemplateService } from './lib/documentTemplateService.js';
+import { logger } from './logger.js';
 
 const port = Number(process.env.PORT ?? 4000);
 
@@ -21,6 +23,15 @@ const server = app.listen(port, host, () => {
   /* Penutupan otomatis tiket dijalankan di proses yang sama dengan API. */
   mulaiPenjadwalTiket();
   startTicketCleanupJob();
+
+  /*
+   * Template dokumen bawaan disiapkan setelah server menyala, bukan sebelumnya,
+   * supaya kegagalan database tidak menghalangi proses start. Kalau gagal,
+   * cukup dicatat: server tetap jalan dan template bisa disemai ulang.
+   */
+  documentTemplateService.pastikanTemplateBawaan().catch((error: unknown) => {
+    logger.error({ error }, 'Gagal menyiapkan template dokumen bawaan');
+  });
 });
 
 /*

@@ -576,3 +576,45 @@ model MediaObject {
   @@index([createdAt])
   @@map("media_objects")
 }
+
+/// Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
+///
+/// Isi surat pernyataan berubah seiring waktu, jadi tidak boleh ditanam di kode.
+/// Admin mengelola isinya lewat dashboard, dan pelanggan selalu mengunduh versi
+/// yang sedang aktif.
+///
+/// Setiap baris adalah satu versi. Saat template aktif diubah, baris baru dibuat
+/// dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan begitu dokumen
+/// yang sudah ditandatangani pelanggan tetap bisa ditelusuri memakai versi mana.
+model DocumentTemplate {
+  id String @id @default(uuid())
+
+  /// Kode stabil yang dipakai kode program, misalnya FORM_KESANGGUPAN.
+  kode String @db.VarChar(64)
+
+  /// Judul yang tampil pada dokumen dan di dashboard.
+  judul String @db.VarChar(200)
+
+  /// Nomor versi, mulai dari 1.
+  versi Int @default(1)
+
+  /// Isi terstruktur: kop, pembuka, identitas, butir, penutup, dan tabel.
+  isi Json
+
+  /// Hanya satu versi aktif per `kode`.
+  isActive Boolean @default(false)
+
+  /// Catatan perubahan yang diisi admin saat menyimpan.
+  catatan String? @db.Text
+
+  dibuatOleh     String?
+  diperbaruiOleh String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kode, versi])
+  @@index([kode, isActive])
+  @@index([isActive])
+  @@map("document_templates")
+}

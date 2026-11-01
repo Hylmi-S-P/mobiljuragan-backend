@@ -19,6 +19,7 @@ import { ticketRouter } from './tickets.js';
 import { customerAiRouter } from './customerAiRoutes.js';
 import { mediaRouter } from './mediaRoutes.js';
 import { documentRouter } from './documentRoutes.js';
+import { documentTemplateRouter } from './documentTemplateRoutes.js';
 
 export const v1Router: Router = Router();
 
@@ -78,6 +79,9 @@ v1Router.use('/ai', customerAiRouter);
 
 // Penyimpanan berkas gambar hasil normalisasi sharp: /api/v1/media/*
 v1Router.use('/media', mediaRouter);
+
+// Template dokumen resmi: /api/v1/documents/form-kesanggupan.pdf, /api/v1/admin/document-templates/*
+v1Router.use('/', documentTemplateRouter);
 
 // Pengunduhan template & verifikasi dokumen lepas kunci: /api/v1/documents/*, /api/v1/bookings/:id/documents
 v1Router.use('/', documentRouter);

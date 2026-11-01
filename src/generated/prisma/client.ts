@@ -137,3 +137,16 @@ export type BookingDocument = Prisma.BookingDocumentModel
  * selektif. Dengan tabel ini, baris domain cukup menyimpan pengenal pendek.
  */
 export type MediaObject = Prisma.MediaObjectModel
+/**
+ * Model DocumentTemplate
+ * Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
+ * 
+ * Isi surat pernyataan berubah seiring waktu, jadi tidak boleh ditanam di kode.
+ * Admin mengelola isinya lewat dashboard, dan pelanggan selalu mengunduh versi
+ * yang sedang aktif.
+ * 
+ * Setiap baris adalah satu versi. Saat template aktif diubah, baris baru dibuat
+ * dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan begitu dokumen
+ * yang sudah ditandatangani pelanggan tetap bisa ditelusuri memakai versi mana.
+ */
+export type DocumentTemplate = Prisma.DocumentTemplateModel
