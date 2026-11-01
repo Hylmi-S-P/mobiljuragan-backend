@@ -16,13 +16,13 @@ import type * as Prisma from "../internal/prismaNamespace.js"
  * Model DocumentTemplate
  * Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
  * 
- * Isi surat pernyataan berubah seiring waktu, jadi tidak boleh ditanam di kode.
- * Admin mengelola isinya lewat dashboard, dan pelanggan selalu mengunduh versi
- * yang sedang aktif.
+ * Admin mengunggah berkas PDF atau Word yang sudah jadi, lalu pelanggan
+ * mengunduh berkas itu apa adanya. Aplikasi tidak menyusun ulang isinya, jadi
+ * yang dicetak dan ditandatangani pelanggan persis berkas dari admin.
  * 
- * Setiap baris adalah satu versi. Saat template aktif diubah, baris baru dibuat
- * dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan begitu dokumen
- * yang sudah ditandatangani pelanggan tetap bisa ditelusuri memakai versi mana.
+ * Setiap baris adalah satu versi. Saat admin mengunggah berkas baru, baris
+ * baru dibuat dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan
+ * begitu dokumen yang sudah ditandatangani tetap bisa ditelusuri.
  */
 export type DocumentTemplateModel = runtime.Types.Result.DefaultSelection<Prisma.$DocumentTemplatePayload>
 
@@ -36,10 +36,12 @@ export type AggregateDocumentTemplate = {
 
 export type DocumentTemplateAvgAggregateOutputType = {
   versi: number | null
+  berkasByte: number | null
 }
 
 export type DocumentTemplateSumAggregateOutputType = {
   versi: number | null
+  berkasByte: number | null
 }
 
 export type DocumentTemplateMinAggregateOutputType = {
@@ -47,6 +49,11 @@ export type DocumentTemplateMinAggregateOutputType = {
   kode: string | null
   judul: string | null
   versi: number | null
+  berkasObjectKey: string | null
+  berkasNama: string | null
+  berkasMime: string | null
+  berkasByte: number | null
+  berkasSha256: string | null
   isActive: boolean | null
   catatan: string | null
   dibuatOleh: string | null
@@ -60,6 +67,11 @@ export type DocumentTemplateMaxAggregateOutputType = {
   kode: string | null
   judul: string | null
   versi: number | null
+  berkasObjectKey: string | null
+  berkasNama: string | null
+  berkasMime: string | null
+  berkasByte: number | null
+  berkasSha256: string | null
   isActive: boolean | null
   catatan: string | null
   dibuatOleh: string | null
@@ -73,7 +85,11 @@ export type DocumentTemplateCountAggregateOutputType = {
   kode: number
   judul: number
   versi: number
-  isi: number
+  berkasObjectKey: number
+  berkasNama: number
+  berkasMime: number
+  berkasByte: number
+  berkasSha256: number
   isActive: number
   catatan: number
   dibuatOleh: number
@@ -86,10 +102,12 @@ export type DocumentTemplateCountAggregateOutputType = {
 
 export type DocumentTemplateAvgAggregateInputType = {
   versi?: true
+  berkasByte?: true
 }
 
 export type DocumentTemplateSumAggregateInputType = {
   versi?: true
+  berkasByte?: true
 }
 
 export type DocumentTemplateMinAggregateInputType = {
@@ -97,6 +115,11 @@ export type DocumentTemplateMinAggregateInputType = {
   kode?: true
   judul?: true
   versi?: true
+  berkasObjectKey?: true
+  berkasNama?: true
+  berkasMime?: true
+  berkasByte?: true
+  berkasSha256?: true
   isActive?: true
   catatan?: true
   dibuatOleh?: true
@@ -110,6 +133,11 @@ export type DocumentTemplateMaxAggregateInputType = {
   kode?: true
   judul?: true
   versi?: true
+  berkasObjectKey?: true
+  berkasNama?: true
+  berkasMime?: true
+  berkasByte?: true
+  berkasSha256?: true
   isActive?: true
   catatan?: true
   dibuatOleh?: true
@@ -123,7 +151,11 @@ export type DocumentTemplateCountAggregateInputType = {
   kode?: true
   judul?: true
   versi?: true
-  isi?: true
+  berkasObjectKey?: true
+  berkasNama?: true
+  berkasMime?: true
+  berkasByte?: true
+  berkasSha256?: true
   isActive?: true
   catatan?: true
   dibuatOleh?: true
@@ -224,7 +256,11 @@ export type DocumentTemplateGroupByOutputType = {
   kode: string
   judul: string
   versi: number
-  isi: runtime.JsonValue
+  berkasObjectKey: string
+  berkasNama: string
+  berkasMime: string
+  berkasByte: number
+  berkasSha256: string
   isActive: boolean
   catatan: string | null
   dibuatOleh: string | null
@@ -261,7 +297,11 @@ export type DocumentTemplateWhereInput = {
   kode?: Prisma.StringFilter<"DocumentTemplate"> | string
   judul?: Prisma.StringFilter<"DocumentTemplate"> | string
   versi?: Prisma.IntFilter<"DocumentTemplate"> | number
-  isi?: Prisma.JsonFilter<"DocumentTemplate">
+  berkasObjectKey?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasNama?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasMime?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasByte?: Prisma.IntFilter<"DocumentTemplate"> | number
+  berkasSha256?: Prisma.StringFilter<"DocumentTemplate"> | string
   isActive?: Prisma.BoolFilter<"DocumentTemplate"> | boolean
   catatan?: Prisma.StringNullableFilter<"DocumentTemplate"> | string | null
   dibuatOleh?: Prisma.StringNullableFilter<"DocumentTemplate"> | string | null
@@ -275,7 +315,11 @@ export type DocumentTemplateOrderByWithRelationInput = {
   kode?: Prisma.SortOrder
   judul?: Prisma.SortOrder
   versi?: Prisma.SortOrder
-  isi?: Prisma.SortOrder
+  berkasObjectKey?: Prisma.SortOrder
+  berkasNama?: Prisma.SortOrder
+  berkasMime?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
+  berkasSha256?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   catatan?: Prisma.SortOrderInput | Prisma.SortOrder
   dibuatOleh?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -294,7 +338,11 @@ export type DocumentTemplateWhereUniqueInput = Prisma.AtLeast<{
   kode?: Prisma.StringFilter<"DocumentTemplate"> | string
   judul?: Prisma.StringFilter<"DocumentTemplate"> | string
   versi?: Prisma.IntFilter<"DocumentTemplate"> | number
-  isi?: Prisma.JsonFilter<"DocumentTemplate">
+  berkasObjectKey?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasNama?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasMime?: Prisma.StringFilter<"DocumentTemplate"> | string
+  berkasByte?: Prisma.IntFilter<"DocumentTemplate"> | number
+  berkasSha256?: Prisma.StringFilter<"DocumentTemplate"> | string
   isActive?: Prisma.BoolFilter<"DocumentTemplate"> | boolean
   catatan?: Prisma.StringNullableFilter<"DocumentTemplate"> | string | null
   dibuatOleh?: Prisma.StringNullableFilter<"DocumentTemplate"> | string | null
@@ -308,7 +356,11 @@ export type DocumentTemplateOrderByWithAggregationInput = {
   kode?: Prisma.SortOrder
   judul?: Prisma.SortOrder
   versi?: Prisma.SortOrder
-  isi?: Prisma.SortOrder
+  berkasObjectKey?: Prisma.SortOrder
+  berkasNama?: Prisma.SortOrder
+  berkasMime?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
+  berkasSha256?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   catatan?: Prisma.SortOrderInput | Prisma.SortOrder
   dibuatOleh?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -330,7 +382,11 @@ export type DocumentTemplateScalarWhereWithAggregatesInput = {
   kode?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
   judul?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
   versi?: Prisma.IntWithAggregatesFilter<"DocumentTemplate"> | number
-  isi?: Prisma.JsonWithAggregatesFilter<"DocumentTemplate">
+  berkasObjectKey?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
+  berkasNama?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
+  berkasMime?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
+  berkasByte?: Prisma.IntWithAggregatesFilter<"DocumentTemplate"> | number
+  berkasSha256?: Prisma.StringWithAggregatesFilter<"DocumentTemplate"> | string
   isActive?: Prisma.BoolWithAggregatesFilter<"DocumentTemplate"> | boolean
   catatan?: Prisma.StringNullableWithAggregatesFilter<"DocumentTemplate"> | string | null
   dibuatOleh?: Prisma.StringNullableWithAggregatesFilter<"DocumentTemplate"> | string | null
@@ -344,7 +400,11 @@ export type DocumentTemplateCreateInput = {
   kode: string
   judul: string
   versi?: number
-  isi: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey: string
+  berkasNama: string
+  berkasMime: string
+  berkasByte: number
+  berkasSha256: string
   isActive?: boolean
   catatan?: string | null
   dibuatOleh?: string | null
@@ -358,7 +418,11 @@ export type DocumentTemplateUncheckedCreateInput = {
   kode: string
   judul: string
   versi?: number
-  isi: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey: string
+  berkasNama: string
+  berkasMime: string
+  berkasByte: number
+  berkasSha256: string
   isActive?: boolean
   catatan?: string | null
   dibuatOleh?: string | null
@@ -372,7 +436,11 @@ export type DocumentTemplateUpdateInput = {
   kode?: Prisma.StringFieldUpdateOperationsInput | string
   judul?: Prisma.StringFieldUpdateOperationsInput | string
   versi?: Prisma.IntFieldUpdateOperationsInput | number
-  isi?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasNama?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasMime?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasByte?: Prisma.IntFieldUpdateOperationsInput | number
+  berkasSha256?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   catatan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dibuatOleh?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -386,7 +454,11 @@ export type DocumentTemplateUncheckedUpdateInput = {
   kode?: Prisma.StringFieldUpdateOperationsInput | string
   judul?: Prisma.StringFieldUpdateOperationsInput | string
   versi?: Prisma.IntFieldUpdateOperationsInput | number
-  isi?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasNama?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasMime?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasByte?: Prisma.IntFieldUpdateOperationsInput | number
+  berkasSha256?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   catatan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dibuatOleh?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -400,7 +472,11 @@ export type DocumentTemplateCreateManyInput = {
   kode: string
   judul: string
   versi?: number
-  isi: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey: string
+  berkasNama: string
+  berkasMime: string
+  berkasByte: number
+  berkasSha256: string
   isActive?: boolean
   catatan?: string | null
   dibuatOleh?: string | null
@@ -414,7 +490,11 @@ export type DocumentTemplateUpdateManyMutationInput = {
   kode?: Prisma.StringFieldUpdateOperationsInput | string
   judul?: Prisma.StringFieldUpdateOperationsInput | string
   versi?: Prisma.IntFieldUpdateOperationsInput | number
-  isi?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasNama?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasMime?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasByte?: Prisma.IntFieldUpdateOperationsInput | number
+  berkasSha256?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   catatan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dibuatOleh?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -428,7 +508,11 @@ export type DocumentTemplateUncheckedUpdateManyInput = {
   kode?: Prisma.StringFieldUpdateOperationsInput | string
   judul?: Prisma.StringFieldUpdateOperationsInput | string
   versi?: Prisma.IntFieldUpdateOperationsInput | number
-  isi?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  berkasObjectKey?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasNama?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasMime?: Prisma.StringFieldUpdateOperationsInput | string
+  berkasByte?: Prisma.IntFieldUpdateOperationsInput | number
+  berkasSha256?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   catatan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dibuatOleh?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -453,7 +537,11 @@ export type DocumentTemplateCountOrderByAggregateInput = {
   kode?: Prisma.SortOrder
   judul?: Prisma.SortOrder
   versi?: Prisma.SortOrder
-  isi?: Prisma.SortOrder
+  berkasObjectKey?: Prisma.SortOrder
+  berkasNama?: Prisma.SortOrder
+  berkasMime?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
+  berkasSha256?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   catatan?: Prisma.SortOrder
   dibuatOleh?: Prisma.SortOrder
@@ -464,6 +552,7 @@ export type DocumentTemplateCountOrderByAggregateInput = {
 
 export type DocumentTemplateAvgOrderByAggregateInput = {
   versi?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
 }
 
 export type DocumentTemplateMaxOrderByAggregateInput = {
@@ -471,6 +560,11 @@ export type DocumentTemplateMaxOrderByAggregateInput = {
   kode?: Prisma.SortOrder
   judul?: Prisma.SortOrder
   versi?: Prisma.SortOrder
+  berkasObjectKey?: Prisma.SortOrder
+  berkasNama?: Prisma.SortOrder
+  berkasMime?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
+  berkasSha256?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   catatan?: Prisma.SortOrder
   dibuatOleh?: Prisma.SortOrder
@@ -484,6 +578,11 @@ export type DocumentTemplateMinOrderByAggregateInput = {
   kode?: Prisma.SortOrder
   judul?: Prisma.SortOrder
   versi?: Prisma.SortOrder
+  berkasObjectKey?: Prisma.SortOrder
+  berkasNama?: Prisma.SortOrder
+  berkasMime?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
+  berkasSha256?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   catatan?: Prisma.SortOrder
   dibuatOleh?: Prisma.SortOrder
@@ -494,6 +593,7 @@ export type DocumentTemplateMinOrderByAggregateInput = {
 
 export type DocumentTemplateSumOrderByAggregateInput = {
   versi?: Prisma.SortOrder
+  berkasByte?: Prisma.SortOrder
 }
 
 
@@ -503,7 +603,11 @@ export type DocumentTemplateSelect<ExtArgs extends runtime.Types.Extensions.Inte
   kode?: boolean
   judul?: boolean
   versi?: boolean
-  isi?: boolean
+  berkasObjectKey?: boolean
+  berkasNama?: boolean
+  berkasMime?: boolean
+  berkasByte?: boolean
+  berkasSha256?: boolean
   isActive?: boolean
   catatan?: boolean
   dibuatOleh?: boolean
@@ -519,7 +623,11 @@ export type DocumentTemplateSelectScalar = {
   kode?: boolean
   judul?: boolean
   versi?: boolean
-  isi?: boolean
+  berkasObjectKey?: boolean
+  berkasNama?: boolean
+  berkasMime?: boolean
+  berkasByte?: boolean
+  berkasSha256?: boolean
   isActive?: boolean
   catatan?: boolean
   dibuatOleh?: boolean
@@ -528,7 +636,7 @@ export type DocumentTemplateSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DocumentTemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kode" | "judul" | "versi" | "isi" | "isActive" | "catatan" | "dibuatOleh" | "diperbaruiOleh" | "createdAt" | "updatedAt", ExtArgs["result"]["documentTemplate"]>
+export type DocumentTemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kode" | "judul" | "versi" | "berkasObjectKey" | "berkasNama" | "berkasMime" | "berkasByte" | "berkasSha256" | "isActive" | "catatan" | "dibuatOleh" | "diperbaruiOleh" | "createdAt" | "updatedAt", ExtArgs["result"]["documentTemplate"]>
 
 export type $DocumentTemplatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DocumentTemplate"
@@ -540,7 +648,7 @@ export type $DocumentTemplatePayload<ExtArgs extends runtime.Types.Extensions.In
      */
     kode: string
     /**
-     * Judul yang tampil pada dokumen dan di dashboard.
+     * Judul yang tampil di dashboard.
      */
     judul: string
     /**
@@ -548,15 +656,25 @@ export type $DocumentTemplatePayload<ExtArgs extends runtime.Types.Extensions.In
      */
     versi: number
     /**
-     * Isi terstruktur: kop, pembuka, identitas, butir, penutup, dan tabel.
+     * Lokasi berkas di penyimpanan objek.
      */
-    isi: runtime.JsonValue
+    berkasObjectKey: string
+    /**
+     * Nama berkas asli dari admin, dipakai saat pelanggan mengunduh.
+     */
+    berkasNama: string
+    /**
+     * Tipe MIME berkas, menentukan bagaimana peramban menyajikannya.
+     */
+    berkasMime: string
+    berkasByte: number
+    berkasSha256: string
     /**
      * Hanya satu versi aktif per `kode`.
      */
     isActive: boolean
     /**
-     * Catatan perubahan yang diisi admin saat menyimpan.
+     * Catatan perubahan yang diisi admin saat mengunggah.
      */
     catatan: string | null
     dibuatOleh: string | null
@@ -936,7 +1054,11 @@ export interface DocumentTemplateFieldRefs {
   readonly kode: Prisma.FieldRef<"DocumentTemplate", 'String'>
   readonly judul: Prisma.FieldRef<"DocumentTemplate", 'String'>
   readonly versi: Prisma.FieldRef<"DocumentTemplate", 'Int'>
-  readonly isi: Prisma.FieldRef<"DocumentTemplate", 'Json'>
+  readonly berkasObjectKey: Prisma.FieldRef<"DocumentTemplate", 'String'>
+  readonly berkasNama: Prisma.FieldRef<"DocumentTemplate", 'String'>
+  readonly berkasMime: Prisma.FieldRef<"DocumentTemplate", 'String'>
+  readonly berkasByte: Prisma.FieldRef<"DocumentTemplate", 'Int'>
+  readonly berkasSha256: Prisma.FieldRef<"DocumentTemplate", 'String'>
   readonly isActive: Prisma.FieldRef<"DocumentTemplate", 'Boolean'>
   readonly catatan: Prisma.FieldRef<"DocumentTemplate", 'String'>
   readonly dibuatOleh: Prisma.FieldRef<"DocumentTemplate", 'String'>

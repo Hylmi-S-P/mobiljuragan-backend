@@ -2,18 +2,29 @@ import { Router } from 'express';
 import { documentTemplateController } from '../../controller/documentTemplateController.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
+import { unggahSatuDokumen } from '../../lib/documentTemplateBerkas.js';
 
 /**
  * Template dokumen resmi.
  *
- * Bagian publik hanya satu: unduhan formulir kosong. Sisanya pengelolaan isi
- * yang menyentuh dokumen legal perusahaan, jadi dikunci ke ADMIN saja. Staf
- * tidak diberi akses karena mengubah klausul pernyataan bukan tugas harian
- * operasional.
+ * Bagian publik hanya unduhan dokumen, karena pelanggan perlu mengambilnya
+ * tanpa akun. Sisanya pengelolaan dokumen legal perusahaan, jadi dikunci ke
+ * ADMIN saja. Staf tidak diberi akses karena mengganti dokumen resmi bukan
+ * tugas harian operasional.
  */
 export const documentTemplateRouter: Router = Router();
 
-// Publik: formulir kosong untuk dicetak pelanggan.
+/*
+ * Unduhan publik. Dua jalur menuju berkas yang sama: yang pertama jalur resmi,
+ * yang kedua dipertahankan karena aplikasi mobile yang sudah beredar memakai
+ * alamat itu. Keduanya menyajikan dokumen aktif apa adanya, termasuk bila
+ * admin mengunggah berkas Word.
+ */
+documentTemplateRouter.get(
+  '/documents/form-kesanggupan',
+  documentTemplateController.unduhFormulirKosong,
+);
+
 documentTemplateRouter.get(
   '/documents/form-kesanggupan.pdf',
   documentTemplateController.unduhFormulirKosong,
@@ -35,24 +46,25 @@ documentTemplateRouter.get(
 );
 
 documentTemplateRouter.get(
+  '/admin/document-templates/:id/berkas',
+  requireAuth,
+  requireRole(UserRole.ADMIN),
+  documentTemplateController.berkasVersi,
+);
+
+documentTemplateRouter.get(
   '/admin/document-templates/:id',
   requireAuth,
   requireRole(UserRole.ADMIN),
   documentTemplateController.ambilSatu,
 );
 
-documentTemplateRouter.get(
-  '/admin/document-templates/:id/preview.pdf',
-  requireAuth,
-  requireRole(UserRole.ADMIN),
-  documentTemplateController.pratinjau,
-);
-
 documentTemplateRouter.post(
   '/admin/document-templates',
   requireAuth,
   requireRole(UserRole.ADMIN),
-  documentTemplateController.simpan,
+  unggahSatuDokumen('berkas'),
+  documentTemplateController.unggah,
 );
 
 documentTemplateRouter.post(

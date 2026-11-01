@@ -1874,7 +1874,11 @@ export const DocumentTemplateScalarFieldEnum = {
   kode: 'kode',
   judul: 'judul',
   versi: 'versi',
-  isi: 'isi',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasByte: 'berkasByte',
+  berkasSha256: 'berkasSha256',
   isActive: 'isActive',
   catatan: 'catatan',
   dibuatOleh: 'dibuatOleh',
@@ -1900,13 +1904,6 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -2128,6 +2125,10 @@ export const DocumentTemplateOrderByRelevanceFieldEnum = {
   id: 'id',
   kode: 'kode',
   judul: 'judul',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasSha256: 'berkasSha256',
   catatan: 'catatan',
   dibuatOleh: 'dibuatOleh',
   diperbaruiOleh: 'diperbaruiOleh'

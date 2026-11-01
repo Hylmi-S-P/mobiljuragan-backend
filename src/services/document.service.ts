@@ -2,7 +2,6 @@ import { documentModel } from '../model/documentModel.js';
 import { DocumentStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
-import type { IsiTemplateDokumen } from '../lib/documentTemplateDefault.js';
 import {
   simpanMediaDariBase64,
   segarkanTautanMedia,
@@ -71,27 +70,17 @@ function pastikanBolehAkses(customerId: string, actor: DocumentActor): void {
 
 export const documentService = {
   /**
-   * Teks ringkas template aktif, untuk pratinjau cepat di aplikasi mobile.
+   * Keterangan dokumen aktif untuk pratinjau di aplikasi mobile.
    *
-   * Sumbernya sekarang tabel `document_templates`, bukan teks yang ditanam di
-   * kode. Dengan begitu perubahan klausul oleh admin langsung terlihat di
-   * pratinjau maupun di PDF yang diunduh pelanggan.
+   * Dulu di sini dikirim daftar klausul sebagai teks. Itu tidak bisa
+   * dipertahankan setelah dokumen menjadi berkas unggahan admin: isinya bisa
+   * berupa PDF atau Word yang tidak bisa dibaca sebagai teks biasa.
+   *
+   * Yang dikirim sekarang adalah keterangan berkasnya, dan pelanggan mengunduh
+   * berkasnya untuk membaca dan menandatangani.
    */
   async getStatementTemplateText() {
-    const template = await documentTemplateService.ambilAktif();
-    const isi = template.isi as unknown as IsiTemplateDokumen;
-
-    return {
-      title: isi.judul,
-      company: isi.kop.nama,
-      versi: template.versi,
-      introduction: isi.pembuka,
-      pengantarDetail: isi.pengantarDetail,
-      clauses: isi.butir.map((butir) => ({ number: butir.nomor, text: butir.teks })),
-      penutup: isi.penutup,
-      tempatTanggal: isi.tempatTanggal,
-      catatanVersi: isi.catatanVersi,
-    };
+    return documentTemplateService.keteranganDokumenAktif();
   },
 
   /**
