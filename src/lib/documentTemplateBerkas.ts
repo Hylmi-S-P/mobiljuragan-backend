@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 
 import { AppError } from './response.js';
@@ -199,5 +200,16 @@ export async function pastikanFolder(alamat: string): Promise<void> {
   await mkdir(alamat, { recursive: true });
 }
 
-/** Lokasi berkas bawaan yang dipakai saat belum ada dokumen dari admin. */
-export const BERKAS_BAWAAN = join(process.cwd(), 'assets', 'form-kesanggupan-bawaan.pdf');
+/**
+ * Lokasi berkas bawaan yang dipakai saat belum ada dokumen dari admin.
+ *
+ * Dihitung dari lokasi modul ini, bukan dari direktori kerja proses. PM2 bisa
+ * dijalankan dari folder mana saja, dan `process.cwd()` yang berbeda membuat
+ * berkas bawaan tidak ditemukan tanpa pesan yang jelas.
+ *
+ * Dua tingkat ke atas selalu menunjuk folder `backend`: dari `src/lib` saat
+ * dijalankan lewat tsx, dan dari `dist/lib` setelah dibangun.
+ */
+const AKAR_BACKEND = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+export const BERKAS_BAWAAN = join(AKAR_BACKEND, 'assets', 'form-kesanggupan-bawaan.pdf');
