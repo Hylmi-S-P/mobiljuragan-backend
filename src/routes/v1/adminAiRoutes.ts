@@ -6,7 +6,6 @@ import {
   createKnowledgeDocument,
   updateKnowledgeDocument,
   deleteKnowledgeDocument,
-  fetchGatewayModels,
   checkAiGatewayHealth,
   testChatSandbox,
   getAiGatewayLogs,
@@ -30,7 +29,6 @@ adminAiRouter.use(requireRole(UserRole.ADMIN));
 // Konfigurasi & Health Monitoring Gateway
 adminAiRouter.get('/config', getAiConfig);
 adminAiRouter.put('/config', updateAiConfig);
-adminAiRouter.get('/models', fetchGatewayModels);
 adminAiRouter.get('/health', checkAiGatewayHealth);
 adminAiRouter.get('/logs', getAiGatewayLogs);
 adminAiRouter.delete('/logs', clearAiGatewayLogs);

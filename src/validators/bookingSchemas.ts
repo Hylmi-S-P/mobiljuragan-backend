@@ -61,3 +61,37 @@ export const assignDriverSchema = z.object({
 export const customerCancelBookingSchema = z.object({
   reason: z.string().max(500, 'Alasan pembatalan maksimal 500 karakter.').optional(),
 });
+
+/**
+ * Penyesuaian biaya manual (surcharge) pada satu booking.
+ *
+ * Semua isian wajib, termasuk justifikasi. Dashboard sudah memintanya sebagai
+ * "catatan justifikasi operasional (wajib untuk audit internal)", jadi server
+ * menegakkan aturan yang sama — bukan diam-diam menerima baris tanpa alasan.
+ *
+ * `nominal` harus POSITIF. Arah penambahan/pengurangan ada di `arah`, sehingga
+ * tidak ada nilai negatif yang perlu ditafsirkan saat dibaca balik.
+ */
+export const createLineItemSchema = z.object({
+  kategori: z
+    .string()
+    .trim()
+    .min(1, 'Kategori penyesuaian wajib dipilih.')
+    .max(64, 'Kategori maksimal 64 karakter.'),
+  deskripsi: z
+    .string()
+    .trim()
+    .min(1, 'Deskripsi penyesuaian wajib diisi.')
+    .max(200, 'Deskripsi maksimal 200 karakter.'),
+  nominal: z
+    .number({ error: 'Nominal penyesuaian harus berupa angka.' })
+    .positive('Nominal penyesuaian harus lebih dari 0.'),
+  arah: z.enum(['TAMBAH', 'KURANG'], {
+    error: 'Arah penyesuaian harus TAMBAH atau KURANG.',
+  }),
+  justifikasi: z
+    .string()
+    .trim()
+    .min(1, 'Justifikasi wajib diisi untuk audit internal.')
+    .max(1000, 'Justifikasi maksimal 1000 karakter.'),
+});

@@ -9,7 +9,11 @@ import {
   updateDriverSchema,
 } from '../validators/driverSchemas.js';
 import type { DriverWithAssignment } from '../model/driverModel.js';
-import { simpanMediaDariBase64, tautanStabil } from '../lib/mediaService.js';
+import {
+  segarkanTautanMedia,
+  simpanMediaDariBase64,
+  tautanStabil,
+} from '../lib/mediaService.js';
 
 /**
  * Menyiapkan foto SIM supir untuk disimpan.
@@ -104,11 +108,20 @@ async function assertNoDuplicate(
   }
 }
 
-/** Bentuk keluaran supir yang dipakai dashboard: ditambah penugasan aktif dan status terkunci. */
-function toDriverResponse(driver: DriverWithAssignment) {
+/**
+ * Bentuk keluaran supir yang dipakai dashboard: ditambah penugasan aktif dan status terkunci.
+ *
+ * Foto SIM bertanda tangan ulang setiap kali dibaca. Kategori `DRIVER_LICENSE`
+ * bersifat pribadi, jadi tautan tanpa tanda tangan ditolak 403 oleh endpoint
+ * media. Yang tersimpan di kolom hanya tautan stabil tanpa tanda tangan (karena
+ * tanda tangan punya masa berlaku dan akan mati besok), sehingga tanpa
+ * penyegaran di sini foto SIM tidak pernah tampil di layar.
+ */
+async function toDriverResponse(driver: DriverWithAssignment) {
   const activeBooking = Array.isArray(driver.bookings) ? driver.bookings[0] : undefined;
   return {
     ...driver,
+    licensePhotoUrl: await segarkanTautanMedia(driver.licensePhotoUrl),
     bookings: undefined,
     activeAssignment: activeBooking
       ? {
@@ -153,7 +166,9 @@ export const adminDriverController = {
 
       const drivers = await driverModel.findMany(where);
 
-      sendSuccess(res, drivers.map(toDriverResponse));
+      /* `toDriverResponse` sekarang async karena menyegarkan tanda tangan foto.
+         Tanpa `Promise.all`, yang terkirim adalah array berisi Promise. */
+      sendSuccess(res, await Promise.all(drivers.map(toDriverResponse)));
     } catch (error) {
       next(error);
     }
@@ -176,7 +191,7 @@ export const adminDriverController = {
         );
       }
 
-      sendSuccess(res, toDriverResponse(driver));
+      sendSuccess(res, await toDriverResponse(driver));
     } catch (error) {
       next(error);
     }
@@ -332,7 +347,7 @@ export const adminDriverController = {
       }
       if (driver.readiness === readiness) {
         sendSuccess(res, {
-          ...toDriverResponse({ ...driver, readiness }),
+          ...(await toDriverResponse({ ...driver, readiness })),
           unchanged: true,
         });
         return;

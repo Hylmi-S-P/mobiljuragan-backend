@@ -4,6 +4,7 @@ import {
   BookingStatusActor,
   DocumentStatus,
   DriverReadiness,
+  PaymentStatus,
   RentalType,
   TariffStatus,
   type Prisma,
@@ -87,6 +88,12 @@ const adminBookingDetailInclude = {
   },
   payment: true,
   document: true,
+  /* Penyesuaian biaya manual ikut dibaca karena rinciannya kini hidup di
+     database, bukan lagi hanya di state React. Baris yang sudah dibatalkan tetap
+     diambil supaya riwayatnya bisa ditelusuri lewat `dibatalkanPada`. */
+  lineItems: {
+    orderBy: { createdAt: 'asc' as const },
+  },
 } as const;
 
 /**
@@ -316,12 +323,13 @@ export const bookingModel = {
     return db.$transaction(async (tx) => {
       const booking = await tx.booking.findFirst({
         where: { OR: [{ id: input.id }, { bookingCode: input.id }] },
-        include: { vehicle: true, customer: true },
+        include: { vehicle: true, customer: true, payment: true },
       });
 
       if (!booking) return null;
 
       const isConfirming = input.nextStatus === BookingStatus.CONFIRMED;
+      const isStartingRental = input.nextStatus === BookingStatus.IN_PROGRESS;
 
       // Konfirmasi tidak boleh menabrak jadwal aktif pesanan lain di armada yang sama.
       if (isConfirming) {
@@ -353,6 +361,18 @@ export const bookingModel = {
         if (!isVerified) {
           return { kind: 'documents_unverified' as const, booking };
         }
+      }
+
+      /* Armada tidak boleh diserahkan sebelum uangnya benar-benar masuk.
+         Sebelumnya tombol "Serahkan Armada" bisa ditekan pada pesanan yang
+         pembayarannya belum diverifikasi: status berubah menjadi IN_PROGRESS,
+         unit keluar dari kantor, dan tidak ada satu pun pemeriksaan yang menahan
+         langkah itu. Pemeriksaan ini sengaja hanya menjaga transisi MASUK ke
+         IN_PROGRESS, bukan seluruh status sesudahnya, supaya pesanan yang sudah
+         berjalan tetap bisa diselesaikan menjadi COMPLETED walaupun data
+         pembayarannya kemudian berubah. */
+      if (isStartingRental && booking.payment?.status !== PaymentStatus.PAID) {
+        return { kind: 'payment_unverified' as const, booking };
       }
 
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };
@@ -522,6 +542,108 @@ export const bookingModel = {
       });
 
       return { kind: 'ok' as const, booking: updatedBooking, driver };
+    });
+  },
+
+  /* Penyesuaian biaya manual (surcharge) */
+
+  /**
+   * Menambah satu penyesuaian biaya pada booking, sekaligus mencatat audit.
+   *
+   * Nominal disimpan positif; arahnya ada di kolom `arah`. Justifikasi ikut
+   * disimpan karena itu yang diminta dashboard sebagai catatan internal — dan
+   * justru bagian itulah yang dulu hilang tanpa jejak.
+   */
+  createLineItem(input: {
+    bookingId: string;
+    kategori: string;
+    deskripsi: string;
+    nominal: number;
+    arah: 'TAMBAH' | 'KURANG';
+    justifikasi: string;
+    actorUserId: string;
+  }) {
+    return db.$transaction(async (tx) => {
+      const booking = await tx.booking.findFirst({
+        where: { OR: [{ id: input.bookingId }, { bookingCode: input.bookingId }] },
+        select: { id: true, bookingCode: true },
+      });
+
+      if (!booking) return null;
+
+      const item = await tx.bookingLineItem.create({
+        data: {
+          bookingId: booking.id,
+          kategori: input.kategori,
+          deskripsi: input.deskripsi,
+          nominal: input.nominal,
+          arah: input.arah,
+          justifikasi: input.justifikasi,
+          dibuatOleh: input.actorUserId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: input.actorUserId,
+          action: 'BOOKING_LINE_ITEM_ADDED',
+          entityType: 'Booking',
+          entityId: booking.id,
+          metadata: {
+            bookingCode: booking.bookingCode,
+            lineItemId: item.id,
+            kategori: input.kategori,
+            nominal: input.nominal,
+            arah: input.arah,
+            justifikasi: input.justifikasi,
+          },
+        },
+      });
+
+      return { item, bookingId: booking.id };
+    });
+  },
+
+  /**
+   * Membatalkan penyesuaian biaya.
+   *
+   * Barisnya TIDAK dihapus. Penyesuaian yang sudah pernah menagih pelanggan harus
+   * tetap bisa ditelusuri setelah dibatalkan, jadi yang diisi adalah
+   * `dibatalkanPada`. Pembatalan kedua kalinya ditolak supaya jejaknya tidak
+   * tertimpa.
+   */
+  cancelLineItem(input: { lineItemId: string; actorUserId: string }) {
+    return db.$transaction(async (tx) => {
+      const item = await tx.bookingLineItem.findUnique({
+        where: { id: input.lineItemId },
+        include: { booking: { select: { id: true, bookingCode: true } } },
+      });
+
+      if (!item) return { kind: 'not_found' as const };
+      if (item.dibatalkanPada) return { kind: 'already_cancelled' as const };
+
+      const updated = await tx.bookingLineItem.update({
+        where: { id: item.id },
+        data: { dibatalkanPada: new Date(), dibatalkanOleh: input.actorUserId },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: input.actorUserId,
+          action: 'BOOKING_LINE_ITEM_CANCELLED',
+          entityType: 'Booking',
+          entityId: item.booking.id,
+          metadata: {
+            bookingCode: item.booking.bookingCode,
+            lineItemId: item.id,
+            kategori: item.kategori,
+            nominal: item.nominal.toString(),
+            arah: item.arah,
+          },
+        },
+      });
+
+      return { kind: 'ok' as const, item: updated };
     });
   },
 };

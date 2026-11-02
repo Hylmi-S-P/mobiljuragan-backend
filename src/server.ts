@@ -48,3 +48,37 @@ function berhenti(sinyal: string): void {
 
 process.on('SIGTERM', () => berhenti('SIGTERM'));
 process.on('SIGINT', () => berhenti('SIGINT'));
+
+/*
+ * Jaring pengaman terakhir agar satu permintaan yang salah tidak mematikan
+ * seluruh API.
+ *
+ * Semua galat seharusnya sudah diteruskan lewat `next(error)` ke errorHandler.
+ * Kalau ada yang lolos — misalnya `throw` di dalam blok catch pada handler
+ * async, yang tidak ditangkap Express 4 — Node akan menghentikan proses.
+ * Selama `npm run dev` memakai `tsx watch`, proses yang mati TIDAK dijalankan
+ * ulang otomatis, jadi API tetap mati sampai seseorang menyentuh berkas.
+ *
+ * Yang dicatat di sini sengaja dibedakan dari galat permintaan biasa, supaya
+ * tetap kelihatan di log bahwa ada jalur yang belum benar. Ini jaring
+ * pengaman, bukan pengganti perbaikan jalurnya.
+ *
+ * Catatan jujur: menahan proses tetap hidup setelah `uncaughtException`
+ * berisiko karena keadaan internal bisa sudah tidak utuh. Untuk fase iterasi
+ * seperti sekarang, API yang tetap melayani lebih berguna daripada API yang
+ * mati total. Saat masuk tahap produksi, keputusan ini perlu ditinjau ulang.
+ */
+process.on('unhandledRejection', (alasan: unknown) => {
+  logger.error(
+    { alasan },
+    'Promise ditolak tanpa penanganan. Permintaan terkait gagal, proses dilanjutkan.',
+  );
+});
+
+process.on('uncaughtException', (galat: Error) => {
+  logger.error(
+    { galat },
+    'Galat tidak tertangkap. Proses dilanjutkan agar API tetap melayani; ' +
+      'periksa jejak di atas karena keadaan proses mungkin tidak utuh.',
+  );
+});

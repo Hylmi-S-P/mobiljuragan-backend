@@ -61,12 +61,24 @@ export const adminVehicleController = {
       const updated = await vehicleModel.updateVehicle(id, body, staffUser.userId);
       sendSuccess(res, updated);
     } catch (error: any) {
+      /*
+       * Galat diteruskan lewat `next`, BUKAN dilempar ulang.
+       *
+       * `throw` di dalam blok catch pada handler async menghasilkan promise yang
+       * ditolak tanpa ada yang menangkapnya. Express 4 tidak menangani promise
+       * yang ditolak (itu perilaku Express 5), jadi Node menganggapnya unhandled
+       * rejection dan menghentikan seluruh proses. Satu permintaan ke armada yang
+       * tidak ada cukup untuk mematikan API sampai di-restart.
+       */
       if (error?.message === 'VEHICLE_NOT_FOUND') {
-        throw new AppError(
-          'VEHICLE_NOT_FOUND',
-          `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
-          404,
+        next(
+          new AppError(
+            'VEHICLE_NOT_FOUND',
+            `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
+            404,
+          ),
         );
+        return;
       }
       next(error);
     }
@@ -79,19 +91,26 @@ export const adminVehicleController = {
       const deleted = await vehicleModel.deleteVehicle(id, staffUser.userId);
       sendSuccess(res, { deleted: true, id: deleted.id });
     } catch (error: any) {
+      /* Sama seperti `update`: diteruskan lewat `next`, tidak dilempar ulang. */
       if (error?.message === 'VEHICLE_NOT_FOUND') {
-        throw new AppError(
-          'VEHICLE_NOT_FOUND',
-          `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
-          404,
+        next(
+          new AppError(
+            'VEHICLE_NOT_FOUND',
+            `Armada dengan pengenal '${req.params.id}' tidak ditemukan.`,
+            404,
+          ),
         );
+        return;
       }
       if (error?.message === 'VEHICLE_HAS_ACTIVE_BOOKINGS') {
-        throw new AppError(
-          'VEHICLE_HAS_ACTIVE_BOOKINGS',
-          'Tidak dapat menghapus armada yang sedang memiliki pesanan sewa aktif.',
-          400,
+        next(
+          new AppError(
+            'VEHICLE_HAS_ACTIVE_BOOKINGS',
+            'Tidak dapat menghapus armada yang sedang memiliki pesanan sewa aktif.',
+            400,
+          ),
         );
+        return;
       }
       next(error);
     }

@@ -55,6 +55,7 @@ export const ModelName = {
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
+  BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
@@ -161,6 +162,24 @@ export const BookingScalarFieldEnum = {
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
+
+
+export const BookingLineItemScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  nominal: 'nominal',
+  arah: 'arah',
+  justifikasi: 'justifikasi',
+  dibatalkanPada: 'dibatalkanPada',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingLineItemScalarFieldEnum = (typeof BookingLineItemScalarFieldEnum)[keyof typeof BookingLineItemScalarFieldEnum]
 
 
 export const BookingStatusHistoryScalarFieldEnum = {
@@ -454,6 +473,19 @@ export const BookingOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingOrderByRelevanceFieldEnum = (typeof BookingOrderByRelevanceFieldEnum)[keyof typeof BookingOrderByRelevanceFieldEnum]
+
+
+export const BookingLineItemOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  justifikasi: 'justifikasi',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh'
+} as const
+
+export type BookingLineItemOrderByRelevanceFieldEnum = (typeof BookingLineItemOrderByRelevanceFieldEnum)[keyof typeof BookingLineItemOrderByRelevanceFieldEnum]
 
 
 export const BookingStatusHistoryOrderByRelevanceFieldEnum = {

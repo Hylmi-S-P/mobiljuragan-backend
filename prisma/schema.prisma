@@ -60,6 +60,12 @@ enum TariffStatus {
   PENDING_TEAM_CONFIRMATION
 }
 
+/// Arah penyesuaian biaya manual. Nominalnya sendiri selalu positif.
+enum LineItemDirection {
+  TAMBAH
+  KURANG
+}
+
 enum DriverRoute {
   DALAM_KOTA
   LUAR_KOTA
@@ -247,6 +253,7 @@ model Booking {
 
   payment  Payment?
   document BookingDocument?
+  lineItems BookingLineItem[]
 
   @@index([customerId])
   @@index([vehicleId])
@@ -254,6 +261,44 @@ model Booking {
   @@index([status])
   @@index([startDateTime, endDateTime])
   @@map("bookings")
+}
+
+/// Penyesuaian biaya manual (surcharge) yang ditetapkan admin per booking.
+///
+/// Sebelumnya rincian ini hanya hidup di state React: admin mengisi deskripsi,
+/// nominal, dan justifikasi audit, melihat barisnya muncul di tabel, lalu
+/// semuanya hilang begitu halaman dimuat ulang. Tidak ada jejak audit sama
+/// sekali, padahal justifikasi itu diminta sebagai catatan internal.
+///
+/// Nominal disimpan sebagai angka positif ditambah `arah`, bukan sebagai angka
+/// bertanda. Dengan begitu laporan bisa menjumlahkan penambahan dan pengurangan
+/// secara terpisah, dan tidak ada risiko tanda yang tertukar saat dibaca.
+model BookingLineItem {
+  id        String  @id @default(uuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  /// Kategori dari daftar di dashboard, mis. "BBM", "Tol & Parkir", "Denda".
+  kategori  String
+  deskripsi String
+
+  /// Selalu positif. Arahnya ditentukan `arah`.
+  nominal   Decimal @db.Decimal(12, 2)
+  arah      LineItemDirection @default(TAMBAH)
+
+  /// Alasan operasional yang wajib diisi admin, disimpan untuk audit.
+  justifikasi String
+  /// `null` berarti penyesuaian ini masih berlaku (belum dibatalkan).
+  dibatalkanPada DateTime?
+  dibatalkanOleh String?
+
+  dibuatOleh String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([bookingId, dibatalkanPada])
+  @@map("booking_line_items")
 }
 
 /// Riwayat tiap perubahan status booking (business rule minimum #5).
