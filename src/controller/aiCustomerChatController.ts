@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ticketModel } from '../model/ticketModel.js';
-import { TicketHandler, TicketStatus } from '../generated/prisma/client.js';
+import { TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
 import {
   generateConversationTraceId,
   resolveClientNetworkAffinity,
@@ -36,8 +36,11 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
        harus berhenti menjawab supaya tidak ada dua pihak yang membalas hal yang
        sama di satu ruangan. */
     const ticketId = typeof rawTicketId === 'string' && rawTicketId ? rawTicketId : undefined;
+    /* `tiket` dideklarasikan di luar blok supaya bisa dipakai lagi saat menyimpan
+       pesan dan saat menyelaraskan status tiket di bawah. */
+    let tiket: Awaited<ReturnType<typeof ticketModel.findById>> = null;
     if (ticketId) {
-      const tiket = await ticketModel.findById(ticketId);
+      tiket = await ticketModel.findById(ticketId);
       if (!tiket) {
         res.status(404).json({
           status: 'error',
@@ -45,6 +48,49 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         });
         return;
       }
+      /* Menyentuh tiket HARUS terautentikasi, tanpa terkecuali.
+       *
+       * `optionalAuth` membuat `req.user` boleh kosong, dan tanpa aturan ini
+       * pemanggil anonim yang memperoleh sebuah id tiket bisa menulis ke tiket
+       * itu — pesannya tercatat, dan enam pesan terakhir tiket itu ikut dibaca ke
+       * konteks model. Riwayat orang lain tidak boleh terbaca lewat pintu yang
+       * tidak memeriksa siapa pemanggilnya.
+       *
+       * Dipilih MENOLAK tanpa token, bukan hanya memeriksa saat token ada,
+       * karena pemeriksaan bersyarat menyisakan celah: penyerang tinggal tidak
+       * mengirim token untuk melewatinya. Semua pemanggil sah sudah mengirim
+       * token setiap kali menyertakan `ticketId` (aplikasi mobile selalu memakai
+       * akun pelanggan yang login, dan suite E2E AI selalu mengirim
+       * `Authorization`), jadi aturan ini tidak memutus alur yang dipakai.
+       *
+       * Konsultasi umum TANPA `ticketId` tetap boleh anonim — di situlah letak
+       * gunanya `optionalAuth`. */
+      if (!req.user) {
+        res.status(401).json({
+          status: 'error',
+          error: {
+            code: 'UNAUTHENTICATED',
+            message:
+              'Untuk melanjutkan percakapan pada tiket, Anda harus masuk terlebih dahulu.',
+          },
+        });
+        return;
+      }
+
+      /* Pemilik tiket diperiksa sebelum apa pun yang membocorkan informasi
+       * tentang tiketnya. Pemeriksaan status diturunkan SESUDAH ini supaya orang
+       * luar tidak bisa menebak status tiket dari beda kode galat. */
+      if (req.user.role === UserRole.CUSTOMER && tiket.customerId !== req.user.userId) {
+        res.status(403).json({
+          status: 'error',
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Anda tidak memiliki hak akses untuk tiket ini.',
+          },
+        });
+        return;
+      }
+
       /* Tiket yang sudah ditutup ditolak sebelum inferensi dijalankan.
        *
        * Dua alasan. Pertama, biaya: penolakan di sini terjadi sebelum panggilan
@@ -163,14 +209,32 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
 
     /* Pesan pelanggan disimpan SEBELUM inferensi dijalankan. Kalau gateway gagal
        atau waktu habis, pertanyaan pelanggan tetap tercatat sehingga admin bisa
-       melihat apa yang ditanyakan. Balasan AI menyusul setelah berhasil. */
+       melihat apa yang ditanyakan. Balasan AI menyusul setelah berhasil.
+
+       Pengirim memakai `req.user` kalau ada. Pemanggil tanpa token tetap boleh
+       menulis ke tiketnya sendiri lewat jalur ini, jadi pemilik tiket dipakai
+       sebagai pengirim pengganti supaya kolom `sender` tidak kosong. */
     if (ticketId && !isPromptAlreadyLastMessage) {
-      await ticketModel.createMessage({
-        ticket: { connect: { id: ticketId } },
-        ...(req.user?.userId ? { sender: { connect: { id: req.user.userId } } } : {}),
-        body: prompt,
-        isCustomer: true,
-      });
+      const senderId = req.user?.userId ?? tiket?.customerId;
+      if (senderId) {
+        await ticketModel.createMessage({
+          ticket: { connect: { id: ticketId } },
+          sender: { connect: { id: senderId } },
+          body: prompt,
+          isCustomer: true,
+        });
+      }
+
+      /* Balasan pelanggan menghidupkan lagi tiket yang tadinya menunggu jawaban
+         atau sudah dijawab. Tanpa ini tiket tetap terlihat selesai padahal
+         percakapannya berlanjut. */
+      if (
+        tiket &&
+        (tiket.status === TicketStatus.WAITING_CUSTOMER ||
+          tiket.status === TicketStatus.RESOLVED)
+      ) {
+        await ticketModel.updateStatus(ticketId, TicketStatus.IN_PROGRESS);
+      }
     }
 
     // 2. Eksekusi Inferensi LLM melalui 9Router Gateway
