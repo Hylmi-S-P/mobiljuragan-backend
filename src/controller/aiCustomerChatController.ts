@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ticketModel } from '../model/ticketModel.js';
-import { TicketHandler } from '../generated/prisma/client.js';
+import { TicketHandler, TicketStatus } from '../generated/prisma/client.js';
 import {
   generateConversationTraceId,
   resolveClientNetworkAffinity,
@@ -45,6 +45,31 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         });
         return;
       }
+      /* Tiket yang sudah ditutup ditolak sebelum inferensi dijalankan.
+       *
+       * Dua alasan. Pertama, biaya: penolakan di sini terjadi sebelum panggilan
+       * ke gateway, jadi tidak ada token yang terbakar untuk percakapan yang
+       * sudah selesai. Kedua, kebenaran data: tanpa pemeriksaan ini asisten
+       * tetap menjawab dan `createAiMessage` tetap menulis balasannya ke tiket
+       * yang sudah tertutup, sehingga percakapan yang seharusnya berhenti
+       * berlanjut tanpa ada yang memantau.
+       *
+       * Diletakkan sebelum pemeriksaan `handledBy` karena status tertutup
+       * berlaku untuk tiket yang dipegang AI maupun staf. Tiket bisa berstatus
+       * CLOSED sambil masih `handledBy = AI` — itu justru yang dihasilkan
+       * autoCloseStaleAiSessions — dan sebelumnya jalur inilah yang lolos. */
+      if (tiket.status === TicketStatus.CLOSED) {
+        res.status(409).json({
+          status: 'error',
+          error: {
+            code: 'TICKET_CLOSED',
+            message:
+              'Tiket ini sudah ditutup. Silakan buat tiket baru kalau masih perlu bantuan.',
+          },
+        });
+        return;
+      }
+
       if (tiket.handledBy === TicketHandler.HUMAN) {
         /* Bentuk galat disamakan dengan handler galat aplikasi (`error.code`),
            supaya klien cukup membaca satu bentuk untuk semua kegagalan. */

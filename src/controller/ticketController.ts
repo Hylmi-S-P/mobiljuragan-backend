@@ -558,6 +558,29 @@ export const ticketController = {
         throw new AppError('FORBIDDEN', 'Anda tidak memiliki hak akses untuk tiket ini.', 403);
       }
 
+      /* Tiket yang sudah ditutup tidak menerima pesan baru.
+       *
+       * Pemeriksaan ini sengaja ditaruh SETELAH pemeriksaan kepemilikan, bukan
+       * sebelumnya: pengguna lain tidak boleh tahu tiket itu ada, apalagi
+       * statusnya. Urutan sebaliknya akan membocorkan keberadaan tiket lewat
+       * beda kode galat.
+       *
+       * Tanpa pemeriksaan ini, pesan pelanggan masuk ke tiket yang tidak lagi
+       * dipantau siapa pun sementara statusnya tetap CLOSED: pelanggan mengira
+       * sudah mengirim, admin tidak pernah melihat, dan tiketnya tidak muncul di
+       * daftar aktif. Jalur admin sudah menolaknya lebih dulu; jalur pelanggan
+       * yang sebelumnya lolos.
+       *
+       * Bentuk galatnya disamakan dengan jalur admin supaya klien cukup membaca
+       * satu bentuk untuk semua penolakan tiket tertutup. */
+      if (existing.status === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah ditutup dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
+          409,
+        );
+      }
+
       const message = await ticketModel.createMessage({
         ticket: { connect: { id } },
         sender: { connect: { id: actor.userId } },

@@ -4,6 +4,7 @@ import {
   BookingStatusActor,
   DocumentStatus,
   DriverReadiness,
+  PaymentStatus,
   RentalType,
   TariffStatus,
   type Prisma,
@@ -322,12 +323,13 @@ export const bookingModel = {
     return db.$transaction(async (tx) => {
       const booking = await tx.booking.findFirst({
         where: { OR: [{ id: input.id }, { bookingCode: input.id }] },
-        include: { vehicle: true, customer: true },
+        include: { vehicle: true, customer: true, payment: true },
       });
 
       if (!booking) return null;
 
       const isConfirming = input.nextStatus === BookingStatus.CONFIRMED;
+      const isStartingRental = input.nextStatus === BookingStatus.IN_PROGRESS;
 
       // Konfirmasi tidak boleh menabrak jadwal aktif pesanan lain di armada yang sama.
       if (isConfirming) {
@@ -359,6 +361,18 @@ export const bookingModel = {
         if (!isVerified) {
           return { kind: 'documents_unverified' as const, booking };
         }
+      }
+
+      /* Armada tidak boleh diserahkan sebelum uangnya benar-benar masuk.
+         Sebelumnya tombol "Serahkan Armada" bisa ditekan pada pesanan yang
+         pembayarannya belum diverifikasi: status berubah menjadi IN_PROGRESS,
+         unit keluar dari kantor, dan tidak ada satu pun pemeriksaan yang menahan
+         langkah itu. Pemeriksaan ini sengaja hanya menjaga transisi MASUK ke
+         IN_PROGRESS, bukan seluruh status sesudahnya, supaya pesanan yang sudah
+         berjalan tetap bisa diselesaikan menjadi COMPLETED walaupun data
+         pembayarannya kemudian berubah. */
+      if (isStartingRental && booking.payment?.status !== PaymentStatus.PAID) {
+        return { kind: 'payment_unverified' as const, booking };
       }
 
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };

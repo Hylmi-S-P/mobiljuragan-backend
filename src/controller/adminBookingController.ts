@@ -228,6 +228,17 @@ export const adminBookingController = {
         );
       }
 
+      /* Armada tidak boleh diserahkan sebelum pembayarannya diverifikasi admin.
+         Tanpa pemeriksaan ini pesanan bisa masuk masa sewa berjalan padahal
+         belum ada dana yang masuk. */
+      if (result.kind === 'payment_unverified') {
+        throw new AppError(
+          'PAYMENT_NOT_VERIFIED',
+          'Pembayaran pesanan ini belum diverifikasi. Verifikasi bukti pembayaran lebih dulu sebelum menyerahkan armada.',
+          409,
+        );
+      }
+
       sendSuccess(res, {
         ...result.booking,
         whatsappIntent: buildWhatsAppIntent(result.booking),

@@ -1,10 +1,48 @@
 import type { Request, Response } from 'express';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
+import { sendError } from '../lib/response.js';
+
+/* Rentang bulan yang boleh dipilih untuk grafik omzet. Dibatasi daftar putih,
+   bukan bilangan bebas: grafik dengan 37 bulan tidak berguna dan hanya
+   memperlambat kueri. */
+const PILIHAN_BULAN = [1, 3, 6, 12] as const;
+type JumlahBulan = (typeof PILIHAN_BULAN)[number];
+
+/* Rentang bawaan untuk grafik omzet. Satu bulan, karena itu yang paling sering
+   dilihat saat membuka halaman. */
+const BULAN_GRAFIK_DEFAULT: JumlahBulan = 1;
+
+/* YoY tetap 4 tahun — tidak ikut parameter `bulan`. */
+const TAHUN_YOY = 4;
+
+/**
+ * Membaca parameter `?bulan=` dan mengembalikan jumlah bulan yang sah.
+ *
+ * Mengembalikan `undefined` kalau parameternya tidak dikirim (pakai nilai bawaan),
+ * dan `null` kalau nilainya tidak ada di daftar putih (pemanggil balas 400).
+ * Nilai salah sengaja TIDAK diam-diam jatuh ke nilai bawaan: filter yang ditelan
+ * akan tampak seperti filter yang tidak jalan.
+ */
+function bacaJumlahBulan(raw: unknown): JumlahBulan | null | undefined {
+  if (raw === undefined || raw === '') return undefined;
+  const angka = Number(raw);
+  return PILIHAN_BULAN.includes(angka as JumlahBulan) ? (angka as JumlahBulan) : null;
+}
 
 export async function getFinanceSummary(req: Request, res: Response): Promise<void> {
   try {
     const range = (req.query.range as string) || 'all'; // 'month' | 'last_month' | 'all'
+
+    // Rentang grafik omzet: 1, 3, 6, atau 12 bulan.
+    const bulanDiminta = bacaJumlahBulan(req.query.bulan);
+    if (bulanDiminta === null) {
+      sendError(res, 'INVALID_MONTH_WINDOW', 'Parameter bulan hanya menerima 1, 3, 6, 12.', 400, {
+        bulan: ['Nilai yang diterima: 1, 3, 6, 12.'],
+      });
+      return;
+    }
+    const jumlahBulan: JumlahBulan = bulanDiminta ?? BULAN_GRAFIK_DEFAULT;
 
     // Buat batasan tanggal opsional sesuai parameter filter
     let dateFilter: { gte?: Date; lte?: Date } | undefined;
@@ -141,8 +179,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
      * dipakai adalah waktu verifikasi pembayaran, karena di situlah uang masuk.
      * Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
      */
-    const BULAN_GRAFIK = 12;
-    const TAHUN_YOY = 4;
+    const BULAN_GRAFIK = jumlahBulan;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     const transaksiLunas = await db.booking.findMany({
@@ -247,6 +284,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     res.status(200).json({
       status: 'ok',
       data: {
+        bulan: jumlahBulan,
         summary: {
           totalRevenue,
           completedBookingsCount,
