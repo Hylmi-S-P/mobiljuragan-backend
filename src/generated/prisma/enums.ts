@@ -68,6 +68,14 @@ export const TariffStatus = {
 export type TariffStatus = (typeof TariffStatus)[keyof typeof TariffStatus]
 
 
+export const LineItemDirection = {
+  TAMBAH: 'TAMBAH',
+  KURANG: 'KURANG'
+} as const
+
+export type LineItemDirection = (typeof LineItemDirection)[keyof typeof LineItemDirection]
+
+
 export const DriverRoute = {
   DALAM_KOTA: 'DALAM_KOTA',
   LUAR_KOTA: 'LUAR_KOTA'

@@ -3,44 +3,41 @@ import { documentService } from '../services/document.service.js';
 import { fileStorage } from '../services/storage/local-storage.js';
 import { decodeLegacyDataUrl, processAndStoreImage } from '../services/upload/image-processing.js';
 import { sendSuccess, AppError } from '../lib/response.js';
+import { documentTemplateService } from '../lib/documentTemplateService.js';
+import type { UserRole } from '../generated/prisma/client.js';
+
+/** Identitas pemanggil setelah `requireAuth` lolos. */
+type Actor = { userId: string; role: UserRole };
+
+function actorOf(req: Request): Actor {
+  const user = req.user;
+  if (!user) {
+    throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
+  }
+  return { userId: user.userId, role: user.role };
+}
 
 export const documentController = {
   /**
    * Mengunduh berkas template surat pernyataan resmi dalam format PDF standar.
    * GET /api/v1/documents/template/surat-pernyataan-lepas-kunci.pdf
+   *
+   * Alamat lama dipertahankan supaya APK yang sudah beredar tidak langsung
+   * rusak. Isinya sekarang diambil dari template aktif di database.
    */
   async getStatementTemplatePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const pdfBuffer = documentService.getStatementTemplatePdfBuffer();
+      const { template, isi } = await documentTemplateService.bacaBerkasAktif();
 
-      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Type', template.berkasMime);
       res.setHeader(
         'Content-Disposition',
-        'inline; filename="Surat_Pernyataan_Sewa_Lepas_Kunci_MobilJuragan.pdf"',
+        `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
       );
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.end(pdfBuffer);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Mengunduh berkas surat pernyataan yang sudah terisi otomatis data reservasi pemesan.
-   * GET /api/v1/bookings/:id/statement-pdf
-   */
-  async getBookingStatementPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { buffer, bookingCode } = await documentService.getBookingStatementPdfBuffer(id);
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename="Surat_Pernyataan_Lepas_Kunci_${bookingCode}.pdf"`,
-      );
-      res.setHeader('Content-Length', buffer.length);
-      res.end(buffer);
+      res.setHeader('X-Document-Title', encodeURIComponent(template.judul));
+      res.setHeader('X-Document-Version', String(template.versi));
+      res.setHeader('Content-Length', String(isi.length));
+      res.end(isi);
     } catch (error) {
       next(error);
     }
@@ -52,7 +49,7 @@ export const documentController = {
    */
   async getStatementTemplateText(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = documentService.getStatementTemplateText();
+      const data = await documentService.getStatementTemplateText();
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -62,11 +59,13 @@ export const documentController = {
   /**
    * Mengambil dokumen yang terikat pada suatu booking.
    * GET /api/v1/bookings/:id/documents
+   *
+   * Pemilik pemesanan atau staf/admin. Pelanggan lain ditolak 403.
    */
   async getBookingDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const data = await documentService.getBookingDocuments(id);
+      const data = await documentService.getBookingDocuments(id, actorOf(req));
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -117,11 +116,11 @@ export const documentController = {
         sim ? processAndStoreImage(sim, { prefix }) : Promise.resolve(undefined),
       ]);
 
-      const result = await documentService.uploadBookingDocuments(id, {
-        statementLetterUrl,
-        ktpUrl,
-        simUrl,
-      });
+      const result = await documentService.uploadBookingDocuments(
+        id,
+        { statementLetterUrl, ktpUrl, simUrl },
+        actorOf(req),
+      );
 
       sendSuccess(res, result, 200);
     } catch (error) {

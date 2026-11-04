@@ -38,6 +38,20 @@ export type Driver = Prisma.DriverModel
  */
 export type Booking = Prisma.BookingModel
 /**
+ * Model BookingLineItem
+ * Penyesuaian biaya manual (surcharge) yang ditetapkan admin per booking.
+ * 
+ * Sebelumnya rincian ini hanya hidup di state React: admin mengisi deskripsi,
+ * nominal, dan justifikasi audit, melihat barisnya muncul di tabel, lalu
+ * semuanya hilang begitu halaman dimuat ulang. Tidak ada jejak audit sama
+ * sekali, padahal justifikasi itu diminta sebagai catatan internal.
+ * 
+ * Nominal disimpan sebagai angka positif ditambah `arah`, bukan sebagai angka
+ * bertanda. Dengan begitu laporan bisa menjumlahkan penambahan dan pengurangan
+ * secara terpisah, dan tidak ada risiko tanda yang tertukar saat dibaca.
+ */
+export type BookingLineItem = Prisma.BookingLineItemModel
+/**
  * Model BookingStatusHistory
  * Riwayat tiap perubahan status booking (business rule minimum #5).
  */
@@ -103,3 +117,26 @@ export type Payment = Prisma.PaymentModel
  * Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
  */
 export type BookingDocument = Prisma.BookingDocumentModel
+/**
+ * Model MediaObject
+ * Berkas media yang sudah dinormalisasi sharp sebelum disimpan.
+ * 
+ * Tabel ini sengaja terpisah dari kolom URL di tabel domain. Kolom URL lama
+ * menyimpan Base64 utuh di dalam baris database, sehingga satu foto KTP bisa
+ * membengkak ratusan kilobyte dan ikut terbawa pada setiap query yang tidak
+ * selektif. Dengan tabel ini, baris domain cukup menyimpan pengenal pendek.
+ */
+export type MediaObject = Prisma.MediaObjectModel
+/**
+ * Model DocumentTemplate
+ * Template dokumen resmi yang diunduh pelanggan, misalnya Form Kesanggupan.
+ * 
+ * Admin mengunggah berkas PDF atau Word yang sudah jadi, lalu pelanggan
+ * mengunduh berkas itu apa adanya. Aplikasi tidak menyusun ulang isinya, jadi
+ * yang dicetak dan ditandatangani pelanggan persis berkas dari admin.
+ * 
+ * Setiap baris adalah satu versi. Saat admin mengunggah berkas baru, baris
+ * baru dibuat dengan `versi` bertambah dan baris lama dinonaktifkan. Dengan
+ * begitu dokumen yang sudah ditandatangani tetap bisa ditelusuri.
+ */
+export type DocumentTemplate = Prisma.DocumentTemplateModel

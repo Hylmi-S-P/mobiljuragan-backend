@@ -401,6 +401,7 @@ export const ModelName = {
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
+  BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
@@ -411,7 +412,9 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
-  BookingDocument: 'BookingDocument'
+  BookingDocument: 'BookingDocument',
+  MediaObject: 'MediaObject',
+  DocumentTemplate: 'DocumentTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -427,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -692,6 +695,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BookingCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BookingCountAggregateOutputType> | number
+        }
+      }
+    }
+    BookingLineItem: {
+      payload: Prisma.$BookingLineItemPayload<ExtArgs>
+      fields: Prisma.BookingLineItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookingLineItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookingLineItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        findFirst: {
+          args: Prisma.BookingLineItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookingLineItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        findMany: {
+          args: Prisma.BookingLineItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>[]
+        }
+        create: {
+          args: Prisma.BookingLineItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        createMany: {
+          args: Prisma.BookingLineItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.BookingLineItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        update: {
+          args: Prisma.BookingLineItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookingLineItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookingLineItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.BookingLineItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingLineItemPayload>
+        }
+        aggregate: {
+          args: Prisma.BookingLineItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingLineItem>
+        }
+        groupBy: {
+          args: Prisma.BookingLineItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingLineItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookingLineItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingLineItemCountAggregateOutputType> | number
         }
       }
     }
@@ -1421,6 +1490,138 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MediaObject: {
+      payload: Prisma.$MediaObjectPayload<ExtArgs>
+      fields: Prisma.MediaObjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MediaObjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MediaObjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        findFirst: {
+          args: Prisma.MediaObjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MediaObjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        findMany: {
+          args: Prisma.MediaObjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>[]
+        }
+        create: {
+          args: Prisma.MediaObjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        createMany: {
+          args: Prisma.MediaObjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.MediaObjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        update: {
+          args: Prisma.MediaObjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.MediaObjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MediaObjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.MediaObjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaObjectPayload>
+        }
+        aggregate: {
+          args: Prisma.MediaObjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMediaObject>
+        }
+        groupBy: {
+          args: Prisma.MediaObjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaObjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MediaObjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaObjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    DocumentTemplate: {
+      payload: Prisma.$DocumentTemplatePayload<ExtArgs>
+      fields: Prisma.DocumentTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DocumentTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DocumentTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.DocumentTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DocumentTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.DocumentTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.DocumentTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.DocumentTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.DocumentTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        update: {
+          args: Prisma.DocumentTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.DocumentTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DocumentTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.DocumentTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DocumentTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.DocumentTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDocumentTemplate>
+        }
+        groupBy: {
+          args: Prisma.DocumentTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DocumentTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DocumentTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DocumentTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1468,7 +1669,10 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   passwordHash: 'passwordHash',
-  isActive: 'isActive'
+  isActive: 'isActive',
+  failedLoginAttempts: 'failedLoginAttempts',
+  lockedUntil: 'lockedUntil',
+  lastLoginAt: 'lastLoginAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1535,6 +1739,24 @@ export const BookingScalarFieldEnum = {
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
+
+
+export const BookingLineItemScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  nominal: 'nominal',
+  arah: 'arah',
+  justifikasi: 'justifikasi',
+  dibatalkanPada: 'dibatalkanPada',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingLineItemScalarFieldEnum = (typeof BookingLineItemScalarFieldEnum)[keyof typeof BookingLineItemScalarFieldEnum]
 
 
 export const BookingStatusHistoryScalarFieldEnum = {
@@ -1718,6 +1940,45 @@ export const BookingDocumentScalarFieldEnum = {
 export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
 
 
+export const MediaObjectScalarFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  byteSize: 'byteSize',
+  width: 'width',
+  height: 'height',
+  sourceType: 'sourceType',
+  sourceBytes: 'sourceBytes',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type MediaObjectScalarFieldEnum = (typeof MediaObjectScalarFieldEnum)[keyof typeof MediaObjectScalarFieldEnum]
+
+
+export const DocumentTemplateScalarFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  versi: 'versi',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasByte: 'berkasByte',
+  berkasSha256: 'berkasSha256',
+  isActive: 'isActive',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DocumentTemplateScalarFieldEnum = (typeof DocumentTemplateScalarFieldEnum)[keyof typeof DocumentTemplateScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1790,6 +2051,19 @@ export const BookingOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingOrderByRelevanceFieldEnum = (typeof BookingOrderByRelevanceFieldEnum)[keyof typeof BookingOrderByRelevanceFieldEnum]
+
+
+export const BookingLineItemOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  justifikasi: 'justifikasi',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh'
+} as const
+
+export type BookingLineItemOrderByRelevanceFieldEnum = (typeof BookingLineItemOrderByRelevanceFieldEnum)[keyof typeof BookingLineItemOrderByRelevanceFieldEnum]
 
 
 export const BookingStatusHistoryOrderByRelevanceFieldEnum = {
@@ -1937,6 +2211,35 @@ export const BookingDocumentOrderByRelevanceFieldEnum = {
 export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
 
 
+export const MediaObjectOrderByRelevanceFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  sourceType: 'sourceType',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId'
+} as const
+
+export type MediaObjectOrderByRelevanceFieldEnum = (typeof MediaObjectOrderByRelevanceFieldEnum)[keyof typeof MediaObjectOrderByRelevanceFieldEnum]
+
+
+export const DocumentTemplateOrderByRelevanceFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasSha256: 'berkasSha256',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh'
+} as const
+
+export type DocumentTemplateOrderByRelevanceFieldEnum = (typeof DocumentTemplateOrderByRelevanceFieldEnum)[keyof typeof DocumentTemplateOrderByRelevanceFieldEnum]
+
+
 
 /**
  * Field references
@@ -2031,6 +2334,13 @@ export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'BookingStatus'
  */
 export type EnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LineItemDirection'
+ */
+export type EnumLineItemDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LineItemDirection'>
     
 
 
@@ -2258,6 +2568,7 @@ export type GlobalOmitConfig = {
   vehicle?: Prisma.VehicleOmit
   driver?: Prisma.DriverOmit
   booking?: Prisma.BookingOmit
+  bookingLineItem?: Prisma.BookingLineItemOmit
   bookingStatusHistory?: Prisma.BookingStatusHistoryOmit
   otpVerification?: Prisma.OtpVerificationOmit
   supportTicket?: Prisma.SupportTicketOmit
@@ -2269,6 +2580,8 @@ export type GlobalOmitConfig = {
   faq?: Prisma.FaqOmit
   payment?: Prisma.PaymentOmit
   bookingDocument?: Prisma.BookingDocumentOmit
+  mediaObject?: Prisma.MediaObjectOmit
+  documentTemplate?: Prisma.DocumentTemplateOmit
 }
 
 /* Types for Logging */

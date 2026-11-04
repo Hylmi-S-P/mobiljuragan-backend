@@ -55,6 +55,7 @@ export const ModelName = {
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
+  BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
   SupportTicket: 'SupportTicket',
@@ -65,7 +66,9 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
-  BookingDocument: 'BookingDocument'
+  BookingDocument: 'BookingDocument',
+  MediaObject: 'MediaObject',
+  DocumentTemplate: 'DocumentTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -92,7 +95,10 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   passwordHash: 'passwordHash',
-  isActive: 'isActive'
+  isActive: 'isActive',
+  failedLoginAttempts: 'failedLoginAttempts',
+  lockedUntil: 'lockedUntil',
+  lastLoginAt: 'lastLoginAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -159,6 +165,24 @@ export const BookingScalarFieldEnum = {
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
+
+
+export const BookingLineItemScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  nominal: 'nominal',
+  arah: 'arah',
+  justifikasi: 'justifikasi',
+  dibatalkanPada: 'dibatalkanPada',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingLineItemScalarFieldEnum = (typeof BookingLineItemScalarFieldEnum)[keyof typeof BookingLineItemScalarFieldEnum]
 
 
 export const BookingStatusHistoryScalarFieldEnum = {
@@ -342,6 +366,45 @@ export const BookingDocumentScalarFieldEnum = {
 export type BookingDocumentScalarFieldEnum = (typeof BookingDocumentScalarFieldEnum)[keyof typeof BookingDocumentScalarFieldEnum]
 
 
+export const MediaObjectScalarFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  byteSize: 'byteSize',
+  width: 'width',
+  height: 'height',
+  sourceType: 'sourceType',
+  sourceBytes: 'sourceBytes',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type MediaObjectScalarFieldEnum = (typeof MediaObjectScalarFieldEnum)[keyof typeof MediaObjectScalarFieldEnum]
+
+
+export const DocumentTemplateScalarFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  versi: 'versi',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasByte: 'berkasByte',
+  berkasSha256: 'berkasSha256',
+  isActive: 'isActive',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DocumentTemplateScalarFieldEnum = (typeof DocumentTemplateScalarFieldEnum)[keyof typeof DocumentTemplateScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -414,6 +477,19 @@ export const BookingOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingOrderByRelevanceFieldEnum = (typeof BookingOrderByRelevanceFieldEnum)[keyof typeof BookingOrderByRelevanceFieldEnum]
+
+
+export const BookingLineItemOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  kategori: 'kategori',
+  deskripsi: 'deskripsi',
+  justifikasi: 'justifikasi',
+  dibatalkanOleh: 'dibatalkanOleh',
+  dibuatOleh: 'dibuatOleh'
+} as const
+
+export type BookingLineItemOrderByRelevanceFieldEnum = (typeof BookingLineItemOrderByRelevanceFieldEnum)[keyof typeof BookingLineItemOrderByRelevanceFieldEnum]
 
 
 export const BookingStatusHistoryOrderByRelevanceFieldEnum = {
@@ -559,4 +635,33 @@ export const BookingDocumentOrderByRelevanceFieldEnum = {
 } as const
 
 export type BookingDocumentOrderByRelevanceFieldEnum = (typeof BookingDocumentOrderByRelevanceFieldEnum)[keyof typeof BookingDocumentOrderByRelevanceFieldEnum]
+
+
+export const MediaObjectOrderByRelevanceFieldEnum = {
+  id: 'id',
+  sha256: 'sha256',
+  objectKey: 'objectKey',
+  mimeType: 'mimeType',
+  sourceType: 'sourceType',
+  kategori: 'kategori',
+  ownerUserId: 'ownerUserId'
+} as const
+
+export type MediaObjectOrderByRelevanceFieldEnum = (typeof MediaObjectOrderByRelevanceFieldEnum)[keyof typeof MediaObjectOrderByRelevanceFieldEnum]
+
+
+export const DocumentTemplateOrderByRelevanceFieldEnum = {
+  id: 'id',
+  kode: 'kode',
+  judul: 'judul',
+  berkasObjectKey: 'berkasObjectKey',
+  berkasNama: 'berkasNama',
+  berkasMime: 'berkasMime',
+  berkasSha256: 'berkasSha256',
+  catatan: 'catatan',
+  dibuatOleh: 'dibuatOleh',
+  diperbaruiOleh: 'diperbaruiOleh'
+} as const
+
+export type DocumentTemplateOrderByRelevanceFieldEnum = (typeof DocumentTemplateOrderByRelevanceFieldEnum)[keyof typeof DocumentTemplateOrderByRelevanceFieldEnum]
 

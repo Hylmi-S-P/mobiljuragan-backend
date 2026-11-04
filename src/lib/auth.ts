@@ -3,8 +3,31 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { UserRole } from '../generated/prisma/client.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mobiljuragan-dev-secret-key-change-in-production';
-const OTP_SALT = process.env.OTP_SALT || 'mobiljuragan-otp-salt-key';
+/**
+ * Mengambil rahasia wajib dari environment.
+ *
+ * Di production, nilai kosong atau terlalu pendek menghentikan proses saat mulai.
+ * Sebelumnya ada fallback keras, sehingga server tetap menyala memakai secret yang
+ * tertulis di kode dan token siapa pun bisa dipalsukan tanpa gejala yang terlihat.
+ */
+function ambilRahasia(nama: 'JWT_SECRET' | 'OTP_SALT', bawaanDev: string): string {
+  const nilai = process.env[nama];
+
+  if (process.env.NODE_ENV === 'production') {
+    if (!nilai || nilai.length < 32) {
+      throw new Error(
+        `${nama} wajib diisi minimal 32 karakter saat NODE_ENV=production. ` +
+          'Nilai bawaan hanya tersedia untuk pengembangan.',
+      );
+    }
+    return nilai;
+  }
+
+  return nilai && nilai.length > 0 ? nilai : bawaanDev;
+}
+
+const JWT_SECRET = ambilRahasia('JWT_SECRET', 'mobiljuragan-dev-secret-key-change-in-production');
+const OTP_SALT = ambilRahasia('OTP_SALT', 'mobiljuragan-otp-salt-key');
 
 export interface AuthTokenPayload {
   userId: string;

@@ -66,6 +66,36 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  /*
+   * Batas ukuran dari multer. Tanpa penanganan ini, mengunggah berkas yang
+   * terlalu besar berakhir sebagai 500 "terjadi kesalahan pada server", padahal
+   * penyebabnya jelas dan bisa diperbaiki pengguna: berkasnya kebesaran.
+   *
+   * Pesannya menyebut batas yang berlaku untuk jalur yang sedang dipakai,
+   * karena foto dan dokumen punya batas berbeda.
+   */
+  if (typeof err === 'object' && err !== null && 'code' in err) {
+    const kode = (err as { code?: string }).code;
+
+    if (kode === 'LIMIT_FILE_SIZE') {
+      const batasDokumen = req.path.includes('/document-templates');
+      sendError(
+        res,
+        'FILE_TOO_LARGE',
+        batasDokumen
+          ? 'Ukuran dokumen melebihi batas 15 MB.'
+          : 'Ukuran berkas melebihi batas yang diizinkan.',
+        413,
+      );
+      return;
+    }
+
+    if (kode === 'LIMIT_FILE_COUNT' || kode === 'LIMIT_UNEXPECTED_FILE') {
+      sendError(res, 'FILE_NOT_ALLOWED', 'Hanya satu berkas yang boleh diunggah.', 400);
+      return;
+    }
+  }
+
   logger.error(
     {
       err,

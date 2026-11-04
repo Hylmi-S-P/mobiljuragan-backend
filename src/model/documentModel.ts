@@ -26,21 +26,6 @@ export const documentModel = {
   },
 
   /**
-   * Mengambil detail lengkap pemesanan untuk pencetakan PDF surat pernyataan auto-filled.
-   */
-  async findBookingDetailForStatementPdf(bookingIdOrCode: string) {
-    return db.booking.findFirst({
-      where: {
-        OR: [{ id: bookingIdOrCode }, { bookingCode: bookingIdOrCode }],
-      },
-      include: {
-        customer: true,
-        vehicle: true,
-      },
-    });
-  },
-
-  /**
    * Menyimpan atau memperbarui unggahan dokumen persyaratan sewa lepas kunci.
    */
   async upsertDocument(
@@ -76,7 +61,9 @@ export const documentModel = {
         rejectionReason: null,
       },
       update: {
-        ...(data.statementLetterUrl !== undefined ? { statementLetterUrl: data.statementLetterUrl } : {}),
+        ...(data.statementLetterUrl !== undefined
+          ? { statementLetterUrl: data.statementLetterUrl }
+          : {}),
         ...(data.ktpUrl !== undefined ? { ktpUrl: data.ktpUrl } : {}),
         ...(data.simUrl !== undefined ? { simUrl: data.simUrl } : {}),
         status,

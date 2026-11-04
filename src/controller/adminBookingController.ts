@@ -5,9 +5,11 @@ import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js'
 import { computeBookingBlockers } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
+import { segarkanTautanMedia } from '../lib/mediaService.js';
 import type {
   adminBookingQuerySchema,
   assignDriverSchema,
+  createLineItemSchema,
   updateBookingStatusSchema,
 } from '../validators/bookingSchemas.js';
 
@@ -138,8 +140,35 @@ export const adminBookingController = {
         );
       }
 
+      /*
+       * Tautan berkas pribadi ditandatangani ulang sebelum dikirim.
+       *
+       * Yang tersimpan di database adalah rujukan stabil TANPA tanda tangan,
+       * karena tanda tangannya punya masa berlaku dan akan mati besok. Tanpa
+       * penyegaran di sini, pratinjau KTP/SIM/surat pernyataan di dashboard
+       * ditolak 403 oleh endpoint media, karena kategori itu bersifat pribadi.
+       *
+       * Bukti transfer diperlakukan sama. Foto armada tidak perlu ini karena
+       * kategorinya publik.
+       */
+      const dokumen = booking.document
+        ? {
+            ...booking.document,
+            statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
+            ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
+            simUrl: await segarkanTautanMedia(booking.document.simUrl),
+          }
+        : booking.document;
+
       sendSuccess(res, {
         ...booking,
+        document: dokumen,
+        payment: booking.payment
+          ? {
+              ...booking.payment,
+              proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
+            }
+          : booking.payment,
         blockers: computeBookingBlockers(booking),
         whatsappIntent: buildWhatsAppIntent(booking),
       });
@@ -211,10 +240,13 @@ export const adminBookingController = {
         );
       }
 
+      /* Armada tidak boleh diserahkan sebelum pembayarannya diverifikasi admin.
+         Tanpa pemeriksaan ini pesanan bisa masuk masa sewa berjalan padahal
+         belum ada dana yang masuk. */
       if (result.kind === 'payment_unverified') {
         throw new AppError(
-          'PAYMENT_UNVERIFIED',
-          'Pembayaran belum diverifikasi. Verifikasi pembayaran terlebih dahulu sebelum menyerahkan armada.',
+          'PAYMENT_NOT_VERIFIED',
+          'Pembayaran pesanan ini belum diverifikasi. Verifikasi bukti pembayaran lebih dulu sebelum menyerahkan armada.',
           409,
         );
       }
@@ -304,6 +336,101 @@ export const adminBookingController = {
       sendSuccess(res, {
         ...result.booking,
         whatsappIntent: buildWhatsAppIntent(result.booking),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/v1/admin/bookings/:id/line-items
+   *
+   * Menambah penyesuaian biaya manual pada satu pesanan.
+   *
+   * Sebelumnya isian ini hanya menambah baris di state React: deskripsi, nominal,
+   * dan justifikasi audit yang wajib diisi hilang begitu halaman dimuat ulang,
+   * tanpa jejak apa pun. Sekarang barisnya benar-benar tersimpan, dan audit log
+   * mencatat siapa yang menambahkannya beserta alasannya.
+   */
+  async createLineItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const staffUser = req.user!;
+      const { id } = req.params;
+      const payload = req.body as z.infer<typeof createLineItemSchema>;
+
+      const hasil = await bookingModel.createLineItem({
+        bookingId: id,
+        kategori: payload.kategori,
+        deskripsi: payload.deskripsi,
+        nominal: payload.nominal,
+        arah: payload.arah,
+        justifikasi: payload.justifikasi,
+        actorUserId: staffUser.userId,
+      });
+
+      if (!hasil) {
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
+      }
+
+      sendSuccess(
+        res,
+        {
+          id: hasil.item.id,
+          bookingId: hasil.bookingId,
+          kategori: hasil.item.kategori,
+          deskripsi: hasil.item.deskripsi,
+          nominal: hasil.item.nominal.toString(),
+          arah: hasil.item.arah,
+          justifikasi: hasil.item.justifikasi,
+          createdAt: hasil.item.createdAt,
+        },
+        201,
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * DELETE /api/v1/admin/bookings/:id/line-items/:lineItemId
+   *
+   * Membatalkan penyesuaian biaya. Barisnya tidak dihapus — penyesuaian yang
+   * sudah pernah menagih pelanggan harus tetap bisa ditelusuri.
+   */
+  async cancelLineItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const staffUser = req.user!;
+      const { id, lineItemId } = req.params;
+
+      const hasil = await bookingModel.cancelLineItem({
+        lineItemId,
+        actorUserId: staffUser.userId,
+      });
+
+      if (hasil.kind === 'not_found') {
+        throw new AppError(
+          'LINE_ITEM_NOT_FOUND',
+          `Penyesuaian biaya '${lineItemId}' tidak ditemukan pada pesanan '${id}'.`,
+          404,
+        );
+      }
+
+      if (hasil.kind === 'already_cancelled') {
+        throw new AppError(
+          'LINE_ITEM_ALREADY_CANCELLED',
+          'Penyesuaian biaya ini sudah dibatalkan sebelumnya.',
+          409,
+        );
+      }
+
+      sendSuccess(res, {
+        id: hasil.item.id,
+        bookingId: hasil.item.bookingId,
+        dibatalkanPada: hasil.item.dibatalkanPada,
       });
     } catch (error) {
       next(error);

@@ -715,14 +715,6 @@ export type PaymentUncheckedUpdateOneWithoutBookingNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PaymentUpdateToOneWithWhereWithoutBookingInput, Prisma.PaymentUpdateWithoutBookingInput>, Prisma.PaymentUncheckedUpdateWithoutBookingInput>
 }
 
-export type DecimalFieldUpdateOperationsInput = {
-  set?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
-}
-
 export type EnumPaymentMethodFieldUpdateOperationsInput = {
   set?: $Enums.PaymentMethod
 }
@@ -894,7 +886,17 @@ export type $PaymentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     id: string
     bookingId: string
     baseAmount: runtime.Decimal
+    /**
+     * USANG: dulu berisi kode 1-100 untuk mencocokkan mutasi otomatis.
+     * Sekarang selalu 0 karena verifikasi pembayaran dilakukan manual memakai
+     * nominal + bukti transfer. Kolom dipertahankan agar data lama tetap terbaca;
+     * lihat scripts/lepas-kode-unik-pembayaran.ts untuk penyelarasan totalAmount.
+     */
     uniqueCode: number
+    /**
+     * Nominal yang harus dibayar. Sejak kode unik dihapus, nilainya sama dengan
+     * baseAmount.
+     */
     totalAmount: runtime.Decimal
     method: $Enums.PaymentMethod
     status: $Enums.PaymentStatus
