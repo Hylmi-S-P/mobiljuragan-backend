@@ -42,8 +42,15 @@ function toClientDocument<
 /**
  * Menentukan tautan dokumen yang akan disimpan.
  *
- * Menerima data URL Base64 dari aplikasi lama maupun tautan media yang sudah
- * jadi. Nilai kosong berarti dokumen itu tidak diunggah pada permintaan ini.
+ * Menerima tiga bentuk: tautan media hasil pipeline sharp (`/api/v1/media/...`),
+ * tautan berkas dokumen dari unggahan multipart (`/api/v1/documents/file/...`),
+ * dan data URL Base64 dari aplikasi lama. Nilai kosong berarti dokumen itu
+ * tidak diunggah pada permintaan ini.
+ *
+ * Dua jalur penyimpanan itu memang hidup berdampingan: foto armada dan bukti
+ * transfer memakai tabel `media_objects`, sedangkan berkas e-KTP/SIM/surat
+ * pernyataan disimpan lewat pipeline `uploads/` yang sudah berjalan. Keduanya
+ * sama-sama internal dan sama-sama bisa ditandatangani ulang.
  *
  * Base64 tidak pernah ditulis ke kolom database: isinya dinormalkan sharp lebih
  * dulu, lalu disimpan sebagai berkas media. Satu foto e-KTP dari kamera HP bisa
@@ -61,6 +68,10 @@ async function selesaikanDokumen(
   if (!bersih) return null;
 
   if (bersih.startsWith('/api/v1/media/')) return bersih;
+
+  /* Berkas hasil unggahan multipart. Sudah divalidasi isinya dan dinormalkan
+     sharp oleh controller, jadi tidak perlu diproses ulang di sini. */
+  if (bersih.startsWith('/api/v1/documents/file/')) return bersih;
 
   if (bersih.startsWith('data:')) {
     const media = await simpanMediaDariBase64({ base64: bersih, kategori, ownerUserId });
