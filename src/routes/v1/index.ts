@@ -10,6 +10,10 @@ import { adminFleetRouter } from './adminFleet.js';
 import { adminVehicleRouter } from './adminVehicles.js';
 import { adminDriverRouter } from './adminDrivers.js';
 import { adminUserRouter } from './adminUsers.js';
+import {
+  adminCustomerRouter,
+  adminIdentityAuditRouter,
+} from './adminCustomers.js';
 import { adminTicketRouter } from './adminTickets.js';
 import { adminFinanceRouter } from './financeRoutes.js';
 import { adminAiRouter } from './adminAiRoutes.js';
@@ -45,6 +49,10 @@ v1Router.use('/admin/faqs', adminFaqRouter);
 
 // Manajemen akun staf & admin: /api/v1/admin/users/*
 v1Router.use('/admin/users', adminUserRouter);
+
+// Akun pelanggan & jejak identitas: /api/v1/admin/customers/*, /api/v1/admin/identity-audit
+v1Router.use('/admin/customers', adminCustomerRouter);
+v1Router.use('/admin/identity-audit', adminIdentityAuditRouter);
 
 // Autentikasi pelanggan berbasis OTP: /api/v1/auth/*
 v1Router.use('/auth', authRouter);

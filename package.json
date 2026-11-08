@@ -23,7 +23,8 @@
     "db:reset-test-data": "tsx scripts/reset-test-data.ts",
     "db:lepas-kode-unik": "tsx scripts/lepas-kode-unik-pembayaran.ts",
     "prisma:deploy": "prisma migrate deploy",
-    "audit:identitas": "tsx scripts/audit-identitas.ts"
+    "audit:identitas": "tsx scripts/audit-identitas.ts",
+    "audit:pemulihan": "tsx scripts/audit-pemulihan-identitas.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
