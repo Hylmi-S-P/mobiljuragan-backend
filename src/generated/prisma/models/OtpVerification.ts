@@ -43,6 +43,7 @@ export type OtpVerificationMinAggregateOutputType = {
   expiresAt: Date | null
   attemptCount: number | null
   consumedAt: Date | null
+  revokedAt: Date | null
   createdAt: Date | null
 }
 
@@ -55,6 +56,7 @@ export type OtpVerificationMaxAggregateOutputType = {
   expiresAt: Date | null
   attemptCount: number | null
   consumedAt: Date | null
+  revokedAt: Date | null
   createdAt: Date | null
 }
 
@@ -67,6 +69,7 @@ export type OtpVerificationCountAggregateOutputType = {
   expiresAt: number
   attemptCount: number
   consumedAt: number
+  revokedAt: number
   createdAt: number
   _all: number
 }
@@ -89,6 +92,7 @@ export type OtpVerificationMinAggregateInputType = {
   expiresAt?: true
   attemptCount?: true
   consumedAt?: true
+  revokedAt?: true
   createdAt?: true
 }
 
@@ -101,6 +105,7 @@ export type OtpVerificationMaxAggregateInputType = {
   expiresAt?: true
   attemptCount?: true
   consumedAt?: true
+  revokedAt?: true
   createdAt?: true
 }
 
@@ -113,6 +118,7 @@ export type OtpVerificationCountAggregateInputType = {
   expiresAt?: true
   attemptCount?: true
   consumedAt?: true
+  revokedAt?: true
   createdAt?: true
   _all?: true
 }
@@ -205,13 +211,14 @@ export type OtpVerificationGroupByArgs<ExtArgs extends runtime.Types.Extensions.
 
 export type OtpVerificationGroupByOutputType = {
   id: string
-  userId: string
+  userId: string | null
   phoneNumber: string
   otpHash: string
   purpose: string
   expiresAt: Date
   attemptCount: number
   consumedAt: Date | null
+  revokedAt: Date | null
   createdAt: Date
   _count: OtpVerificationCountAggregateOutputType | null
   _avg: OtpVerificationAvgAggregateOutputType | null
@@ -240,26 +247,28 @@ export type OtpVerificationWhereInput = {
   OR?: Prisma.OtpVerificationWhereInput[]
   NOT?: Prisma.OtpVerificationWhereInput | Prisma.OtpVerificationWhereInput[]
   id?: Prisma.StringFilter<"OtpVerification"> | string
-  userId?: Prisma.StringFilter<"OtpVerification"> | string
+  userId?: Prisma.StringNullableFilter<"OtpVerification"> | string | null
   phoneNumber?: Prisma.StringFilter<"OtpVerification"> | string
   otpHash?: Prisma.StringFilter<"OtpVerification"> | string
   purpose?: Prisma.StringFilter<"OtpVerification"> | string
   expiresAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
   attemptCount?: Prisma.IntFilter<"OtpVerification"> | number
   consumedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
+  revokedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
-  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type OtpVerificationOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
   phoneNumber?: Prisma.SortOrder
   otpHash?: Prisma.SortOrder
   purpose?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
   attemptCount?: Prisma.SortOrder
   consumedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  revokedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   _relevance?: Prisma.OtpVerificationOrderByRelevanceInput
@@ -270,26 +279,28 @@ export type OtpVerificationWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OtpVerificationWhereInput | Prisma.OtpVerificationWhereInput[]
   OR?: Prisma.OtpVerificationWhereInput[]
   NOT?: Prisma.OtpVerificationWhereInput | Prisma.OtpVerificationWhereInput[]
-  userId?: Prisma.StringFilter<"OtpVerification"> | string
+  userId?: Prisma.StringNullableFilter<"OtpVerification"> | string | null
   phoneNumber?: Prisma.StringFilter<"OtpVerification"> | string
   otpHash?: Prisma.StringFilter<"OtpVerification"> | string
   purpose?: Prisma.StringFilter<"OtpVerification"> | string
   expiresAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
   attemptCount?: Prisma.IntFilter<"OtpVerification"> | number
   consumedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
+  revokedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
-  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }, "id">
 
 export type OtpVerificationOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
   phoneNumber?: Prisma.SortOrder
   otpHash?: Prisma.SortOrder
   purpose?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
   attemptCount?: Prisma.SortOrder
   consumedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  revokedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.OtpVerificationCountOrderByAggregateInput
   _avg?: Prisma.OtpVerificationAvgOrderByAggregateInput
@@ -303,13 +314,14 @@ export type OtpVerificationScalarWhereWithAggregatesInput = {
   OR?: Prisma.OtpVerificationScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OtpVerificationScalarWhereWithAggregatesInput | Prisma.OtpVerificationScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"OtpVerification"> | string
-  userId?: Prisma.StringWithAggregatesFilter<"OtpVerification"> | string
+  userId?: Prisma.StringNullableWithAggregatesFilter<"OtpVerification"> | string | null
   phoneNumber?: Prisma.StringWithAggregatesFilter<"OtpVerification"> | string
   otpHash?: Prisma.StringWithAggregatesFilter<"OtpVerification"> | string
   purpose?: Prisma.StringWithAggregatesFilter<"OtpVerification"> | string
   expiresAt?: Prisma.DateTimeWithAggregatesFilter<"OtpVerification"> | Date | string
   attemptCount?: Prisma.IntWithAggregatesFilter<"OtpVerification"> | number
   consumedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OtpVerification"> | Date | string | null
+  revokedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OtpVerification"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"OtpVerification"> | Date | string
 }
 
@@ -321,19 +333,21 @@ export type OtpVerificationCreateInput = {
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutOtpVerificationsInput
+  user?: Prisma.UserCreateNestedOneWithoutOtpVerificationsInput
 }
 
 export type OtpVerificationUncheckedCreateInput = {
   id?: string
-  userId: string
+  userId?: string | null
   phoneNumber: string
   otpHash: string
   purpose: string
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -345,31 +359,34 @@ export type OtpVerificationUpdateInput = {
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutOtpVerificationsNestedInput
+  user?: Prisma.UserUpdateOneWithoutOtpVerificationsNestedInput
 }
 
 export type OtpVerificationUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   otpHash?: Prisma.StringFieldUpdateOperationsInput | string
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type OtpVerificationCreateManyInput = {
   id?: string
-  userId: string
+  userId?: string | null
   phoneNumber: string
   otpHash: string
   purpose: string
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -381,18 +398,20 @@ export type OtpVerificationUpdateManyMutationInput = {
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type OtpVerificationUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   otpHash?: Prisma.StringFieldUpdateOperationsInput | string
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -421,6 +440,7 @@ export type OtpVerificationCountOrderByAggregateInput = {
   expiresAt?: Prisma.SortOrder
   attemptCount?: Prisma.SortOrder
   consumedAt?: Prisma.SortOrder
+  revokedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -437,6 +457,7 @@ export type OtpVerificationMaxOrderByAggregateInput = {
   expiresAt?: Prisma.SortOrder
   attemptCount?: Prisma.SortOrder
   consumedAt?: Prisma.SortOrder
+  revokedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -449,6 +470,7 @@ export type OtpVerificationMinOrderByAggregateInput = {
   expiresAt?: Prisma.SortOrder
   attemptCount?: Prisma.SortOrder
   consumedAt?: Prisma.SortOrder
+  revokedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -506,6 +528,7 @@ export type OtpVerificationCreateWithoutUserInput = {
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -517,6 +540,7 @@ export type OtpVerificationUncheckedCreateWithoutUserInput = {
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -551,13 +575,14 @@ export type OtpVerificationScalarWhereInput = {
   OR?: Prisma.OtpVerificationScalarWhereInput[]
   NOT?: Prisma.OtpVerificationScalarWhereInput | Prisma.OtpVerificationScalarWhereInput[]
   id?: Prisma.StringFilter<"OtpVerification"> | string
-  userId?: Prisma.StringFilter<"OtpVerification"> | string
+  userId?: Prisma.StringNullableFilter<"OtpVerification"> | string | null
   phoneNumber?: Prisma.StringFilter<"OtpVerification"> | string
   otpHash?: Prisma.StringFilter<"OtpVerification"> | string
   purpose?: Prisma.StringFilter<"OtpVerification"> | string
   expiresAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
   attemptCount?: Prisma.IntFilter<"OtpVerification"> | number
   consumedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
+  revokedAt?: Prisma.DateTimeNullableFilter<"OtpVerification"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OtpVerification"> | Date | string
 }
 
@@ -569,6 +594,7 @@ export type OtpVerificationCreateManyUserInput = {
   expiresAt: Date | string
   attemptCount?: number
   consumedAt?: Date | string | null
+  revokedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -580,6 +606,7 @@ export type OtpVerificationUpdateWithoutUserInput = {
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -591,6 +618,7 @@ export type OtpVerificationUncheckedUpdateWithoutUserInput = {
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -602,6 +630,7 @@ export type OtpVerificationUncheckedUpdateManyWithoutUserInput = {
   expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   attemptCount?: Prisma.IntFieldUpdateOperationsInput | number
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -616,8 +645,9 @@ export type OtpVerificationSelect<ExtArgs extends runtime.Types.Extensions.Inter
   expiresAt?: boolean
   attemptCount?: boolean
   consumedAt?: boolean
+  revokedAt?: boolean
   createdAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.OtpVerification$userArgs<ExtArgs>
 }, ExtArgs["result"]["otpVerification"]>
 
 
@@ -631,28 +661,38 @@ export type OtpVerificationSelectScalar = {
   expiresAt?: boolean
   attemptCount?: boolean
   consumedAt?: boolean
+  revokedAt?: boolean
   createdAt?: boolean
 }
 
-export type OtpVerificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "phoneNumber" | "otpHash" | "purpose" | "expiresAt" | "attemptCount" | "consumedAt" | "createdAt", ExtArgs["result"]["otpVerification"]>
+export type OtpVerificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "phoneNumber" | "otpHash" | "purpose" | "expiresAt" | "attemptCount" | "consumedAt" | "revokedAt" | "createdAt", ExtArgs["result"]["otpVerification"]>
 export type OtpVerificationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.OtpVerification$userArgs<ExtArgs>
 }
 
 export type $OtpVerificationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "OtpVerification"
   objects: {
-    user: Prisma.$UserPayload<ExtArgs>
+    user: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    userId: string
+    /**
+     * Null selama tiket OTP ditujukan untuk pendaftaran: pada alur itu baris
+     * `users` belum boleh ada sampai kode diverifikasi.
+     */
+    userId: string | null
     phoneNumber: string
     otpHash: string
     purpose: string
     expiresAt: Date
     attemptCount: number
     consumedAt: Date | null
+    /**
+     * Kode lama yang di-revoke tidak dihapus, hanya ditandai, supaya jejaknya
+     * tetap terbaca saat menelusuri insiden.
+     */
+    revokedAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["otpVerification"]>
   composites: {}
@@ -994,7 +1034,7 @@ readonly fields: OtpVerificationFieldRefs;
  */
 export interface Prisma__OtpVerificationClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  user<T extends Prisma.OtpVerification$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OtpVerification$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1032,6 +1072,7 @@ export interface OtpVerificationFieldRefs {
   readonly expiresAt: Prisma.FieldRef<"OtpVerification", 'DateTime'>
   readonly attemptCount: Prisma.FieldRef<"OtpVerification", 'Int'>
   readonly consumedAt: Prisma.FieldRef<"OtpVerification", 'DateTime'>
+  readonly revokedAt: Prisma.FieldRef<"OtpVerification", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"OtpVerification", 'DateTime'>
 }
     
@@ -1378,6 +1419,25 @@ export type OtpVerificationDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
    * Limit how many OtpVerifications to delete.
    */
   limit?: number
+}
+
+/**
+ * OtpVerification.user
+ */
+export type OtpVerification$userArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

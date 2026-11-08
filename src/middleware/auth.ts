@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { verifyAuthToken, type AuthTokenPayload } from '../lib/auth.js';
 import { sendError } from '../lib/response.js';
 import { userModel } from '../model/userModel.js';
-import { authModel } from '../model/authModel.js';
 import type { UserRole } from '../generated/prisma/client.js';
 
 declare global {
@@ -25,22 +24,18 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   const token = authHeader.split(' ')[1];
   try {
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (isDev && (token.startsWith('demo_jwt_token_') || token.startsWith('secure_session_'))) {
-      let demoUser = await userModel.findByPhoneNumber('081248002910');
-      if (!demoUser) {
-        demoUser = await authModel.createCustomer('081248002910', 'Harun');
-      }
-      req.user = {
-        userId: demoUser.id,
-        id: demoUser.id,
-        fullName: demoUser.fullName,
-        phoneNumber: demoUser.phoneNumber,
-        role: demoUser.role,
-      };
-      return next();
-    }
-
+    /*
+     * Tidak ada lagi jalan pintas token.
+     *
+     * Versi sebelumnya menerima token berawalan `demo_jwt_token_` atau
+     * `secure_session_` selama bukan produksi, lalu — bila belum ada — MEMBUAT
+     * akun pelanggan bernomor tetap di database. Artinya siapa pun yang bisa
+     * menulis nilai itu ke secure storage mendapat sesi sah atas akun tersebut,
+     * dan akun itu muncul di aplikasi tanpa pernah didaftarkan lewat OTP.
+     *
+     * Satu-satunya token yang diterima sekarang adalah JWT yang ditandatangani
+     * server.
+     */
     const payload = verifyAuthToken(token);
 
     // Token yang masih berlaku tetap ditolak kalau akunnya sudah dinonaktifkan

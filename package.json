@@ -22,7 +22,8 @@
     "test:e2e": "tsx ../.verify/e2e/api-e2e.ts",
     "db:reset-test-data": "tsx scripts/reset-test-data.ts",
     "db:lepas-kode-unik": "tsx scripts/lepas-kode-unik-pembayaran.ts",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "audit:identitas": "tsx scripts/audit-identitas.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

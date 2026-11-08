@@ -58,6 +58,7 @@ export const ModelName = {
   BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
+  PhoneGuard: 'PhoneGuard',
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
@@ -96,6 +97,7 @@ export const UserScalarFieldEnum = {
   updatedAt: 'updatedAt',
   passwordHash: 'passwordHash',
   isActive: 'isActive',
+  phoneVerifiedAt: 'phoneVerifiedAt',
   failedLoginAttempts: 'failedLoginAttempts',
   lockedUntil: 'lockedUntil',
   lastLoginAt: 'lastLoginAt'
@@ -208,10 +210,24 @@ export const OtpVerificationScalarFieldEnum = {
   expiresAt: 'expiresAt',
   attemptCount: 'attemptCount',
   consumedAt: 'consumedAt',
+  revokedAt: 'revokedAt',
   createdAt: 'createdAt'
 } as const
 
 export type OtpVerificationScalarFieldEnum = (typeof OtpVerificationScalarFieldEnum)[keyof typeof OtpVerificationScalarFieldEnum]
+
+
+export const PhoneGuardScalarFieldEnum = {
+  phoneNumber: 'phoneNumber',
+  verifyFailures: 'verifyFailures',
+  blockedUntil: 'blockedUntil',
+  lastSentAt: 'lastSentAt',
+  sendCount: 'sendCount',
+  sendWindowStartedAt: 'sendWindowStartedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PhoneGuardScalarFieldEnum = (typeof PhoneGuardScalarFieldEnum)[keyof typeof PhoneGuardScalarFieldEnum]
 
 
 export const SupportTicketScalarFieldEnum = {
@@ -511,6 +527,13 @@ export const OtpVerificationOrderByRelevanceFieldEnum = {
 } as const
 
 export type OtpVerificationOrderByRelevanceFieldEnum = (typeof OtpVerificationOrderByRelevanceFieldEnum)[keyof typeof OtpVerificationOrderByRelevanceFieldEnum]
+
+
+export const PhoneGuardOrderByRelevanceFieldEnum = {
+  phoneNumber: 'phoneNumber'
+} as const
+
+export type PhoneGuardOrderByRelevanceFieldEnum = (typeof PhoneGuardOrderByRelevanceFieldEnum)[keyof typeof PhoneGuardOrderByRelevanceFieldEnum]
 
 
 export const SupportTicketOrderByRelevanceFieldEnum = {

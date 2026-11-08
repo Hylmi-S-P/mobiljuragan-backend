@@ -59,10 +59,41 @@ export function verifyOtpHash(otp: string, storedHash: string): boolean {
 }
 
 /**
+ * Biaya bcrypt untuk kata sandi pelanggan.
+ *
+ * Portal staf memakai 10. Untuk pelanggan dipilih **11**, bukan 12, berdasarkan
+ * pengukuran pada mesin pengembangan (MySQL + backend + dashboard + emulator
+ * berjalan bersamaan):
+ *
+ * | biaya | rata-rata 3 percobaan |
+ * |-------|-----------------------|
+ * | 10    | 128 ms                |
+ * | 11    | 244 ms                |
+ * | 12    | 489 ms                |
+ *
+ * 489 ms terasa lambat pada ponsel kelas bawah, sementara 244 ms masih dua kali
+ * lebih berat daripada akun staf. Naikkan bila server produksi jelas lebih cepat:
+ * cukup ubah angka ini, hash lama tetap sah karena biayanya tersimpan di dalam
+ * nilai hash (`$2b$11$...`).
+ */
+export const BIAYA_BCRYPT_PELANGGAN = 11;
+
+/**
  * Hash password untuk staf/admin menggunakan bcrypt.
  */
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+}
+
+/**
+ * Hash kata sandi pelanggan dengan biaya lebih tinggi.
+ *
+ * Dipisah dari `hashPassword` supaya biaya kedua jenis akun bisa diukur dan
+ * diubah sendiri tanpa menyentuh jalur login portal.
+ */
+export async function hashPasswordPelanggan(password: string): Promise<string> {
+  const salt = await bcrypt.genSalt(BIAYA_BCRYPT_PELANGGAN);
   return bcrypt.hash(password, salt);
 }
 

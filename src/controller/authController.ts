@@ -1,70 +1,240 @@
 import type { NextFunction, Request, Response } from 'express';
-import { authModel, OTP_MAX_ATTEMPTS } from '../model/authModel.js';
-import { generateOtp, hashOtp, verifyOtpHash, signAuthToken } from '../lib/auth.js';
+import {
+  authModel,
+  OTP_BLOCK_MINUTES,
+  OTP_TTL_MINUTES,
+} from '../model/authModel.js';
+import {
+  generateOtp,
+  hashOtp,
+  hashPasswordPelanggan,
+  signAuthToken,
+  verifyOtpHash,
+} from '../lib/auth.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { normalizePhoneNumber } from '../lib/phone.js';
 import { logger } from '../logger.js';
 import { whatsappOtpService } from '../services/whatsappOtp.service.js';
+import { periksaKataSandi, ringkasanKegagalan } from '../lib/passwordPolicy.js';
 
 /**
- * Controller autentikasi customer berbasis OTP.
+ * Autentikasi pelanggan: OTP dan kata sandi.
  *
- * Menangani permintaan dan verifikasi kode OTP. Semua kegagalan diteruskan
- * lewat `next(error)` supaya ditangani satu kali oleh errorHandler global.
+ * Prinsip yang dijaga seluruh berkas ini:
+ *
+ * 1. **Verifikasi dulu, tulis kemudian.** Permintaan OTP tidak menyentuh tabel
+ *    `users` sama sekali. Akun baru hanya lahir di `verifyRegisterOtp` setelah
+ *    kode terbukti.
+ * 2. **Nama tidak pernah ditulis dari jalur autentikasi.** Dulu `requestOtp`
+ *    mengganti `fullName` milik nomor yang sudah terdaftar, sehingga siapa pun
+ *    bisa mengambil alih akun orang lain hanya dengan mengetik nama berbeda.
+ * 3. **Gagal terang, bukan berhasil palsu.** Tidak ada kode ajaib yang diterima
+ *    tanpa verifikasi di server.
+ *
+ * Latar lengkap: `docs/analisis-akun-tertimpa-otp.md`.
  */
 
+/** Tujuan OTP yang dikenali. Nilai lain ditolak, bukan diteruskan apa adanya. */
+const TUJUAN = {
+  LOGIN: 'CUSTOMER_LOGIN',
+  REGISTER: 'CUSTOMER_REGISTER',
+} as const;
+
+type Tujuan = (typeof TUJUAN)[keyof typeof TUJUAN];
+
+/**
+ * Apakah kode ajaib pengembangan boleh dipakai.
+ *
+ * Syaratnya dua-duanya: bukan produksi, dan saklar eksplisit dinyalakan.
+ * Versi sebelumnya hanya memeriksa `NODE_ENV !== 'production'`, sehingga satu
+ * salah-setel variabel lingkungan di server cukup untuk membuka pintu masuk
+ * tanpa OTP.
+ */
+function kodePengembanganDiizinkan(): boolean {
+  return (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.ALLOW_DEV_OTP_BYPASS === 'true'
+  );
+}
+
+/** Kode yang hanya berlaku saat `kodePengembanganDiizinkan()`. */
+const KODE_PENGEMBANGAN = '123456';
+
+function kirimToken(
+  res: Response,
+  user: { id: string; phoneNumber: string; role: string; fullName: string },
+  statusCode = 200,
+): void {
+  const token = signAuthToken({
+    userId: user.id,
+    phoneNumber: user.phoneNumber,
+    role: user.role as never,
+  });
+
+  sendSuccess(
+    res,
+    {
+      token,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+      },
+    },
+    statusCode,
+  );
+}
+
+/** Menolak lebih awal bila nomor sedang diblokir karena percobaan gagal. */
+async function pastikanTidakDiblokir(phoneNumber: string): Promise<void> {
+  const guard = await authModel.ambilGuard(phoneNumber);
+  if (guard?.blockedUntil && guard.blockedUntil.getTime() > Date.now()) {
+    const sisaMenit = Math.ceil((guard.blockedUntil.getTime() - Date.now()) / 60_000);
+    throw new AppError(
+      'ACCOUNT_LOCKED',
+      `Terlalu banyak percobaan untuk nomor ini. Coba lagi dalam ${sisaMenit} menit.`,
+      429,
+      { retryAfterMinutes: sisaMenit },
+    );
+  }
+}
+
+/**
+ * Mencocokkan kode dan menangani kegagalannya secara terpusat.
+ *
+ * Hitungan gagal disimpan per nomor, bukan per baris OTP: meminta kode baru
+ * tidak boleh mengembalikan jatah tebakan ke nol.
+ */
+async function cocokkanKode(
+  phoneNumber: string,
+  kode: string,
+  otpHash: string,
+  idKode: string,
+): Promise<void> {
+  const cocok =
+    verifyOtpHash(kode, otpHash) ||
+    (kodePengembanganDiizinkan() && kode === KODE_PENGEMBANGAN);
+
+  if (cocok) {
+    await authModel.tandaiKodeTerpakai(idKode);
+    return;
+  }
+
+  await authModel.tambahPercobaanKode(idKode);
+  const hasil = await authModel.catatKegagalanVerifikasi(phoneNumber, new Date());
+
+  if (hasil.terkunciSampai) {
+    throw new AppError(
+      'ACCOUNT_LOCKED',
+      `Terlalu banyak kode yang salah. Nomor ini dikunci ${OTP_BLOCK_MINUTES} menit.`,
+      429,
+      { retryAfterMinutes: OTP_BLOCK_MINUTES },
+    );
+  }
+
+  throw new AppError(
+    'OTP_INVALID',
+    `Kode verifikasi salah. Sisa kesempatan: ${hasil.sisaPercobaan} kali.`,
+    400,
+    { remainingAttempts: hasil.sisaPercobaan },
+  );
+}
+
 export const authController = {
+  /**
+   * Meminta kode OTP.
+   *
+   * Tidak membuat atau mengubah baris `users`. Untuk `intent=register`, nomor
+   * yang sudah terdaftar ditolak; untuk `intent=login`, nomor yang belum
+   * terdaftar dijawab dengan bentuk sukses yang sama agar daftar pelanggan tidak
+   * bisa dipetakan dari luar.
+   */
   async requestOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { phoneNumber: rawPhone, fullName, purpose } = req.body;
+      const { phoneNumber: rawPhone, intent } = req.body as {
+        phoneNumber: string;
+        intent: 'login' | 'register';
+      };
       const phoneNumber = normalizePhoneNumber(rawPhone);
+      const inginDaftar = intent === 'register';
+      const purpose = inginDaftar ? TUJUAN.REGISTER : TUJUAN.LOGIN;
 
-      // Cari pelanggan yang sudah terdaftar, atau daftarkan kalau belum ada
-      let user = await authModel.findUserByPhoneNumber(phoneNumber);
+      await pastikanTidakDiblokir(phoneNumber);
 
-      if (!user) {
-        user = await authModel.createCustomer(phoneNumber, fullName || 'Pelanggan MobilJuragan');
-      } else if (fullName && user.fullName !== fullName) {
-        user = await authModel.updateFullName(user.id, fullName);
+      const user = await authModel.findUserByPhoneNumber(phoneNumber);
+
+      if (inginDaftar && user) {
+        throw new AppError(
+          'PHONE_ALREADY_REGISTERED',
+          'Nomor ini sudah terdaftar. Silakan masuk memakai nomor tersebut.',
+          409,
+        );
       }
 
-      // Generate OTP 6 digit
-      const plainOtp = generateOtp();
-      const hashed = hashOtp(plainOtp);
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
+      /* Nomor tak dikenal pada alur masuk: jawab seperti biasa, tanpa membuat
+         kode. Pemanggil tidak bisa membedakan nomor terdaftar dari yang tidak. */
+      if (!inginDaftar && !user) {
+        logger.info({ phoneNumber }, '[OTP REQUEST] Nomor belum terdaftar, permintaan diabaikan.');
+        sendSuccess(
+          res,
+          {
+            phoneNumber,
+            expiresInSeconds: OTP_TTL_MINUTES * 60,
+            resendCooldownSeconds: 60,
+          },
+          200,
+        );
+        return;
+      }
 
-      // Simpan hash OTP
-      await authModel.createOtpVerification({
-        userId: user.id,
+      const izin = await authModel.catatPengiriman(phoneNumber, new Date());
+      if (!izin.boleh) {
+        const pesan =
+          izin.alasan === 'KUOTA'
+            ? 'Terlalu banyak permintaan kode untuk nomor ini. Coba lagi nanti.'
+            : `Mohon tunggu ${izin.tungguDetik ?? 60} detik sebelum meminta kode lagi.`;
+
+        throw new AppError(
+          izin.alasan === 'KUOTA' ? 'OTP_RATE_LIMITED' : 'OTP_COOLDOWN',
+          pesan,
+          429,
+          izin.tungguDetik ? { retryAfterSeconds: izin.tungguDetik } : {},
+        );
+      }
+
+      const kode = generateOtp();
+      const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
+
+      await authModel.simpanKodeBaru({
+        userId: user?.id ?? null,
         phoneNumber,
-        otpHash: hashed,
+        otpHash: hashOtp(kode),
         purpose,
         expiresAt,
       });
 
-      logger.info({ phoneNumber, purpose }, `[OTP REQUEST] Kode OTP dibuat untuk ${phoneNumber}`);
+      logger.info({ phoneNumber, purpose }, '[OTP REQUEST] Kode verifikasi dibuat.');
 
-      // Picu pengiriman pesan WhatsApp OTP secara non-blocking
       whatsappOtpService
         .sendOtp({
           phoneNumber,
-          otpCode: plainOtp,
-          fullName: user.fullName,
+          otpCode: kode,
+          fullName: user?.fullName ?? 'Pelanggan MobilJuragan',
         })
         .catch((err) => {
-          logger.error({ err, phoneNumber }, '[OTP REQUEST] Gagal memicu pengiriman WhatsApp OTP');
+          logger.error({ err, phoneNumber }, '[OTP REQUEST] Gagal mengirim WhatsApp OTP');
         });
-
-      // Pada mode dev, sertakan mockOtp agar mempermudah testing tim & frontend
-      const isDev = process.env.NODE_ENV !== 'production';
 
       sendSuccess(
         res,
         {
-          message: 'Kode verifikasi OTP telah dikirim.',
           phoneNumber,
-          expiresInSeconds: 300,
-          ...(isDev ? { devMockOtp: plainOtp } : {}),
+          expiresInSeconds: OTP_TTL_MINUTES * 60,
+          resendCooldownSeconds: 60,
+          /* Hanya untuk lingkungan pengembangan yang menyalakan saklar eksplisit.
+             Tidak pernah dikirim di produksi. */
+          ...(kodePengembanganDiizinkan() ? { devMockOtp: kode } : {}),
         },
         200,
       );
@@ -73,115 +243,184 @@ export const authController = {
     }
   },
 
-  async verifyOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  /**
+   * Verifikasi OTP untuk **masuk**.
+   *
+   * Tidak menyentuh `fullName`. Nomor yang belum terdaftar tidak pernah sampai
+   * ke sini karena kodenya tidak pernah dibuat.
+   */
+  async verifyLoginOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { phoneNumber: rawPhone, otp, purpose } = req.body;
+      const { phoneNumber: rawPhone, otp } = req.body;
       const phoneNumber = normalizePhoneNumber(rawPhone);
-      const isDev = process.env.NODE_ENV !== 'production';
 
-      // Cari OTP verification aktif terakhir
-      const latestOtp = await authModel.findLatestActiveOtp(phoneNumber, purpose);
+      await pastikanTidakDiblokir(phoneNumber);
 
-      if (!latestOtp) {
-        // Pada mode development, jika magic code digunakan dan user sudah terdaftar di DB, izinkan langsung
-        if (isDev && otp === '123456') {
-          const user = await authModel.findUserByPhoneNumber(phoneNumber);
-          if (user) {
-            const token = signAuthToken({
-              userId: user.id,
-              phoneNumber: user.phoneNumber,
-              role: user.role,
-            });
-            logger.info(
-              { userId: user.id, phoneNumber },
-              `[OTP VERIFY DEV MAGIC CODE] Customer ${phoneNumber} login via Magic Code 123456.`,
-            );
-            sendSuccess(
-              res,
-              {
-                token,
-                user: {
-                  id: user.id,
-                  fullName: user.fullName,
-                  phoneNumber: user.phoneNumber,
-                  role: user.role,
-                },
-              },
-              200,
-            );
-            return;
-          }
-        }
+      const kodeAktif = await authModel.findKodeAktif(phoneNumber, TUJUAN.LOGIN);
+      if (!kodeAktif) {
         throw new AppError(
           'OTP_NOT_FOUND',
-          'Tidak ada permintaan OTP aktif untuk nomor ini. Silakan minta kode baru.',
+          'Tidak ada kode yang aktif untuk nomor ini. Silakan minta kode baru.',
           400,
         );
       }
 
-      // Cek batas percobaan (dilewati di mode dev untuk magic code 123456)
-      if (latestOtp.attemptCount >= OTP_MAX_ATTEMPTS && (!isDev || otp !== '123456')) {
-        throw new AppError(
-          'OTP_TOO_MANY_ATTEMPTS',
-          'Terlalu banyak percobaan yang salah. Permintaan dibatalkan demi keamanan. Silakan minta kode baru.',
-          429,
-        );
-      }
-
-      // Cek kedaluwarsa (dilewati di mode dev untuk magic code 123456)
-      if (latestOtp.expiresAt < new Date() && (!isDev || otp !== '123456')) {
+      if (kodeAktif.expiresAt.getTime() < Date.now()) {
+        await authModel.cabutSemuaKode(phoneNumber);
         throw new AppError(
           'OTP_EXPIRED',
-          'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.',
+          'Kode verifikasi sudah kedaluwarsa. Silakan minta kode baru.',
           400,
         );
       }
 
-      // Tambah jumlah percobaan, termasuk saat kode yang dimasukkan salah
-      await authModel.incrementAttemptCount(latestOtp.id);
+      await cocokkanKode(phoneNumber, otp, kodeAktif.otpHash, kodeAktif.id);
 
-      // Verifikasi kecocokan hash (pada mode dev/testing, kode 123456 diterima untuk integrasi demo/mobile)
-      const isValid = verifyOtpHash(otp, latestOtp.otpHash) || (isDev && otp === '123456');
-      if (!isValid) {
-        const remainingAttempts = Math.max(0, OTP_MAX_ATTEMPTS - 1 - latestOtp.attemptCount);
+      const user = await authModel.findUserByPhoneNumber(phoneNumber);
+      if (!user) {
+        throw new AppError('INVALID_CREDENTIALS', 'Nomor atau kode tidak sesuai.', 401);
+      }
+
+      if (!user.isActive) {
         throw new AppError(
-          'OTP_INVALID',
-          `Kode OTP yang Anda masukkan salah. Sisa kesempatan: ${remainingAttempts} kali.`,
-          400,
-          { remainingAttempts },
+          'ACCOUNT_INACTIVE',
+          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          403,
+        );
+      }
+      if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+        const sisaMenit = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60_000);
+        throw new AppError(
+          'ACCOUNT_LOCKED',
+          `Akun ini terkunci sementara. Coba lagi dalam ${sisaMenit} menit.`,
+          429,
+          { retryAfterMinutes: sisaMenit },
         );
       }
 
-      // Tandai OTP sudah terpakai supaya tidak bisa dipakai dua kali
-      await authModel.markConsumed(latestOtp.id);
-
-      // Terbitkan token autentikasi
-      const token = signAuthToken({
-        userId: latestOtp.user.id,
-        phoneNumber: latestOtp.user.phoneNumber,
-        role: latestOtp.user.role,
-      });
+      await authModel.cabutSemuaKode(phoneNumber);
+      await authModel.resetGuard(phoneNumber);
+      await authModel.catatLoginBerhasil(user.id);
 
       logger.info(
-        { userId: latestOtp.user.id, phoneNumber },
-        `[OTP VERIFY] Customer ${phoneNumber} berhasil login.`,
+        { userId: user.id, phoneNumber },
+        '[OTP VERIFY] Pelanggan masuk lewat kode verifikasi.',
       );
 
-      sendSuccess(
-        res,
-        {
-          token,
-          user: {
-            id: latestOtp.user.id,
-            fullName: latestOtp.user.fullName,
-            phoneNumber: latestOtp.user.phoneNumber,
-            role: latestOtp.user.role,
-          },
+      kirimToken(res, user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Verifikasi OTP **pendaftaran**: satu-satunya tempat baris pelanggan dibuat.
+   *
+   * Nama dan kata sandi baru dikirim di langkah ini, setelah kode terbukti,
+   * sehingga tidak ada identitas yang tersimpan sebelum nomornya terverifikasi.
+   */
+  async verifyRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { phoneNumber: rawPhone, otp, fullName, password } = req.body;
+      const phoneNumber = normalizePhoneNumber(rawPhone);
+
+      await pastikanTidakDiblokir(phoneNumber);
+
+      const kodeAktif = await authModel.findKodeAktif(phoneNumber, TUJUAN.REGISTER);
+      if (!kodeAktif) {
+        throw new AppError(
+          'OTP_NOT_FOUND',
+          'Tidak ada kode pendaftaran yang aktif untuk nomor ini. Silakan minta kode baru.',
+          400,
+        );
+      }
+
+      if (kodeAktif.expiresAt.getTime() < Date.now()) {
+        await authModel.cabutSemuaKode(phoneNumber);
+        throw new AppError(
+          'OTP_EXPIRED',
+          'Kode verifikasi sudah kedaluwarsa. Silakan minta kode baru.',
+          400,
+        );
+      }
+
+      await cocokkanKode(phoneNumber, otp, kodeAktif.otpHash, kodeAktif.id);
+
+      /* Kepemilikan nomor sudah terbukti. Mulai titik ini barulah data pendaftaran
+         boleh disimpan. */
+      const sudahAda = await authModel.findUserByPhoneNumber(phoneNumber);
+      if (sudahAda) {
+        throw new AppError(
+          'PHONE_ALREADY_REGISTERED',
+          'Nomor ini sudah terdaftar. Silakan masuk memakai nomor tersebut.',
+          409,
+        );
+      }
+
+      const pelanggaran = periksaKataSandi(password, { fullName, phoneNumber });
+      if (pelanggaran.length > 0) {
+        const ringkasan = ringkasanKegagalan(pelanggaran);
+        throw new AppError('PASSWORD_POLICY', ringkasan.message, 400, {
+          rules: ringkasan.rules,
+        });
+      }
+
+      const nama = String(fullName).trim();
+      if (nama.length < 3) {
+        throw new AppError('INVALID_INPUT', 'Nama lengkap minimal 3 karakter.', 400);
+      }
+
+      const user = await authModel.createVerifiedCustomer({
+        phoneNumber,
+        fullName: nama,
+        passwordHash: await hashPasswordPelanggan(password),
+        phoneVerifiedAt: new Date(),
+      });
+
+      await authModel.cabutSemuaKode(phoneNumber);
+      await authModel.resetGuard(phoneNumber);
+
+      logger.info({ userId: user.id, phoneNumber }, '[OTP VERIFY] Pelanggan baru terdaftar.');
+
+      kirimToken(res, user, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Profil pemilik sesi.
+   *
+   * Dipakai aplikasi untuk memastikan token yang tersimpan di perangkat memang
+   * masih dikenali server. Tanpa pemeriksaan ini, sesi yang tidak sah bisa
+   * tampil sebagai pengguna yang sudah masuk.
+   */
+  async me(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
+      }
+
+      const user = await authModel.findPublicUserById(userId);
+      if (!user) {
+        throw new AppError('USER_NOT_FOUND', 'Akun tidak ditemukan.', 404);
+      }
+
+      sendSuccess(res, {
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+          isActive: user.isActive,
+          phoneVerifiedAt: user.phoneVerifiedAt,
         },
-        200,
-      );
+      });
     } catch (error) {
       next(error);
     }
   },
 };
+
+export type { Tujuan };

@@ -11,5 +11,10 @@ export const logger = pino({
     'req.headers.authorization',
     'passwordHash',
     'otpHash',
+    // Kredensial mentah dari body permintaan autentikasi
+    'req.body.password',
+    'req.body.newPassword',
+    'req.body.currentPassword',
+    'req.body.confirmPassword',
   ],
 });

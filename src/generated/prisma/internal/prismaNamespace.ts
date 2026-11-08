@@ -404,6 +404,7 @@ export const ModelName = {
   BookingLineItem: 'BookingLineItem',
   BookingStatusHistory: 'BookingStatusHistory',
   OtpVerification: 'OtpVerification',
+  PhoneGuard: 'PhoneGuard',
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -893,6 +894,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.OtpVerificationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.OtpVerificationCountAggregateOutputType> | number
+        }
+      }
+    }
+    PhoneGuard: {
+      payload: Prisma.$PhoneGuardPayload<ExtArgs>
+      fields: Prisma.PhoneGuardFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PhoneGuardFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PhoneGuardFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        findFirst: {
+          args: Prisma.PhoneGuardFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PhoneGuardFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        findMany: {
+          args: Prisma.PhoneGuardFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>[]
+        }
+        create: {
+          args: Prisma.PhoneGuardCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        createMany: {
+          args: Prisma.PhoneGuardCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.PhoneGuardDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        update: {
+          args: Prisma.PhoneGuardUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        deleteMany: {
+          args: Prisma.PhoneGuardDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PhoneGuardUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.PhoneGuardUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhoneGuardPayload>
+        }
+        aggregate: {
+          args: Prisma.PhoneGuardAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePhoneGuard>
+        }
+        groupBy: {
+          args: Prisma.PhoneGuardGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PhoneGuardGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PhoneGuardCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PhoneGuardCountAggregateOutputType> | number
         }
       }
     }
@@ -1670,6 +1737,7 @@ export const UserScalarFieldEnum = {
   updatedAt: 'updatedAt',
   passwordHash: 'passwordHash',
   isActive: 'isActive',
+  phoneVerifiedAt: 'phoneVerifiedAt',
   failedLoginAttempts: 'failedLoginAttempts',
   lockedUntil: 'lockedUntil',
   lastLoginAt: 'lastLoginAt'
@@ -1782,10 +1850,24 @@ export const OtpVerificationScalarFieldEnum = {
   expiresAt: 'expiresAt',
   attemptCount: 'attemptCount',
   consumedAt: 'consumedAt',
+  revokedAt: 'revokedAt',
   createdAt: 'createdAt'
 } as const
 
 export type OtpVerificationScalarFieldEnum = (typeof OtpVerificationScalarFieldEnum)[keyof typeof OtpVerificationScalarFieldEnum]
+
+
+export const PhoneGuardScalarFieldEnum = {
+  phoneNumber: 'phoneNumber',
+  verifyFailures: 'verifyFailures',
+  blockedUntil: 'blockedUntil',
+  lastSentAt: 'lastSentAt',
+  sendCount: 'sendCount',
+  sendWindowStartedAt: 'sendWindowStartedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PhoneGuardScalarFieldEnum = (typeof PhoneGuardScalarFieldEnum)[keyof typeof PhoneGuardScalarFieldEnum]
 
 
 export const SupportTicketScalarFieldEnum = {
@@ -2085,6 +2167,13 @@ export const OtpVerificationOrderByRelevanceFieldEnum = {
 } as const
 
 export type OtpVerificationOrderByRelevanceFieldEnum = (typeof OtpVerificationOrderByRelevanceFieldEnum)[keyof typeof OtpVerificationOrderByRelevanceFieldEnum]
+
+
+export const PhoneGuardOrderByRelevanceFieldEnum = {
+  phoneNumber: 'phoneNumber'
+} as const
+
+export type PhoneGuardOrderByRelevanceFieldEnum = (typeof PhoneGuardOrderByRelevanceFieldEnum)[keyof typeof PhoneGuardOrderByRelevanceFieldEnum]
 
 
 export const SupportTicketOrderByRelevanceFieldEnum = {
@@ -2571,6 +2660,7 @@ export type GlobalOmitConfig = {
   bookingLineItem?: Prisma.BookingLineItemOmit
   bookingStatusHistory?: Prisma.BookingStatusHistoryOmit
   otpVerification?: Prisma.OtpVerificationOmit
+  phoneGuard?: Prisma.PhoneGuardOmit
   supportTicket?: Prisma.SupportTicketOmit
   ticketMessage?: Prisma.TicketMessageOmit
   auditLog?: Prisma.AuditLogOmit

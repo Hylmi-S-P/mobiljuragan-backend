@@ -130,6 +130,13 @@ model User {
   passwordHash String?
   isActive     Boolean @default(true)
 
+  /// Kapan kepemilikan nomor telepon terbukti lewat OTP.
+  ///
+  /// Null berarti nomor belum pernah diverifikasi. Akun hanya dibuat setelah
+  /// kolom ini terisi, sehingga tidak ada baris `users` yang lahir dari
+  /// permintaan OTP semata (lihat docs/analisis-akun-tertimpa-otp.md).
+  phoneVerifiedAt DateTime?
+
   /// Jumlah percobaan login yang gagal berturut-turut. Direset ke 0 setiap
   /// login berhasil. Dipakai untuk mengunci akun sementara.
   failedLoginAttempts Int @default(0)
@@ -331,20 +338,57 @@ model BookingStatusHistory {
 
 /// OTP customer authentication. HASH OTP saja; plaintext TIDAK disimpan demi keamanan.
 model OtpVerification {
-  id           String    @id @default(uuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id])
+  id String @id @default(uuid())
+
+  /// Null selama tiket OTP ditujukan untuk pendaftaran: pada alur itu baris
+  /// `users` belum boleh ada sampai kode diverifikasi.
+  userId      String?
+  user        User?   @relation(fields: [userId], references: [id])
+
   phoneNumber  String // nomor tujuan
-  otpHash      String // hanya hash (Argon2id saat backend auth diterapkan)
-  purpose      String // mis. "CUSTOMER_LOGIN" | "BOOKING_CONFIRM"
+  otpHash      String // hanya hash
+  purpose      String // "CUSTOMER_LOGIN" | "CUSTOMER_REGISTER" | "PASSWORD_RESET"
   expiresAt    DateTime
   attemptCount Int       @default(0)
   consumedAt   DateTime?
-  createdAt    DateTime  @default(now())
+
+  /// Kode lama yang di-revoke tidak dihapus, hanya ditandai, supaya jejaknya
+  /// tetap terbaca saat menelusuri insiden.
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
 
   @@index([userId, phoneNumber])
+  @@index([phoneNumber, purpose, consumedAt])
   @@index([expiresAt])
   @@map("otp_verifications")
+}
+
+/// Pembatas per nomor telepon untuk pengiriman dan penebakan OTP.
+///
+/// Sebelumnya batas percobaan menempel pada satu baris OTP, sehingga meminta kode
+/// baru otomatis mengembalikan jatah tebakan ke nol. Baris ini menyimpan hitungan
+/// lintas-permintaan, sekaligus menahan pengiriman beruntun (cooldown) dan kuota
+/// harian per nomor.
+model PhoneGuard {
+  phoneNumber String @id
+
+  /// Percobaan verifikasi gagal berturut-turut untuk nomor ini.
+  verifyFailures Int @default(0)
+
+  /// Nomor tidak boleh meminta atau memverifikasi OTP sampai waktu ini lewat.
+  blockedUntil DateTime?
+
+  /// Kapan kode terakhir dikirim, dipakai menegakkan cooldown kirim ulang.
+  lastSentAt DateTime?
+
+  /// Jumlah pengiriman dalam jendela berjalan.
+  sendCount           Int       @default(0)
+  sendWindowStartedAt DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("phone_guards")
 }
 
 /// Penangan tiket. Tiket dari percakapan AI mulai dipegang AI; admin hanya boleh

@@ -86,6 +86,16 @@ export type BookingStatusHistory = Prisma.BookingStatusHistoryModel
  */
 export type OtpVerification = Prisma.OtpVerificationModel
 /**
+ * Model PhoneGuard
+ * Pembatas per nomor telepon untuk pengiriman dan penebakan OTP.
+ * 
+ * Sebelumnya batas percobaan menempel pada satu baris OTP, sehingga meminta kode
+ * baru otomatis mengembalikan jatah tebakan ke nol. Baris ini menyimpan hitungan
+ * lintas-permintaan, sekaligus menahan pengiriman beruntun (cooldown) dan kuota
+ * harian per nomor.
+ */
+export type PhoneGuard = Prisma.PhoneGuardModel
+/**
  * Model SupportTicket
  * 
  */

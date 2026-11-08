@@ -68,3 +68,47 @@ export const loginRateLimiter = rateLimit({
     );
   },
 });
+
+/**
+ * Pembatas permintaan kode verifikasi.
+ *
+ * Lapisan pertama pertahanan brute force & spam kirim WhatsApp. Pembatas per
+ * nomor (cooldown 60 detik, kuota 5/jam) ada di `authModel.catatPengiriman`;
+ * limiter ini menjaga agar satu alamat IP tidak membanjiri server.
+ */
+export const otpRequestRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    sendError(
+      res,
+      'OTP_RATE_LIMITED',
+      'Terlalu banyak permintaan kode verifikasi dari jaringan ini. Coba lagi dalam 1 menit.',
+      429,
+    );
+  },
+});
+
+/**
+ * Pembatas percobaan verifikasi kode.
+ *
+ * Batas per nomor tetap ditegakkan di controller (5 salah → kunci 15 menit);
+ * limiter ini mencegah penebakan masif dari satu alamat IP.
+ */
+export const otpVerifyRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  handler: (_req, res) => {
+    sendError(
+      res,
+      'OTP_RATE_LIMITED',
+      'Terlalu banyak percobaan verifikasi dari jaringan ini. Coba lagi dalam 15 menit.',
+      429,
+    );
+  },
+});
