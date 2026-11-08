@@ -398,6 +398,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  IdentityAudit: 'IdentityAudit',
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
@@ -431,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -498,6 +499,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    IdentityAudit: {
+      payload: Prisma.$IdentityAuditPayload<ExtArgs>
+      fields: Prisma.IdentityAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.IdentityAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.IdentityAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.IdentityAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.IdentityAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        findMany: {
+          args: Prisma.IdentityAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>[]
+        }
+        create: {
+          args: Prisma.IdentityAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        createMany: {
+          args: Prisma.IdentityAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.IdentityAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        update: {
+          args: Prisma.IdentityAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.IdentityAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.IdentityAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.IdentityAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.IdentityAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateIdentityAudit>
+        }
+        groupBy: {
+          args: Prisma.IdentityAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.IdentityAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.IdentityAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.IdentityAuditCountAggregateOutputType> | number
         }
       }
     }
@@ -1740,10 +1807,30 @@ export const UserScalarFieldEnum = {
   phoneVerifiedAt: 'phoneVerifiedAt',
   failedLoginAttempts: 'failedLoginAttempts',
   lockedUntil: 'lockedUntil',
-  lastLoginAt: 'lastLoginAt'
+  lastLoginAt: 'lastLoginAt',
+  tokenVersion: 'tokenVersion',
+  passwordUpdatedAt: 'passwordUpdatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const IdentityAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  action: 'action',
+  field: 'field',
+  before: 'before',
+  after: 'after',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type IdentityAuditScalarFieldEnum = (typeof IdentityAuditScalarFieldEnum)[keyof typeof IdentityAuditScalarFieldEnum]
 
 
 export const VehicleScalarFieldEnum = {
@@ -2093,6 +2180,23 @@ export const UserOrderByRelevanceFieldEnum = {
 } as const
 
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
+
+
+export const IdentityAuditOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  action: 'action',
+  field: 'field',
+  before: 'before',
+  after: 'after',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent'
+} as const
+
+export type IdentityAuditOrderByRelevanceFieldEnum = (typeof IdentityAuditOrderByRelevanceFieldEnum)[keyof typeof IdentityAuditOrderByRelevanceFieldEnum]
 
 
 export const VehicleOrderByRelevanceFieldEnum = {
@@ -2654,6 +2758,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  identityAudit?: Prisma.IdentityAuditOmit
   vehicle?: Prisma.VehicleOmit
   driver?: Prisma.DriverOmit
   booking?: Prisma.BookingOmit

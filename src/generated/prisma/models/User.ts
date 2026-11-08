@@ -28,10 +28,12 @@ export type AggregateUser = {
 
 export type UserAvgAggregateOutputType = {
   failedLoginAttempts: number | null
+  tokenVersion: number | null
 }
 
 export type UserSumAggregateOutputType = {
   failedLoginAttempts: number | null
+  tokenVersion: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -47,6 +49,8 @@ export type UserMinAggregateOutputType = {
   failedLoginAttempts: number | null
   lockedUntil: Date | null
   lastLoginAt: Date | null
+  tokenVersion: number | null
+  passwordUpdatedAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -62,6 +66,8 @@ export type UserMaxAggregateOutputType = {
   failedLoginAttempts: number | null
   lockedUntil: Date | null
   lastLoginAt: Date | null
+  tokenVersion: number | null
+  passwordUpdatedAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -77,16 +83,20 @@ export type UserCountAggregateOutputType = {
   failedLoginAttempts: number
   lockedUntil: number
   lastLoginAt: number
+  tokenVersion: number
+  passwordUpdatedAt: number
   _all: number
 }
 
 
 export type UserAvgAggregateInputType = {
   failedLoginAttempts?: true
+  tokenVersion?: true
 }
 
 export type UserSumAggregateInputType = {
   failedLoginAttempts?: true
+  tokenVersion?: true
 }
 
 export type UserMinAggregateInputType = {
@@ -102,6 +112,8 @@ export type UserMinAggregateInputType = {
   failedLoginAttempts?: true
   lockedUntil?: true
   lastLoginAt?: true
+  tokenVersion?: true
+  passwordUpdatedAt?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -117,6 +129,8 @@ export type UserMaxAggregateInputType = {
   failedLoginAttempts?: true
   lockedUntil?: true
   lastLoginAt?: true
+  tokenVersion?: true
+  passwordUpdatedAt?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -132,6 +146,8 @@ export type UserCountAggregateInputType = {
   failedLoginAttempts?: true
   lockedUntil?: true
   lastLoginAt?: true
+  tokenVersion?: true
+  passwordUpdatedAt?: true
   _all?: true
 }
 
@@ -234,6 +250,8 @@ export type UserGroupByOutputType = {
   failedLoginAttempts: number
   lockedUntil: Date | null
   lastLoginAt: Date | null
+  tokenVersion: number
+  passwordUpdatedAt: Date | null
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -272,6 +290,9 @@ export type UserWhereInput = {
   failedLoginAttempts?: Prisma.IntFilter<"User"> | number
   lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  tokenVersion?: Prisma.IntFilter<"User"> | number
+  passwordUpdatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  identityAudits?: Prisma.IdentityAuditListRelationFilter
   bookings?: Prisma.BookingListRelationFilter
   tickets?: Prisma.SupportTicketListRelationFilter
   sentMessages?: Prisma.TicketMessageListRelationFilter
@@ -294,6 +315,9 @@ export type UserOrderByWithRelationInput = {
   failedLoginAttempts?: Prisma.SortOrder
   lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  passwordUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  identityAudits?: Prisma.IdentityAuditOrderByRelationAggregateInput
   bookings?: Prisma.BookingOrderByRelationAggregateInput
   tickets?: Prisma.SupportTicketOrderByRelationAggregateInput
   sentMessages?: Prisma.TicketMessageOrderByRelationAggregateInput
@@ -320,6 +344,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   failedLoginAttempts?: Prisma.IntFilter<"User"> | number
   lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  tokenVersion?: Prisma.IntFilter<"User"> | number
+  passwordUpdatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  identityAudits?: Prisma.IdentityAuditListRelationFilter
   bookings?: Prisma.BookingListRelationFilter
   tickets?: Prisma.SupportTicketListRelationFilter
   sentMessages?: Prisma.TicketMessageListRelationFilter
@@ -342,6 +369,8 @@ export type UserOrderByWithAggregationInput = {
   failedLoginAttempts?: Prisma.SortOrder
   lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  passwordUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -365,6 +394,8 @@ export type UserScalarWhereWithAggregatesInput = {
   failedLoginAttempts?: Prisma.IntWithAggregatesFilter<"User"> | number
   lockedUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  tokenVersion?: Prisma.IntWithAggregatesFilter<"User"> | number
+  passwordUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
 }
 
 export type UserCreateInput = {
@@ -380,6 +411,9 @@ export type UserCreateInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
@@ -402,6 +436,9 @@ export type UserUncheckedCreateInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
@@ -424,6 +461,9 @@ export type UserUpdateInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
@@ -446,6 +486,9 @@ export type UserUncheckedUpdateInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -468,6 +511,8 @@ export type UserCreateManyInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -483,6 +528,8 @@ export type UserUpdateManyMutationInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -498,6 +545,8 @@ export type UserUncheckedUpdateManyInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserOrderByRelevanceInput = {
@@ -519,10 +568,13 @@ export type UserCountOrderByAggregateInput = {
   failedLoginAttempts?: Prisma.SortOrder
   lockedUntil?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  passwordUpdatedAt?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
   failedLoginAttempts?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -538,6 +590,8 @@ export type UserMaxOrderByAggregateInput = {
   failedLoginAttempts?: Prisma.SortOrder
   lockedUntil?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  passwordUpdatedAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -553,10 +607,13 @@ export type UserMinOrderByAggregateInput = {
   failedLoginAttempts?: Prisma.SortOrder
   lockedUntil?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  passwordUpdatedAt?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
   failedLoginAttempts?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -599,6 +656,20 @@ export type IntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
+}
+
+export type UserCreateNestedOneWithoutIdentityAuditsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutIdentityAuditsInput, Prisma.UserUncheckedCreateWithoutIdentityAuditsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutIdentityAuditsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutIdentityAuditsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutIdentityAuditsInput, Prisma.UserUncheckedCreateWithoutIdentityAuditsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutIdentityAuditsInput
+  upsert?: Prisma.UserUpsertWithoutIdentityAuditsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutIdentityAuditsInput, Prisma.UserUpdateWithoutIdentityAuditsInput>, Prisma.UserUncheckedUpdateWithoutIdentityAuditsInput>
 }
 
 export type UserCreateNestedOneWithoutBookingsInput = {
@@ -709,6 +780,118 @@ export type UserUpdateOneWithoutMediaObjectsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMediaObjectsInput, Prisma.UserUpdateWithoutMediaObjectsInput>, Prisma.UserUncheckedUpdateWithoutMediaObjectsInput>
 }
 
+export type UserCreateWithoutIdentityAuditsInput = {
+  id?: string
+  fullName: string
+  phoneNumber: string
+  role?: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  passwordHash?: string | null
+  isActive?: boolean
+  phoneVerifiedAt?: Date | string | null
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
+  sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  assignedTickets?: Prisma.SupportTicketCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectCreateNestedManyWithoutOwnerInput
+}
+
+export type UserUncheckedCreateWithoutIdentityAuditsInput = {
+  id?: string
+  fullName: string
+  phoneNumber: string
+  role?: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  passwordHash?: string | null
+  isActive?: boolean
+  phoneVerifiedAt?: Date | string | null
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
+  sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  assignedTickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutAssignedAdminInput
+  mediaObjects?: Prisma.MediaObjectUncheckedCreateNestedManyWithoutOwnerInput
+}
+
+export type UserCreateOrConnectWithoutIdentityAuditsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutIdentityAuditsInput, Prisma.UserUncheckedCreateWithoutIdentityAuditsInput>
+}
+
+export type UserUpsertWithoutIdentityAuditsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutIdentityAuditsInput, Prisma.UserUncheckedUpdateWithoutIdentityAuditsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutIdentityAuditsInput, Prisma.UserUncheckedCreateWithoutIdentityAuditsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutIdentityAuditsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutIdentityAuditsInput, Prisma.UserUncheckedUpdateWithoutIdentityAuditsInput>
+}
+
+export type UserUpdateWithoutIdentityAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  phoneVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
+  sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  assignedTickets?: Prisma.SupportTicketUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutIdentityAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  phoneVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
+  sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  assignedTickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput
+  mediaObjects?: Prisma.MediaObjectUncheckedUpdateManyWithoutOwnerNestedInput
+}
+
 export type UserCreateWithoutBookingsInput = {
   id?: string
   fullName: string
@@ -722,6 +905,9 @@ export type UserCreateWithoutBookingsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
@@ -743,6 +929,9 @@ export type UserUncheckedCreateWithoutBookingsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -780,6 +969,9 @@ export type UserUpdateWithoutBookingsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
@@ -801,6 +993,9 @@ export type UserUncheckedUpdateWithoutBookingsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -822,6 +1017,9 @@ export type UserCreateWithoutOtpVerificationsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
@@ -843,6 +1041,9 @@ export type UserUncheckedCreateWithoutOtpVerificationsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
@@ -880,6 +1081,9 @@ export type UserUpdateWithoutOtpVerificationsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
@@ -901,6 +1105,9 @@ export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -922,6 +1129,9 @@ export type UserCreateWithoutTicketsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
@@ -943,6 +1153,9 @@ export type UserUncheckedCreateWithoutTicketsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -969,6 +1182,9 @@ export type UserCreateWithoutAssignedTicketsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
@@ -990,6 +1206,9 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1027,6 +1246,9 @@ export type UserUpdateWithoutTicketsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
@@ -1048,6 +1270,9 @@ export type UserUncheckedUpdateWithoutTicketsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1080,6 +1305,9 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
@@ -1101,6 +1329,9 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -1122,6 +1353,9 @@ export type UserCreateWithoutSentMessagesInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   otpVerifications?: Prisma.OtpVerificationCreateNestedManyWithoutUserInput
@@ -1143,6 +1377,9 @@ export type UserUncheckedCreateWithoutSentMessagesInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   otpVerifications?: Prisma.OtpVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -1180,6 +1417,9 @@ export type UserUpdateWithoutSentMessagesInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   otpVerifications?: Prisma.OtpVerificationUpdateManyWithoutUserNestedInput
@@ -1201,6 +1441,9 @@ export type UserUncheckedUpdateWithoutSentMessagesInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   otpVerifications?: Prisma.OtpVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1222,6 +1465,9 @@ export type UserCreateWithoutAuditLogsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
@@ -1243,6 +1489,9 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1280,6 +1529,9 @@ export type UserUpdateWithoutAuditLogsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
@@ -1301,6 +1553,9 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -1322,6 +1577,9 @@ export type UserCreateWithoutMediaObjectsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
@@ -1343,6 +1601,9 @@ export type UserUncheckedCreateWithoutMediaObjectsInput = {
   failedLoginAttempts?: number
   lockedUntil?: Date | string | null
   lastLoginAt?: Date | string | null
+  tokenVersion?: number
+  passwordUpdatedAt?: Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedCreateNestedManyWithoutUserInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutCustomerInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutCustomerInput
   sentMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1380,6 +1641,9 @@ export type UserUpdateWithoutMediaObjectsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
@@ -1401,6 +1665,9 @@ export type UserUncheckedUpdateWithoutMediaObjectsInput = {
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  passwordUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identityAudits?: Prisma.IdentityAuditUncheckedUpdateManyWithoutUserNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutCustomerNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutCustomerNestedInput
   sentMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -1415,6 +1682,7 @@ export type UserUncheckedUpdateWithoutMediaObjectsInput = {
  */
 
 export type UserCountOutputType = {
+  identityAudits: number
   bookings: number
   tickets: number
   sentMessages: number
@@ -1425,6 +1693,7 @@ export type UserCountOutputType = {
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  identityAudits?: boolean | UserCountOutputTypeCountIdentityAuditsArgs
   bookings?: boolean | UserCountOutputTypeCountBookingsArgs
   tickets?: boolean | UserCountOutputTypeCountTicketsArgs
   sentMessages?: boolean | UserCountOutputTypeCountSentMessagesArgs
@@ -1442,6 +1711,13 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
    * Select specific fields to fetch from the UserCountOutputType
    */
   select?: Prisma.UserCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountIdentityAuditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.IdentityAuditWhereInput
 }
 
 /**
@@ -1507,6 +1783,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   failedLoginAttempts?: boolean
   lockedUntil?: boolean
   lastLoginAt?: boolean
+  tokenVersion?: boolean
+  passwordUpdatedAt?: boolean
+  identityAudits?: boolean | Prisma.User$identityAuditsArgs<ExtArgs>
   bookings?: boolean | Prisma.User$bookingsArgs<ExtArgs>
   tickets?: boolean | Prisma.User$ticketsArgs<ExtArgs>
   sentMessages?: boolean | Prisma.User$sentMessagesArgs<ExtArgs>
@@ -1532,10 +1811,13 @@ export type UserSelectScalar = {
   failedLoginAttempts?: boolean
   lockedUntil?: boolean
   lastLoginAt?: boolean
+  tokenVersion?: boolean
+  passwordUpdatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fullName" | "phoneNumber" | "role" | "createdAt" | "updatedAt" | "passwordHash" | "isActive" | "phoneVerifiedAt" | "failedLoginAttempts" | "lockedUntil" | "lastLoginAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fullName" | "phoneNumber" | "role" | "createdAt" | "updatedAt" | "passwordHash" | "isActive" | "phoneVerifiedAt" | "failedLoginAttempts" | "lockedUntil" | "lastLoginAt" | "tokenVersion" | "passwordUpdatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  identityAudits?: boolean | Prisma.User$identityAuditsArgs<ExtArgs>
   bookings?: boolean | Prisma.User$bookingsArgs<ExtArgs>
   tickets?: boolean | Prisma.User$ticketsArgs<ExtArgs>
   sentMessages?: boolean | Prisma.User$sentMessagesArgs<ExtArgs>
@@ -1549,6 +1831,10 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
+    /**
+     * Semua perubahan identitas akun ini, terbaru lebih dulu.
+     */
+    identityAudits: Prisma.$IdentityAuditPayload<ExtArgs>[]
     bookings: Prisma.$BookingPayload<ExtArgs>[]
     tickets: Prisma.$SupportTicketPayload<ExtArgs>[]
     sentMessages: Prisma.$TicketMessagePayload<ExtArgs>[]
@@ -1593,6 +1879,18 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * Waktu login berhasil terakhir, untuk jejak di dashboard.
      */
     lastLoginAt: Date | null
+    /**
+     * Naik setiap kali identitas atau kredensial berubah.
+     * 
+     * Nilai ini ikut ditanam di JWT sebagai `ver`. Token dengan versi lama
+     * ditolak, sehingga mengganti kata sandi (atau memulihkannya) langsung
+     * memutus semua sesi lain — termasuk sesi milik penyerang yang sudah masuk.
+     */
+    tokenVersion: number
+    /**
+     * Kapan kata sandi terakhir dibuat/diganti.
+     */
+    passwordUpdatedAt: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1933,6 +2231,7 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  identityAudits<T extends Prisma.User$identityAuditsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$identityAuditsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IdentityAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bookings<T extends Prisma.User$bookingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$bookingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tickets<T extends Prisma.User$ticketsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ticketsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SupportTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sentMessages<T extends Prisma.User$sentMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sentMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1981,6 +2280,8 @@ export interface UserFieldRefs {
   readonly failedLoginAttempts: Prisma.FieldRef<"User", 'Int'>
   readonly lockedUntil: Prisma.FieldRef<"User", 'DateTime'>
   readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly tokenVersion: Prisma.FieldRef<"User", 'Int'>
+  readonly passwordUpdatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 
@@ -2326,6 +2627,30 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Limit how many Users to delete.
    */
   limit?: number
+}
+
+/**
+ * User.identityAudits
+ */
+export type User$identityAuditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the IdentityAudit
+   */
+  select?: Prisma.IdentityAuditSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the IdentityAudit
+   */
+  omit?: Prisma.IdentityAuditOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.IdentityAuditInclude<ExtArgs> | null
+  where?: Prisma.IdentityAuditWhereInput
+  orderBy?: Prisma.IdentityAuditOrderByWithRelationInput | Prisma.IdentityAuditOrderByWithRelationInput[]
+  cursor?: Prisma.IdentityAuditWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.IdentityAuditScalarFieldEnum | Prisma.IdentityAuditScalarFieldEnum[]
 }
 
 /**

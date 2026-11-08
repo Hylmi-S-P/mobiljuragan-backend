@@ -147,6 +147,19 @@ model User {
   /// Waktu login berhasil terakhir, untuk jejak di dashboard.
   lastLoginAt DateTime?
 
+  /// Naik setiap kali identitas atau kredensial berubah.
+  ///
+  /// Nilai ini ikut ditanam di JWT sebagai `ver`. Token dengan versi lama
+  /// ditolak, sehingga mengganti kata sandi (atau memulihkannya) langsung
+  /// memutus semua sesi lain — termasuk sesi milik penyerang yang sudah masuk.
+  tokenVersion Int @default(0)
+
+  /// Kapan kata sandi terakhir dibuat/diganti.
+  passwordUpdatedAt DateTime?
+
+  /// Semua perubahan identitas akun ini, terbaru lebih dulu.
+  identityAudits IdentityAudit[]
+
   bookings         Booking[]
   tickets          SupportTicket[]
   sentMessages     TicketMessage[]
@@ -160,6 +173,46 @@ model User {
   mediaObjects MediaObject[]
 
   @@map("users")
+}
+
+/// Jejak perubahan identitas akun, hanya bisa ditambah (append-only).
+///
+/// Dibuat karena insiden 8 November 2026: nama seorang pelanggan berubah menjadi
+/// nama orang lain tanpa satu pun catatan. Tanpa tabel ini, pertanyaan "siapa
+/// mengubah apa, kapan, dari mana" tidak bisa dijawab sama sekali.
+///
+/// Nilai disimpan sebagai teks (`before`/`after`) karena tabel ini mencatat
+/// banyak jenis kolom. Yang penting bukan tipenya, melainkan bahwa setiap
+/// perubahan bisa ditelusuri kembali ke pelakunya.
+model IdentityAudit {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Siapa yang melakukan: SELF (pemilik akun), ADMIN, atau SYSTEM.
+  actorType String
+  actorId   String?
+
+  /// Nama peristiwa, mis. PROFILE_NAME_CHANGED atau PASSWORD_CHANGED.
+  action String
+
+  /// Kolom yang berubah, mis. fullName atau phoneNumber.
+  field String
+
+  before String? @db.Text
+  after  String? @db.Text
+
+  /// Alasan wajib untuk perubahan yang dilakukan admin/system.
+  reason String? @db.Text
+
+  ipAddress String?
+  userAgent String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("identity_audits")
 }
 
 model Vehicle {

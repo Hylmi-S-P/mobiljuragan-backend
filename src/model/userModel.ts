@@ -62,7 +62,15 @@ export const userModel = {
   findActiveSessionUser(id: string) {
     return db.user.findUnique({
       where: { id },
-      select: { id: true, fullName: true, phoneNumber: true, role: true, isActive: true },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        role: true,
+        isActive: true,
+        // Dipakai requireAuth membandingkan klaim `ver` di token.
+        tokenVersion: true,
+      },
     });
   },
 

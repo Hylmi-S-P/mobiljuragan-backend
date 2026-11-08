@@ -144,6 +144,7 @@ export const adminAuthController = {
           userId: user.id,
           phoneNumber: user.phoneNumber,
           role: user.role,
+          ver: user.tokenVersion ?? 0,
         },
         rememberMe ? '7d' : '1h',
       );

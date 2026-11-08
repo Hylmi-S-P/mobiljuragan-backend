@@ -23,6 +23,19 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
+ * Model IdentityAudit
+ * Jejak perubahan identitas akun, hanya bisa ditambah (append-only).
+ * 
+ * Dibuat karena insiden 8 November 2026: nama seorang pelanggan berubah menjadi
+ * nama orang lain tanpa satu pun catatan. Tanpa tabel ini, pertanyaan "siapa
+ * mengubah apa, kapan, dari mana" tidak bisa dijawab sama sekali.
+ * 
+ * Nilai disimpan sebagai teks (`before`/`after`) karena tabel ini mencatat
+ * banyak jenis kolom. Yang penting bukan tipenya, melainkan bahwa setiap
+ * perubahan bisa ditelusuri kembali ke pelakunya.
+ */
+export type IdentityAudit = Prisma.IdentityAuditModel
+/**
  * Model Vehicle
  * 
  */

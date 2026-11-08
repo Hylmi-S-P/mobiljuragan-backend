@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authController } from '../../controller/authController.js';
 import { validateBody } from '../../middleware/validate.js';
-import { requireAuth } from '../../middleware/auth.js';
 import {
+  loginRateLimiter,
   otpRequestRateLimiter,
   otpVerifyRateLimiter,
 } from '../../middleware/rateLimiter.js';
+import { passwordController } from '../../controller/passwordController.js';
 import {
   ATURAN_KATA_SANDI,
   BATAS_BYTE,
@@ -78,6 +79,24 @@ const passwordZodSchema = z
   .refine((val) => /[0-9]/.test(val), { message: 'Kata sandi harus memuat angka.' })
   .refine((val) => /[^A-Za-z0-9]/.test(val), { message: 'Kata sandi harus memuat simbol.' });
 
+const passwordLoginSchema = z.object({
+  phoneNumber: phoneZodSchema,
+  password: z.string({ error: 'Kata sandi wajib diisi.' }).min(1, 'Kata sandi wajib diisi.'),
+});
+
+const passwordResetRequestSchema = z.object({
+  phoneNumber: phoneZodSchema,
+});
+
+const passwordResetVerifySchema = z.object({
+  phoneNumber: phoneZodSchema,
+  otp: z
+    .string()
+    .length(6, 'Kode OTP harus 6 digit.')
+    .regex(/^\d+$/, 'Kode OTP harus berupa angka.'),
+  password: passwordZodSchema,
+});
+
 const registerVerifySchema = z.object({
   phoneNumber: phoneZodSchema,
   otp: z
@@ -116,8 +135,34 @@ authRouter.post(
   authController.verifyRegisterOtp,
 );
 
-// Profil pemilik sesi; dipakai aplikasi memastikan tokennya masih sah.
-authRouter.get('/me', requireAuth, authController.me);
+/*
+ * Masuk dengan kata sandi.
+ *
+ * Memakai `loginRateLimiter` yang sama dengan portal staf: hanya permintaan
+ * gagal yang dihitung, sehingga pengguna sah yang sering login tidak terkena
+ * batas. Penguncian per akun tetap ditegakkan di controller.
+ */
+authRouter.post(
+  '/login/password',
+  loginRateLimiter,
+  validateBody(passwordLoginSchema),
+  passwordController.masuk,
+);
+
+// Pemulihan kata sandi lewat kode verifikasi ke nomor terverifikasi.
+authRouter.post(
+  '/password/reset/request',
+  otpRequestRateLimiter,
+  validateBody(passwordResetRequestSchema),
+  passwordController.mintaReset,
+);
+
+authRouter.post(
+  '/password/reset/verify',
+  otpVerifyRateLimiter,
+  validateBody(passwordResetVerifySchema),
+  passwordController.verifikasiReset,
+);
 
 /**
  * Daftar aturan kata sandi untuk klien.

@@ -46,6 +46,23 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    /*
+     * Token yang diterbitkan sebelum perubahan identitas/kredensial tidak lagi
+     * berlaku. Inilah yang membuat "ganti kata sandi" benar-benar memutus sesi
+     * lain — kalau tidak, penyerang yang sudah masuk tetap nyaman sampai tokennya
+     * kedaluwarsa tujuh hari kemudian.
+     */
+    const versiToken = payload.ver ?? 0;
+    if (versiToken !== user.tokenVersion) {
+      sendError(
+        res,
+        'SESSION_REVOKED',
+        'Sesi ini sudah tidak berlaku karena data keamanan akun berubah. Silakan masuk kembali.',
+        401,
+      );
+      return;
+    }
+
     req.user = {
       userId: user.id,
       id: user.id,

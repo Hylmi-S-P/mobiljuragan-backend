@@ -62,13 +62,23 @@ const KODE_PENGEMBANGAN = '123456';
 
 function kirimToken(
   res: Response,
-  user: { id: string; phoneNumber: string; role: string; fullName: string },
+  user: {
+    id: string;
+    phoneNumber: string;
+    role: string;
+    fullName: string;
+    tokenVersion?: number;
+    phoneVerifiedAt?: Date | null;
+    passwordUpdatedAt?: Date | null;
+  },
   statusCode = 200,
 ): void {
   const token = signAuthToken({
     userId: user.id,
     phoneNumber: user.phoneNumber,
     role: user.role as never,
+    /* `ver` membuat token ini gugur begitu tokenVersion akun dinaikkan. */
+    ver: user.tokenVersion ?? 0,
   });
 
   sendSuccess(
@@ -80,6 +90,10 @@ function kirimToken(
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         role: user.role,
+        /* Status kredensial ikut dikirim supaya aplikasi tahu apakah menu
+           profil harus menawarkan "buat" atau "ganti" kata sandi. */
+        phoneVerifiedAt: user.phoneVerifiedAt ?? null,
+        passwordUpdatedAt: user.passwordUpdatedAt ?? null,
       },
     },
     statusCode,
@@ -388,39 +402,6 @@ export const authController = {
     }
   },
 
-  /**
-   * Profil pemilik sesi.
-   *
-   * Dipakai aplikasi untuk memastikan token yang tersimpan di perangkat memang
-   * masih dikenali server. Tanpa pemeriksaan ini, sesi yang tidak sah bisa
-   * tampil sebagai pengguna yang sudah masuk.
-   */
-  async me(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
-      }
-
-      const user = await authModel.findPublicUserById(userId);
-      if (!user) {
-        throw new AppError('USER_NOT_FOUND', 'Akun tidak ditemukan.', 404);
-      }
-
-      sendSuccess(res, {
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          phoneNumber: user.phoneNumber,
-          role: user.role,
-          isActive: user.isActive,
-          phoneVerifiedAt: user.phoneVerifiedAt,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
 };
 
 export type { Tujuan };

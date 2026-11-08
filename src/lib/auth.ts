@@ -33,6 +33,15 @@ export interface AuthTokenPayload {
   userId: string;
   phoneNumber: string;
   role: UserRole;
+  /**
+   * Versi token akun saat token ini diterbitkan.
+   *
+   * Dibandingkan dengan `users.tokenVersion` pada setiap permintaan. Naikkan
+   * kolom itu untuk memutus seluruh sesi (mis. setelah kata sandi diganti atau
+   * akun dipulihkan). Token lama tanpa `ver` dianggap versi 0 supaya akun yang
+   * sudah ada tidak ter-logout massal saat fitur ini dipasang.
+   */
+  ver?: number;
 }
 
 /**

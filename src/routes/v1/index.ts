@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authRouter } from './auth.js';
 import { adminAuthRouter } from './adminAuth.js';
+import { meRouter } from './me.js';
 import { vehicleRouter } from './vehicles.js';
 import { pickupPointRouter } from './pickupPoints.js';
 import { bookingRouter } from './bookings.js';
@@ -47,6 +48,9 @@ v1Router.use('/admin/users', adminUserRouter);
 
 // Autentikasi pelanggan berbasis OTP: /api/v1/auth/*
 v1Router.use('/auth', authRouter);
+
+// Profil pemilik sesi: /api/v1/me/*  (satu-satunya jalur ubah identitas)
+v1Router.use('/me', meRouter);
 
 // Login staf & admin portal: /api/v1/admin/auth/*
 v1Router.use('/admin/auth', adminAuthRouter);

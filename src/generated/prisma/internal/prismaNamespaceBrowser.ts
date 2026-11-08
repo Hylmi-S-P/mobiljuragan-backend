@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  IdentityAudit: 'IdentityAudit',
   Vehicle: 'Vehicle',
   Driver: 'Driver',
   Booking: 'Booking',
@@ -100,10 +101,30 @@ export const UserScalarFieldEnum = {
   phoneVerifiedAt: 'phoneVerifiedAt',
   failedLoginAttempts: 'failedLoginAttempts',
   lockedUntil: 'lockedUntil',
-  lastLoginAt: 'lastLoginAt'
+  lastLoginAt: 'lastLoginAt',
+  tokenVersion: 'tokenVersion',
+  passwordUpdatedAt: 'passwordUpdatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const IdentityAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  action: 'action',
+  field: 'field',
+  before: 'before',
+  after: 'after',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type IdentityAuditScalarFieldEnum = (typeof IdentityAuditScalarFieldEnum)[keyof typeof IdentityAuditScalarFieldEnum]
 
 
 export const VehicleScalarFieldEnum = {
@@ -453,6 +474,23 @@ export const UserOrderByRelevanceFieldEnum = {
 } as const
 
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
+
+
+export const IdentityAuditOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  action: 'action',
+  field: 'field',
+  before: 'before',
+  after: 'after',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent'
+} as const
+
+export type IdentityAuditOrderByRelevanceFieldEnum = (typeof IdentityAuditOrderByRelevanceFieldEnum)[keyof typeof IdentityAuditOrderByRelevanceFieldEnum]
 
 
 export const VehicleOrderByRelevanceFieldEnum = {
