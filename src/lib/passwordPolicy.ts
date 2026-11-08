@@ -1,14 +1,15 @@
 /**
  * Kebijakan kata sandi pelanggan.
  *
- * Satu-satunya sumber aturan di sisi server. Klien punya salinan aturan yang
- * sama di `mobiljuragan-mobile/lib/core/validators/password_policy.dart`; kalau
- * salah satu diubah, ubah keduanya. Rujukan lengkap ada di
- * `docs/analisis-akun-tertimpa-otp.md` §6.5.
+ * Satu-satunya sumber aturan di sisi server. Klien punya salinan yang sama di
+ * `mobiljuragan-mobile/lib/core/validators/password_policy.dart`; kalau salah
+ * satu diubah, ubah keduanya. Rujukan: `docs/analisis-akun-tertimpa-otp.md` §6.5.
  *
- * Aturan 1-5 ditampilkan sebagai checklist di aplikasi. Aturan 6-8 sengaja
- * tidak ditampilkan: itu pengaman teknis yang tidak perlu dibebankan ke
- * pengguna sebagai tebakan.
+ * Aturan yang ditegakkan sengaja dibatasi pada bentuk kata sandi saja:
+ * panjang minimum, huruf besar, huruf kecil, angka, dan simbol. Penilaian
+ * "kata sandi terlalu umum" atau "memuat nama sendiri" tidak dipakai karena
+ * sifatnya menebak-nebak dan menolak kata sandi yang sah tanpa alasan yang bisa
+ * diprediksi pengguna.
  */
 
 /** Panjang minimum yang diminta produk. */
@@ -17,14 +18,12 @@ export const PANJANG_MINIMAL = 8;
 /**
  * Batas atas dalam byte UTF-8.
  *
- * bcrypt hanya memakai 72 byte pertama; tanpa batas ini dua kata sandi berbeda
- * bisa dianggap sama. Dihitung dalam byte, bukan karakter, karena emoji dan
- * aksara non-Latin memakai lebih dari satu byte.
+ * Bukan aturan gaya, melainkan batas teknis: bcrypt hanya memakai 72 byte
+ * pertama, sehingga tanpa batas ini dua kata sandi berbeda bisa dianggap sama.
+ * Dihitung dalam byte karena emoji dan aksara non-Latin memakai lebih dari satu
+ * byte per karakter.
  */
 export const BATAS_BYTE = 72;
-
-/** Panjang yang membuat kata sandi dianggap kuat tanpa aturan simbol. */
-export const PANJANG_PASSPHRASE = 16;
 
 export type KodeAturan =
   | 'PANJANG_MINIMAL'
@@ -32,9 +31,7 @@ export type KodeAturan =
   | 'HURUF_KECIL'
   | 'ANGKA'
   | 'SIMBOL'
-  | 'BATAS_BYTE'
-  | 'MENGANDUNG_IDENTITAS'
-  | 'TERLALU_UMUM';
+  | 'BATAS_BYTE';
 
 export interface AturanKataSandi {
   kode: KodeAturan;
@@ -59,90 +56,18 @@ export const ATURAN_KATA_SANDI: AturanKataSandi[] = [
     pesan: `Maksimal ${BATAS_BYTE} byte`,
     tampilSebagaiChecklist: false,
   },
-  {
-    kode: 'MENGANDUNG_IDENTITAS',
-    pesan: 'Jangan memakai nama atau nomor sendiri',
-    tampilSebagaiChecklist: false,
-  },
-  {
-    kode: 'TERLALU_UMUM',
-    pesan: 'Kata sandi terlalu umum',
-    tampilSebagaiChecklist: false,
-  },
 ];
 
-/**
- * Kata sandi yang paling sering muncul di daftar bocoran.
- *
- * Daftar pendek ini menahan kasus paling nyata tanpa menambah dependensi.
- * Untuk cakupan penuh, ganti dengan pemeriksaan ke basis data kebocoran
- * (mis. Have I Been Pwned k-anonymity) pada fase berikutnya.
- */
-const KATA_SANDI_UMUM = new Set([
-  'password',
-  'password1',
-  'password123',
-  'password1234',
-  'passw0rd',
-  'p@ssw0rd',
-  'qwerty',
-  'qwerty123',
-  'qwertyuiop',
-  '12345678',
-  '123456789',
-  '1234567890',
-  'iloveyou',
-  'admin123',
-  'administrator',
-  'letmein123',
-  'welcome1',
-  'welcome123',
-  'abc12345',
-  'abcd1234',
-  'monkey123',
-  'dragon123',
-  'sunshine1',
-  'princess1',
-  'football1',
-  'baseball1',
-  'superman1',
-  'batman123',
-  'mobiljuragan',
-  'juragan123',
-  'merauke123',
-]);
-
-/** Simbol yang dihitung sebagai "ada simbol". */
+/** Apa pun yang bukan huruf atau angka dihitung sebagai simbol. */
 const POLA_SIMBOL = /[^A-Za-z0-9]/;
-
-/** Deret yang mudah ditebak: 1234, abcd, qwer, dan kebalikannya. */
-const DERET_MUDAH = ['1234', '2345', '3456', '4567', '5678', '6789', 'abcd', 'bcde', 'qwer', 'asdf'];
-
-export interface KonteksKataSandi {
-  /** Nama pemilik akun, untuk menolak kata sandi yang memuat namanya. */
-  fullName?: string | null;
-  /** Nomor telepon, dalam bentuk apa pun; dinormalkan sebelum dibandingkan. */
-  phoneNumber?: string | null;
-}
-
-/** Mengambil hanya angka dari nomor telepon agar "0812-4800-2910" ikut terdeteksi. */
-function digitSaja(nilai: string): string {
-  return nilai.replace(/\D/g, '');
-}
-
-function normalisasiTeks(nilai: string): string {
-  return nilai.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
 
 /**
  * Memeriksa kata sandi dan mengembalikan daftar aturan yang GAGAL.
  *
- * Daftar kosong berarti kata sandi lolos. Fungsi ini tidak menyentuh database.
+ * Daftar kosong berarti kata sandi lolos. Fungsi ini tidak menyentuh database
+ * dan tidak membutuhkan data lain dari pengguna.
  */
-export function periksaKataSandi(
-  kataSandi: string,
-  konteks: KonteksKataSandi = {},
-): KodeAturan[] {
+export function periksaKataSandi(kataSandi: string): KodeAturan[] {
   const gagal: KodeAturan[] = [];
 
   if (kataSandi.length < PANJANG_MINIMAL) gagal.push('PANJANG_MINIMAL');
@@ -152,42 +77,6 @@ export function periksaKataSandi(
   if (!POLA_SIMBOL.test(kataSandi)) gagal.push('SIMBOL');
 
   if (Buffer.byteLength(kataSandi, 'utf8') > BATAS_BYTE) gagal.push('BATAS_BYTE');
-
-  const polos = normalisasiTeks(kataSandi);
-  const kandidatIdentitas: string[] = [];
-
-  if (konteks.fullName) {
-    for (const bagian of konteks.fullName.split(/\s+/)) {
-      const bersih = normalisasiTeks(bagian);
-      // Nama satu-dua huruf terlalu umum untuk dijadikan larangan.
-      if (bersih.length >= 3) kandidatIdentitas.push(bersih);
-    }
-  }
-
-  if (konteks.phoneNumber) {
-    const digit = digitSaja(konteks.phoneNumber);
-    if (digit.length >= 6) {
-      kandidatIdentitas.push(digit);
-      // Bentuk lokal tanpa awalan 0 / 62 ikut diperiksa.
-      kandidatIdentitas.push(digit.replace(/^62/, '').replace(/^0/, ''));
-      kandidatIdentitas.push(digit.replace(/^62/, ''));
-    }
-  }
-
-  if (
-    kandidatIdentitas.some(
-      (kandidat) => kandidat.length >= 4 && (polos.includes(kandidat) || digitSaja(kataSandi).includes(kandidat)),
-    )
-  ) {
-    gagal.push('MENGANDUNG_IDENTITAS');
-  }
-
-  const hurufKecil = kataSandi.toLowerCase();
-  const terlaluUmum =
-    KATA_SANDI_UMUM.has(hurufKecil) ||
-    KATA_SANDI_UMUM.has(polos) ||
-    DERET_MUDAH.some((deret) => hurufKecil.includes(deret));
-  if (terlaluUmum) gagal.push('TERLALU_UMUM');
 
   return gagal;
 }

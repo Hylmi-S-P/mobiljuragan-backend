@@ -371,7 +371,7 @@ export const authController = {
         );
       }
 
-      const pelanggaran = periksaKataSandi(password, { fullName, phoneNumber });
+      const pelanggaran = periksaKataSandi(password);
       if (pelanggaran.length > 0) {
         const ringkasan = ringkasanKegagalan(pelanggaran);
         throw new AppError('PASSWORD_POLICY', ringkasan.message, 400, {

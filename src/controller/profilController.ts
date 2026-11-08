@@ -215,10 +215,7 @@ export const profilController = {
         }
       }
 
-      const pelanggaran = periksaKataSandi(newPassword, {
-        fullName: user.fullName,
-        phoneNumber: user.phoneNumber,
-      });
+      const pelanggaran = periksaKataSandi(newPassword);
       if (pelanggaran.length > 0) {
         const ringkasan = ringkasanKegagalan(pelanggaran);
         throw new AppError('PASSWORD_POLICY', ringkasan.message, 400, {

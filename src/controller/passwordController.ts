@@ -371,10 +371,7 @@ export const passwordController = {
         throw new AppError('INVALID_CREDENTIALS', 'Nomor atau kode tidak sesuai.', 401);
       }
 
-      const pelanggaran = periksaKataSandi(password, {
-        fullName: pelanggan.fullName,
-        phoneNumber,
-      });
+      const pelanggaran = periksaKataSandi(password);
       if (pelanggaran.length > 0) {
         const ringkasan = ringkasanKegagalan(pelanggaran);
         throw new AppError('PASSWORD_POLICY', ringkasan.message, 400, {

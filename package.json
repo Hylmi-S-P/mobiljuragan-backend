@@ -24,7 +24,9 @@
     "db:lepas-kode-unik": "tsx scripts/lepas-kode-unik-pembayaran.ts",
     "prisma:deploy": "prisma migrate deploy",
     "audit:identitas": "tsx scripts/audit-identitas.ts",
-    "audit:pemulihan": "tsx scripts/audit-pemulihan-identitas.ts"
+    "audit:pemulihan": "tsx scripts/audit-pemulihan-identitas.ts",
+    "db:reset": "tsx scripts/reset-bookings-and-tickets.ts",
+    "db:reset:pelanggan": "tsx scripts/reset-bookings-and-tickets.ts --dengan-pelanggan"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
