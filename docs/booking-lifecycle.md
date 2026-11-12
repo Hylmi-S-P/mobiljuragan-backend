@@ -1,0 +1,260 @@
+# Siklus Hidup Pesanan Sewa
+
+Dokumen ini adalah rujukan tunggal untuk pertanyaan "pesanan ini sekarang di tahap
+mana, siapa yang boleh memindahkannya, dan apa yang ikut berubah saat dipindahkan".
+
+Sebelum dokumen ini ada, aturan urutan tersebar di controller, model, dan service,
+sehingga setiap kali ada yang bertanya "kenapa pesanan ini bisa loncat", jawabannya
+harus dicari ulang dari kode. Bagian **Celah yang diketahui** di bawah sengaja
+mencatat lubang yang masih ada, supaya tidak ada yang mengira lubang itu sudah
+tertutup.
+
+Berkas acuan kode:
+
+- `src/lib/bookingStage.ts` — tabel transisi, daftar status final, penghitung blocker.
+- `src/model/bookingModel.ts` — transaksi perubahan status beserta efek sampingnya.
+- `src/model/vehicleModel.ts` — status operasional armada dan aturan pengunciannya.
+- `src/services/payment.service.ts` — pembuatan tagihan, unggah bukti, verifikasi.
+- `src/services/document.service.ts` — verifikasi dan penolakan dokumen.
+
+---
+
+## 1. Aktor
+
+| Aktor | Bisa apa |
+| --- | --- |
+| Pelanggan (`CUSTOMER`) | Membuat pesanan, mengunggah dokumen, mengunggah bukti pembayaran, membatalkan pesanan, membuka tiket bantuan. |
+| Staf (`STAFF`) | Memverifikasi dokumen, memverifikasi pembayaran, menugaskan supir, menyerahkan armada, menutup tiket. |
+| Admin (`ADMIN`) | Semua yang bisa dilakukan staf, ditambah mengubah nama pelanggan, mengelola akun pengelola, mengelola template dokumen, dan mengelola katalog. |
+| Sistem | Menutup tiket yang menganggur, menyiapkan template dokumen, dan (rencana) membatalkan pesanan yang melewati tenggat. |
+
+Catatan: backend hanya mengenal tiga peran (`CUSTOMER`, `STAFF`, `ADMIN`). Dashboard
+menampilkan `super_admin` sebagai label, tetapi nilai itu dipetakan ke `ADMIN` saat
+dikirim ke API.
+
+---
+
+## 2. Status pesanan
+
+`BookingStatus` punya enam nilai. Tiga di antaranya final dan tidak bisa ditinggalkan.
+
+| Status | Arti | Siapa yang memindahkan ke sini | Final |
+| --- | --- | --- | --- |
+| `CREATED` | Permintaan baru masuk, belum ditinjau. | Pelanggan (saat membuat pesanan). | tidak |
+| `PENDING_CONFIRMATION` | Sedang ditinjau: dokumen diperiksa, tarif disiapkan. | Staf/admin. | tidak |
+| `CONFIRMED` | Tarif sudah disetujui dan nominalnya terkunci. Menunggu pembayaran. | Staf/admin. | tidak |
+| `IN_PROGRESS` | Armada sudah diserahkan, sewa berjalan. | Staf/admin. | tidak |
+| `COMPLETED` | Sewa selesai, armada dikembalikan. | Staf/admin (sekarang), sistem (rencana). | ya |
+| `REJECTED` | Permintaan ditolak sebelum dikonfirmasi. | Staf/admin. | ya |
+| `CANCELLED` | Dibatalkan pelanggan, staf, atau sistem. | Pelanggan, staf/admin, sistem. | ya |
+
+---
+
+## 3. Alur resmi
+
+```
+                 (pelanggan)
+                     |
+                     v
+   +-------------+  tinjau   +----------------------+
+   |   CREATED   |---------->| PENDING_CONFIRMATION |
+   +-------------+           +----------------------+
+        |                        |            |
+        | batal                  | tolak      | tarif disetujui
+        v                        v            v
+   +-----------+          +----------+   +-----------+
+   | CANCELLED |          | REJECTED |   | CONFIRMED |
+   +-----------+          +----------+   +-----------+
+                                              |
+                                              | armada diserahkan
+                                              v
+                                        +-------------+
+                                        | IN_PROGRESS |
+                                        +-------------+
+                                              |
+                                              | sewa berakhir
+                                              v
+                                        +-----------+
+                                        | COMPLETED |
+                                        +-----------+
+```
+
+Tahap yang dijaga: **dokumen -> konfirmasi tarif -> pembayaran -> serah armada ->
+selesai**. Pesanan tidak boleh meloncat dari `CREATED` langsung ke pembayaran.
+
+---
+
+## 4. Tabel transisi yang diizinkan
+
+Sumber: `ALLOWED_TRANSITIONS` di `src/lib/bookingStage.ts:23-39`.
+
+| Dari | Boleh ke |
+| --- | --- |
+| `CREATED` | `PENDING_CONFIRMATION`, `CANCELLED` |
+| `PENDING_CONFIRMATION` | `CONFIRMED`, `REJECTED`, `CANCELLED` |
+| `CONFIRMED` | `IN_PROGRESS`, `COMPLETED`, `CANCELLED` |
+| `IN_PROGRESS` | `COMPLETED` |
+| `COMPLETED` | — |
+| `REJECTED` | — |
+| `CANCELLED` | — |
+
+Transisi ke status yang sama selalu ditolak dengan `BOOKING_STATUS_UNCHANGED` (409).
+Transisi di luar tabel ditolak dengan `INVALID_BOOKING_TRANSITION` (409).
+
+---
+
+## 5. Prasyarat per transisi
+
+Diperiksa di dalam transaksi `updateStatusWithHistoryAndAudit`
+(`src/model/bookingModel.ts:319-547`), bukan di controller, supaya tidak ada jalur
+yang melewatinya.
+
+| Transisi | Prasyarat | Kode galat |
+| --- | --- | --- |
+| apa pun -> `CONFIRMED` | `quotedAmount > 0` | `TARIFF_REQUIRED` |
+| apa pun -> `CONFIRMED` | Tidak ada pesanan aktif lain di armada yang sama dengan jadwal bertumpuk | `BOOKING_CONFLICT` |
+| apa pun -> `CONFIRMED` | Pesanan bersupir wajib sudah punya `driverId` | `DRIVER_REQUIRED` |
+| apa pun -> `CONFIRMED` | Pesanan lepas kunci wajib punya dokumen `VERIFIED` | `DOCUMENTS_UNVERIFIED` |
+| apa pun -> `IN_PROGRESS` | `Payment.status === PAID` | `PAYMENT_NOT_VERIFIED` |
+| transisi selain `CONFIRMED` | Tidak boleh membawa `quotedAmount` | `TARIFF_REQUIRES_CONFIRMATION` |
+
+Pembuatan tagihan (`src/services/payment.service.ts`) juga menolak pesanan yang
+`quotedAmount`-nya kosong, dan untuk pesanan lepas kunci menolak bila dokumen belum
+`VERIFIED`.
+
+---
+
+## 6. Efek samping per transisi
+
+Semua terjadi di transaksi yang sama dengan perubahan status, sehingga tidak ada
+keadaan setengah jadi.
+
+| Transisi | Efek samping |
+| --- | --- |
+| Semua | Satu baris `BookingStatusHistory` (`fromStatus`, `toStatus`, aktor, catatan). |
+| Semua | Satu baris `AuditLog` dengan aksi `UPDATE_BOOKING_STATUS`. |
+| -> `CONFIRMED` | `quotedAmount` disimpan, `tariffStatus = CONFIRMED`, `routeScope` disimpan bila dikirim. |
+| -> `IN_PROGRESS` | `Vehicle.operationalStatus = BOOKED`. |
+| -> `COMPLETED` | Armada menjadi `IN_SERVICE` dengan `serviceStartedAt = sekarang` dan `serviceExpectedDoneAt = sekarang + 24 jam`. Kalau masih ada pesanan aktif lain yang mulai sebelum masa pemeriksaan berakhir, armada tetap `BOOKED` dan kedua stempel waktu dikosongkan. |
+| -> `COMPLETED` / `CANCELLED` / `REJECTED` | Supir dilepas ke `SIAGA`, tetapi hanya bila tidak ada pesanan aktif lain yang masih memegangnya. |
+| -> `CANCELLED` / `REJECTED` | Armada kembali `AVAILABLE`, kecuali sedang `MAINTENANCE`, dan hanya bila tidak ada pesanan aktif lain. |
+
+---
+
+## 7. Status pendamping
+
+Pesanan punya empat status lain yang bergerak sendiri-sendiri. Mencampur keempatnya
+dengan `BookingStatus` adalah sumber kebingungan yang paling sering muncul.
+
+| Status | Nilai | Arti |
+| --- | --- | --- |
+| `TariffStatus` | `PENDING`, `CONFIRMED` | Apakah nominal tarif sudah disetujui tim. |
+| `DocumentStatus` | `PENDING`, `VERIFIED`, `REJECTED` | Hasil pemeriksaan dokumen. |
+| `PaymentStatus` | `UNPAID`, `PENDING_VERIFICATION`, `PAID`, `FAILED`, `REFUNDED` | Keadaan tagihan. |
+| `OperationalStatus` | `AVAILABLE`, `BOOKED`, `IN_SERVICE`, `MAINTENANCE`, `UNAVAILABLE` | Keadaan unit armada. |
+| `DriverReadiness` | `SIAGA`, `SEDANG_TUGAS`, `LIBUR` | Kesiapan supir. |
+
+`BOOKED` dan `IN_SERVICE` dikelola sistem dan tidak boleh diubah manual dari
+dashboard (`SYSTEM_MANAGED_STATUS` di `src/model/vehicleModel.ts:68-90`).
+
+---
+
+## 8. Blocker
+
+`computeBookingBlockers` (`src/lib/bookingStage.ts:112-159`) menghasilkan daftar
+alasan pesanan belum bisa lanjut. Daftar ini dikirim apa adanya ke dashboard dan
+mobile supaya tombol bisa dinonaktifkan dengan alasan yang jelas.
+
+| Kode | Muncul saat |
+| --- | --- |
+| `DOKUMEN_BELUM_TERVERIFIKASI` | Pesanan lepas kunci di tahap awal, dokumen belum `VERIFIED`. |
+| `DOKUMEN_DITOLAK` | Dokumen berstatus `REJECTED`. |
+| `TARIF_BELUM_DIKONFIRMASI` | `tariffStatus` belum `CONFIRMED` atau `quotedAmount` kosong. |
+| `PEMBAYARAN_BELUM_DIVERIFIKASI` | Pesanan `CONFIRMED` tetapi pembayaran belum `PAID`. |
+| `ARMADA_IN_SERVICE` | Unit sedang dalam masa pemeriksaan. |
+
+---
+
+## 9. Celah yang diketahui
+
+Bagian ini mencatat lubang yang **masih ada** pada kode saat dokumen ini ditulis.
+Setiap butir menyebut berkas dan barisnya supaya bisa diperiksa ulang.
+
+1. **`CONFIRMED` boleh langsung ke `COMPLETED`.** Tabel transisi mengizinkan
+   `CONFIRMED -> COMPLETED` (`src/lib/bookingStage.ts:30-34`), sehingga sewa bisa
+   ditandai selesai tanpa pernah berstatus `IN_PROGRESS`. Akibatnya armada tidak
+   pernah tercatat `BOOKED` dan tidak ada jejak serah terima.
+
+2. **Tidak ada pembatalan otomatis.** Tidak ada job yang membatalkan pesanan yang
+   tidak pernah mengunggah dokumen atau tidak pernah membayar. Pesanan yang
+   ditinggalkan tetap `PENDING_CONFIRMATION` selamanya.
+
+3. **Tidak ada penyelesaian otomatis.** `COMPLETED` hanya terjadi kalau staf menekan
+   tombol. Pesanan yang `endDateTime`-nya sudah lewat tetap `IN_PROGRESS`.
+
+4. **Tenggat pembayaran hanya ditegakkan di klien.** `src/services/payment.service.ts:252-253`
+   menulis `expiresAt = sekarang + 2 jam`, tetapi nilai itu tidak pernah dibaca di
+   server: `uploadPaymentProof` tidak memeriksa kedaluwarsa. Mobile yang menyembunyikan
+   tombol unggah, jadi backend tetap menerima bukti yang terlambat.
+
+5. **Dua definisi "mengunci" yang berbeda.** Katalog menyembunyikan unit untuk status
+   `CREATED`, `PENDING_CONFIRMATION`, `CONFIRMED`, `IN_PROGRESS`
+   (`src/model/vehicleModel.ts:159-177`), sedangkan pemeriksaan bentrok jadwal hanya
+   memakai `CONFIRMED` dan `IN_PROGRESS` (`src/model/bookingModel.ts:184-194`).
+   Akibatnya pesanan yang ditinggalkan menyembunyikan unit tanpa batas, sementara
+   sistem tetap mengizinkan pesanan lain untuk tanggal yang sama.
+
+6. **`IN_SERVICE` bisa dilepas manual.** `src/model/vehicleModel.ts:80-89` mengizinkan
+   `IN_SERVICE -> AVAILABLE`, dan `updateOperationalStatus` tidak membersihkan
+   `serviceStartedAt`/`serviceExpectedDoneAt`, sehingga stempel waktu pemeriksaan
+   tertinggal pada unit yang sudah tersedia.
+
+7. **Pesanan `CANCELLED` masih bisa ditagih.** `src/services/payment.service.ts:167-312`
+   tidak memeriksa `booking.status`, sehingga tagihan bisa dibuat untuk pesanan yang
+   sudah dibatalkan.
+
+8. **Penolakan pembayaran tidak membatalkan pesanan.** `src/services/payment.service.ts:661-707`
+   hanya mengubah `Payment.status` menjadi `FAILED`; pesanan tetap `CONFIRMED` dan
+   pelanggan masih bisa mengunggah ulang. Riwayat status juga mencatat transisi palsu
+   karena `fromStatus` dan `toStatus` sama.
+
+9. **Refund tidak tercatat di server.** Pembatalan oleh pelanggan menghitung potongan
+   di aplikasi mobile dan menyimpannya di cache lokal. `PATCH /bookings/:id/cancel`
+   hanya menerima `bookingId` dan `reason`, sehingga nominal refund tidak pernah
+   sampai ke server. `PaymentStatus.REFUNDED` belum pernah dipakai.
+
+10. **Pembayaran tunai (COD) melewati gerbang pembayaran.** `PaymentMethod.CASH`
+    masih bisa dipilih pelanggan, dan pesanan COD tidak pernah menjadi `PAID` lewat
+    verifikasi, sehingga aturan "armada hanya diserahkan setelah `PAID`" tidak berlaku
+    untuk jalur ini.
+
+11. **Tidak ada stempel serah terima.** `startDateTime` dan `endDateTime` diisi
+    pelanggan saat membuat pesanan dan tidak pernah diubah saat armada diserahkan.
+    Tidak ada `handedOverAt`, sehingga "jam sewa mulai" hanya berarti jam yang
+    diminta pelanggan, bukan jam unit benar-benar keluar.
+
+12. **Tidak ada tenggat dokumen.** Dokumen bisa diunggah kapan saja selama pesanan
+    belum final, tanpa batas waktu dan tanpa penjedaan saat menunggu pemeriksaan.
+
+13. **Penutupan tiket oleh pelanggan selalu gagal.** `src/controllers/ticketController.ts:698`
+    menutup tiket lalu memanggil `createMessage` pada baris berikutnya, dan
+    `src/model/ticketModel.ts:153-159` menolak pesan pada tiket `CLOSED`. Setiap
+    permintaan tutup tiket dari pelanggan berakhir 409.
+
+---
+
+## 10. Aturan yang akan ditambahkan
+
+Bagian ini adalah rencana, bukan keadaan sekarang. Rujukannya `RENCANA-EKSEKUSI.md`
+di akar workspace.
+
+| Aturan | Gelombang |
+| --- | --- |
+| Tenggat unggah dokumen 2 jam, dijeda selama menunggu pemeriksaan, 12 jam setelah ditolak, batas keras `startDateTime - 12 jam`. | 1 dan 3 |
+| Pembatalan otomatis pesanan yang melewati tenggat, beserta pelepasan armada. | 1 |
+| Penyelesaian otomatis saat `endDateTime` lewat, armada masuk `IN_SERVICE`. | 1 |
+| `CONFIRMED -> COMPLETED` ditutup; selesai hanya lewat `IN_PROGRESS`. | 1 |
+| Tenggat pembayaran 2 jam ditegakkan di server, bukan hanya di klien. | 2 |
+| Refund dicatat di server: 100% bila dibatalkan admin/sistem, potongan tetap Rp 50.000 bila pelanggan membatalkan setelah bayar. | 2 |
+| COD dihapus dari pilihan pelanggan; pembayaran tunai hanya lewat aksi admin di kantor. | 0 |
+| `handedOverAt` dicatat saat serah terima. | 2 |
