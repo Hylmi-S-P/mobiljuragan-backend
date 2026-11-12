@@ -389,6 +389,63 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T1.3',
+    nama: 'Tagihan yang lewat batas waktu membatalkan pesanan dan mengembalikan armada',
+    async fn({ adminToken }) {
+      const { customerToken, vehicle, booking } = await siapkanPesanan(adminToken);
+
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'verifikasi dokumen');
+      await confirmTariff(adminToken, booking.id);
+
+      const tagihan = await createPayment(customerToken, booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      const paymentId = tagihan.body.data.id as string;
+
+      /*
+       * Batas waktu dimundurkan lewat SQL, bukan dengan menunggu dua jam. Nilai
+       * ditulis sebagai UTC karena Prisma membaca kolom DATETIME sebagai UTC.
+       */
+      await sqlUji(
+        'UPDATE payments SET expiresAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [paymentId],
+      );
+
+      const batas = Date.now() + 15_000;
+      let statusPesanan = '';
+      while (Date.now() < batas) {
+        const cek = await api(`/bookings/${booking.id}`, { token: customerToken });
+        statusPesanan = cek.body?.data?.status ?? '';
+        if (statusPesanan === 'CANCELLED') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+
+      if (statusPesanan !== 'CANCELLED') {
+        throw new Error(
+          `tagihan kedaluwarsa: diharapkan pesanan CANCELLED, menerima ${statusPesanan || 'tanpa status'}`,
+        );
+      }
+
+      const detailTagihan = await api(`/payments/${paymentId}`, { token: customerToken });
+      harapan(detailTagihan, 200, 'buka detail tagihan');
+      const statusTagihan = detailTagihan.body?.data?.status;
+      if (statusTagihan !== 'FAILED') {
+        throw new Error(
+          `tagihan kedaluwarsa: diharapkan FAILED, menerima ${statusTagihan || 'tanpa status'}`,
+        );
+      }
+
+      const armada = await api(`/vehicles/${vehicle.id}`);
+      harapan(armada, 200, 'buka detail armada');
+      const statusArmada = armada.body?.data?.operationalStatus;
+      if (statusArmada !== 'AVAILABLE') {
+        throw new Error(
+          `armada setelah tagihan kedaluwarsa: diharapkan AVAILABLE, menerima ${statusArmada}`,
+        );
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

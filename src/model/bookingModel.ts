@@ -885,4 +885,150 @@ export const bookingModel = {
 
     return diselesaikan;
   },
+
+  /**
+   * Membatalkan tagihan yang melewati batas waktu bayar.
+   *
+   * Batas waktu sudah ditulis ke `Payment.expiresAt` sejak tagihan dibuat, tetapi
+   * sebelumnya tidak ada yang membacanya: pelanggan yang menutup aplikasi bisa
+   * meninggalkan pesanan berstatus CONFIRMED tanpa pembayaran selamanya, dan
+   * armadanya tetap terlihat terpakai di katalog.
+   *
+   * Yang dikerjakan per tagihan: pembayaran menjadi FAILED, pesanan menjadi
+   * CANCELLED dengan riwayat beraktor SYSTEM, supir dilepas ke SIAGA, dan armada
+   * dikembalikan ke AVAILABLE bila tidak ada pesanan aktif lain.
+   */
+  async expireOverduePayments(now: Date = new Date()): Promise<number> {
+    const kedaluwarsa = await db.payment.findMany({
+      where: {
+        status: PaymentStatus.UNPAID,
+        expiresAt: { lt: now },
+      },
+      select: { id: true, bookingId: true },
+    });
+
+    let dibatalkan = 0;
+
+    for (const tagihan of kedaluwarsa) {
+      try {
+        await db.$transaction(async (tx) => {
+          /* Dibaca ulang di dalam transaksi: pelanggan bisa saja mengunggah bukti
+             transfer tepat saat sapuan berjalan, dan unggahan itu mengubah status
+             menjadi PENDING_VERIFICATION. */
+          const terkini = await tx.payment.findUnique({
+            where: { id: tagihan.id },
+            select: {
+              id: true,
+              status: true,
+              expiresAt: true,
+              notes: true,
+              booking: {
+                select: {
+                  id: true,
+                  bookingCode: true,
+                  status: true,
+                  driverId: true,
+                  vehicleId: true,
+                },
+              },
+            },
+          });
+
+          if (
+            !terkini ||
+            terkini.status !== PaymentStatus.UNPAID ||
+            !terkini.expiresAt ||
+            terkini.expiresAt >= now
+          ) {
+            return;
+          }
+
+          await tx.payment.update({
+            where: { id: terkini.id },
+            data: {
+              status: PaymentStatus.FAILED,
+              notes: terkini.notes
+                ? `${terkini.notes} | Kedaluwarsa otomatis: batas waktu pembayaran terlewati.`
+                : 'Kedaluwarsa otomatis: batas waktu pembayaran terlewati.',
+            },
+          });
+
+          const pesanan = terkini.booking;
+
+          if (!CLOSED_BOOKING_STATUSES.includes(pesanan.status)) {
+            await tx.booking.update({
+              where: { id: pesanan.id },
+              data: { status: BookingStatus.CANCELLED },
+            });
+
+            await tx.bookingStatusHistory.create({
+              data: {
+                bookingId: pesanan.id,
+                fromStatus: pesanan.status,
+                toStatus: BookingStatus.CANCELLED,
+                actor: BookingStatusActor.SYSTEM,
+                note: 'Dibatalkan otomatis: pembayaran tidak diselesaikan sebelum batas waktu.',
+              },
+            });
+
+            if (pesanan.driverId) {
+              const supirMasihDipakai = await tx.booking.count({
+                where: {
+                  driverId: pesanan.driverId,
+                  id: { not: pesanan.id },
+                  status: { in: ACTIVE_BOOKING_STATUSES },
+                },
+              });
+
+              if (supirMasihDipakai === 0) {
+                await tx.driver.update({
+                  where: { id: pesanan.driverId },
+                  data: { readiness: DriverReadiness.SIAGA },
+                });
+              }
+            }
+
+            const armadaMasihDipakai = await tx.booking.count({
+              where: {
+                vehicleId: pesanan.vehicleId,
+                id: { not: pesanan.id },
+                status: { in: ACTIVE_BOOKING_STATUSES },
+              },
+            });
+
+            if (armadaMasihDipakai === 0) {
+              await tx.vehicle.updateMany({
+                where: {
+                  id: pesanan.vehicleId,
+                  operationalStatus: OperationalStatus.BOOKED,
+                },
+                data: { operationalStatus: OperationalStatus.AVAILABLE },
+              });
+            }
+          }
+
+          await tx.auditLog.create({
+            data: {
+              actorId: null,
+              action: 'EXPIRE_PAYMENT',
+              entityType: 'Payment',
+              entityId: terkini.id,
+              metadata: {
+                bookingCode: pesanan.bookingCode,
+                bookingStatus: pesanan.status,
+                expiresAt: terkini.expiresAt.toISOString(),
+              },
+            },
+          });
+
+          dibatalkan += 1;
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`[BookingLifecycle] Gagal membatalkan tagihan ${tagihan.id}:`, error);
+      }
+    }
+
+    return dibatalkan;
+  },
 };

@@ -8,6 +8,8 @@ import { bookingModel } from '../model/bookingModel.js';
  *   armadanya tidak terus tersembunyi dari katalog.
  * - Sewa yang jadwalnya sudah lewat harus ditutup, supaya armadanya masuk masa
  *   pemeriksaan dan laporan tidak menahan pesanan di kolom "sewa berjalan".
+ * - Tagihan yang lewat batas waktu bayar harus dibatalkan, supaya pesanan tidak
+ *   menggantung di status CONFIRMED tanpa pembayaran.
  *
  * Interval 5 menit dipilih karena semua tenggatnya dihitung dalam jam: selisih
  * paling jauh 5 menit tidak berarti bagi pelanggan, tetapi cukup rapat untuk
@@ -24,6 +26,19 @@ export function startBookingLifecycleJob(intervalMs = 5 * 60 * 1000) {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[BookingLifecycleJob] Gagal menyapu tenggat dokumen:', error);
+    }
+
+    try {
+      const tagihanKedaluwarsa = await bookingModel.expireOverduePayments();
+      if (tagihanKedaluwarsa > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[BookingLifecycleJob] Tagihan kedaluwarsa dibatalkan: ${tagihanKedaluwarsa}.`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[BookingLifecycleJob] Gagal menyapu tagihan kedaluwarsa:', error);
     }
 
     try {
