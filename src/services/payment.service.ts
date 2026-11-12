@@ -191,12 +191,17 @@ export const paymentService = {
 
         pastikanBolehAkses(booking.customerId, actor);
 
-        // Pastikan tarif sewa sudah dikonfirmasi
+        /*
+         * Tarif yang belum dikonfirmasi bukan permintaan yang salah bentuk,
+         * melainkan permintaan yang bertabrakan dengan keadaan pesanan sekarang.
+         * Karena itu 409, bukan 400: klien perlu tahu bahwa urutannya yang
+         * dilanggar, bukan datanya yang tidak valid.
+         */
         if (!booking.quotedAmount || Number(booking.quotedAmount) <= 0) {
           throw new AppError(
             'BOOKING_NOT_QUOTED',
             'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dibuat.',
-            400,
+            409,
           );
         }
 
@@ -209,7 +214,7 @@ export const paymentService = {
             throw new AppError(
               'DOCUMENTS_NOT_VERIFIED',
               'Dokumen persyaratan lepas kunci wajib diverifikasi admin sebelum tagihan pembayaran dapat dibuat.',
-              400,
+              409,
             );
           }
         }
