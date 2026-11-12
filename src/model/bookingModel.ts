@@ -337,7 +337,8 @@ export const bookingModel = {
     quotedAmount: number | undefined;
     routeScope?: DriverRoute;
     note: string | null;
-    actorUserId: string;
+    /** Null untuk perubahan yang dipicu sistem, bukan orang. */
+    actorUserId: string | null;
     actor: BookingStatusActor;
     actorFullName: string;
     actorRole: string;
@@ -838,5 +839,50 @@ export const bookingModel = {
     }
 
     return dibatalkan;
+  },
+
+  /**
+   * Menyelesaikan sendiri sewa yang jadwalnya sudah lewat.
+   *
+   * Sebelumnya pesanan hanya berubah menjadi COMPLETED kalau admin menekan
+   * tombol. Akibatnya pesanan yang ditinggalkan tetap berstatus "sewa berjalan"
+   * berhari-hari, armadanya tidak pernah masuk masa pemeriksaan, dan laporan
+   * pendapatan menahan pesanan itu di kolom yang salah.
+   *
+   * Tombol manual tetap ada untuk penyelesaian lebih awal; fungsi ini hanya
+   * menutup pesanan yang memang sudah lewat waktunya.
+   */
+  async autoCompleteFinishedRentals(now: Date = new Date()): Promise<number> {
+    const selesai = await db.booking.findMany({
+      where: {
+        status: BookingStatus.IN_PROGRESS,
+        endDateTime: { lt: now },
+      },
+      select: { id: true, bookingCode: true },
+    });
+
+    let diselesaikan = 0;
+
+    for (const booking of selesai) {
+      try {
+        const hasil = await bookingModel.updateStatusWithHistoryAndAudit({
+          id: booking.id,
+          nextStatus: BookingStatus.COMPLETED,
+          quotedAmount: undefined,
+          note: 'Diselesaikan otomatis: jadwal sewa sudah berakhir.',
+          actorUserId: null,
+          actor: BookingStatusActor.SYSTEM,
+          actorFullName: 'Sistem',
+          actorRole: 'SYSTEM',
+        });
+
+        if (hasil?.kind === 'ok') diselesaikan += 1;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`[BookingLifecycle] Gagal menyelesaikan ${booking.bookingCode}:`, error);
+      }
+    }
+
+    return diselesaikan;
   },
 };

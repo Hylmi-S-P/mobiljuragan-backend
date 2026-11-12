@@ -14,8 +14,10 @@ import {
   loginAdmin,
   loginCustomer,
   uploadDocuments,
+  uploadPaymentProof,
   uploadSemuaDokumen,
   verifyDocuments,
+  verifyPayment,
   type ResponsApi,
 } from './fixtures.js';
 
@@ -330,6 +332,59 @@ const kasus: Kasus[] = [
       if (statusAkhir !== 'CANCELLED') {
         throw new Error(
           `pesanan kedaluwarsa: diharapkan CANCELLED, menerima ${statusAkhir || 'tanpa status'}`,
+        );
+      }
+    },
+  },
+  {
+    id: 'T1.2',
+    nama: 'Sewa yang jadwalnya lewat diselesaikan otomatis dan armadanya masuk pemeriksaan',
+    async fn({ adminToken }) {
+      const { customerToken, vehicle, booking } = await siapkanPesanan(adminToken);
+
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'verifikasi dokumen');
+      await confirmTariff(adminToken, booking.id);
+
+      const tagihan = await createPayment(customerToken, booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      const paymentId = tagihan.body.data.id as string;
+
+      harapan(await uploadPaymentProof(customerToken, paymentId), 200, 'unggah bukti bayar');
+      harapan(await verifyPayment(adminToken, paymentId, 'APPROVE'), 200, 'verifikasi pembayaran');
+      harapan(await handover(adminToken, booking.id), 200, 'serah armada');
+
+      /*
+       * Jadwal dimundurkan lewat SQL karena tidak ada endpoint yang boleh
+       * memalsukan waktu. UTC_TIMESTAMP dipakai supaya nilainya sejalan dengan
+       * cara Prisma menyimpan DateTime.
+       */
+      await sqlUji(
+        'UPDATE bookings SET endDateTime = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [booking.id],
+      );
+
+      const batas = Date.now() + 15_000;
+      let statusAkhir = '';
+      while (Date.now() < batas) {
+        const cek = await api(`/bookings/${booking.id}`, { token: customerToken });
+        statusAkhir = cek.body?.data?.status ?? '';
+        if (statusAkhir === 'COMPLETED') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+
+      if (statusAkhir !== 'COMPLETED') {
+        throw new Error(
+          `sewa lewat jadwal: diharapkan COMPLETED, menerima ${statusAkhir || 'tanpa status'}`,
+        );
+      }
+
+      const armada = await api(`/vehicles/${vehicle.id}`);
+      harapan(armada, 200, 'buka detail armada');
+      const statusArmada = armada.body?.data?.operationalStatus;
+      if (statusArmada !== 'IN_SERVICE') {
+        throw new Error(
+          `armada setelah sewa selesai: diharapkan IN_SERVICE, menerima ${statusArmada}`,
         );
       }
     },

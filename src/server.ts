@@ -1,7 +1,7 @@
 import { app } from './app.js';
 import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startTicketCleanupJob } from './jobs/ticketCleanupJob.js';
-import { startBookingDeadlineJob } from './jobs/bookingDeadlineJob.js';
+import { startBookingLifecycleJob } from './jobs/bookingLifecycleJob.js';
 import { documentTemplateService } from './lib/documentTemplateService.js';
 import { logger } from './logger.js';
 
@@ -26,7 +26,7 @@ const server = app.listen(port, host, () => {
   startTicketCleanupJob();
 
   /* Tenggat unggah dokumen: pesanan yang ditinggalkan dibatalkan otomatis. */
-  startBookingDeadlineJob(
+  startBookingLifecycleJob(
     Number(process.env.BOOKING_DEADLINE_INTERVAL_MS ?? 5 * 60 * 1000),
   );
 
