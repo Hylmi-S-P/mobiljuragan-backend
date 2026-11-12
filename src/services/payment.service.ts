@@ -10,6 +10,7 @@ import {
   type Prisma,
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
+import { isFinalBookingStatus } from '../lib/bookingStage.js';
 import { generateDynamicQris } from '../utils/qris.js';
 import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
 
@@ -190,6 +191,33 @@ export const paymentService = {
         }
 
         pastikanBolehAkses(booking.customerId, actor);
+
+        /*
+         * Tagihan hanya bermakna untuk pesanan yang masih menunggu pembayaran.
+         * Tanpa pemeriksaan ini, pesanan yang sudah dibatalkan atau selesai tetap
+         * bisa ditagih: `quotedAmount` tidak ikut dikosongkan saat status berubah,
+         * sehingga pemeriksaan tarif di bawah tetap lolos dan pelanggan menerima
+         * tagihan untuk sewa yang tidak pernah terjadi.
+         *
+         * Dua keadaan dibedakan supaya pesannya jujur. Pesanan yang sudah final
+         * tidak akan pernah bisa dibayar; pesanan yang belum dikonfirmasi hanya
+         * perlu menunggu tahap sebelumnya selesai.
+         */
+        if (isFinalBookingStatus(booking.status)) {
+          throw new AppError(
+            'BOOKING_NOT_PAYABLE',
+            `Pesanan ini sudah berstatus ${booking.status} dan tidak bisa ditagih lagi.`,
+            409,
+          );
+        }
+
+        if (booking.status !== BookingStatus.CONFIRMED) {
+          throw new AppError(
+            'BOOKING_NOT_QUOTED',
+            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dibuat.',
+            409,
+          );
+        }
 
         /*
          * Tarif yang belum dikonfirmasi bukan permintaan yang salah bentuk,
