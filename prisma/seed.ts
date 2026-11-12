@@ -12,7 +12,7 @@ import { UserRole } from '../src/generated/prisma/client.js';
  * sendiri, bukan dari contoh yang menempel di kode.
  *
  * Kalau butuh data contoh untuk pengujian, buat lewat dashboard atau jalankan
- * skrip E2E di `.verify/` yang memang menyiapkan dan membersihkan datanya
+ * harness E2E di `test/e2e/` yang memang menyiapkan dan membersihkan datanya
  * sendiri.
  *
  * Nilai bawaan bisa diganti lewat environment:
