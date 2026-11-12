@@ -118,6 +118,21 @@ enum DocumentStatus {
   REJECTED
 }
 
+/// Keadaan tenggat unggah dokumen pada sebuah pesanan.
+///
+/// Tenggat ini sengaja disimpan sebagai keadaan, bukan hanya sebagai stempel
+/// waktu, karena jamnya berhenti selama berkas menunggu diperiksa admin. Tanpa
+/// keadaan, pelanggan yang sudah mengunggah tepat waktu tetap akan kehilangan
+/// pesanannya hanya karena admin belum sempat membuka berkasnya.
+enum DocumentDeadlineState {
+  /// Tidak ada tenggat: berkas sudah disetujui, atau pesanan sudah tidak relevan.
+  NONE
+  /// Jam berjalan; pelanggan sedang dalam masa mengunggah atau memperbaiki berkas.
+  RUNNING
+  /// Jam berhenti menunggu pemeriksaan admin.
+  PAUSED
+}
+
 model User {
   id          String   @id @default(uuid())
   fullName    String
@@ -323,6 +338,14 @@ model Booking {
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
 
+  /// Batas waktu unggah/perbaikan dokumen. Diisi saat pesanan dibuat (2 jam),
+  /// dijeda selama menunggu pemeriksaan admin, dan diperbarui menjadi 12 jam
+  /// setiap kali admin menolak berkas. Tidak pernah melewati `startDateTime - 12 jam`.
+  documentDeadlineAt    DateTime?
+  documentDeadlineState DocumentDeadlineState @default(NONE)
+  /// Waktu penolakan berkas terakhir, dipakai untuk menjelaskan tenggat ke pelanggan.
+  documentRejectedAt    DateTime?
+
   payment  Payment?
   document BookingDocument?
   lineItems BookingLineItem[]
@@ -332,6 +355,7 @@ model Booking {
   @@index([driverId])
   @@index([status])
   @@index([startDateTime, endDateTime])
+  @@index([documentDeadlineState, documentDeadlineAt])
   @@map("bookings")
 }
 

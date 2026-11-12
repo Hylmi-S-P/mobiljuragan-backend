@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { DocumentStatus } from '../generated/prisma/client.js';
+import { DocumentDeadlineState, DocumentStatus } from '../generated/prisma/client.js';
 
 export const documentModel = {
   /**
@@ -10,7 +10,15 @@ export const documentModel = {
       where: {
         OR: [{ id: bookingIdOrCode }, { bookingCode: bookingIdOrCode }],
       },
-      select: { id: true, bookingCode: true, customerId: true, rentalType: true, status: true },
+      select: {
+        id: true,
+        bookingCode: true,
+        customerId: true,
+        rentalType: true,
+        status: true,
+        startDateTime: true,
+        documentDeadlineState: true,
+      },
     });
 
     if (!booking) return null;
@@ -115,6 +123,37 @@ export const documentModel = {
         rejectionTargets: data.rejectionTargets ?? null,
         verifiedAt: data.verifiedAt ?? new Date(),
         verifiedBy: data.verifiedBy ?? null,
+      },
+    });
+  },
+
+  /**
+   * Mengubah keadaan tenggat unggah dokumen pada pesanan.
+   *
+   * Dipisah dari `updateVerification` karena tenggat hidup di tabel `bookings`,
+   * bukan di `booking_documents`: baris dokumen baru ada setelah unggahan
+   * pertama, sedangkan tenggat harus sudah berjalan sejak pesanan dibuat.
+   */
+  async updateDocumentDeadline(
+    bookingId: string,
+    data: {
+      state: DocumentDeadlineState;
+      deadlineAt?: Date | null;
+      rejectedAt?: Date | null;
+    },
+  ) {
+    return db.booking.update({
+      where: { id: bookingId },
+      data: {
+        documentDeadlineState: data.state,
+        ...(data.deadlineAt !== undefined ? { documentDeadlineAt: data.deadlineAt } : {}),
+        ...(data.rejectedAt !== undefined ? { documentRejectedAt: data.rejectedAt } : {}),
+      },
+      select: {
+        id: true,
+        documentDeadlineAt: true,
+        documentDeadlineState: true,
+        documentRejectedAt: true,
       },
     });
   },

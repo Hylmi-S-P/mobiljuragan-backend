@@ -1,6 +1,7 @@
 import { app } from './app.js';
 import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startTicketCleanupJob } from './jobs/ticketCleanupJob.js';
+import { startBookingDeadlineJob } from './jobs/bookingDeadlineJob.js';
 import { documentTemplateService } from './lib/documentTemplateService.js';
 import { logger } from './logger.js';
 
@@ -23,6 +24,11 @@ const server = app.listen(port, host, () => {
   /* Penutupan otomatis tiket dijalankan di proses yang sama dengan API. */
   mulaiPenjadwalTiket();
   startTicketCleanupJob();
+
+  /* Tenggat unggah dokumen: pesanan yang ditinggalkan dibatalkan otomatis. */
+  startBookingDeadlineJob(
+    Number(process.env.BOOKING_DEADLINE_INTERVAL_MS ?? 5 * 60 * 1000),
+  );
 
   /*
    * Template dokumen bawaan disiapkan setelah server menyala, bukan sebelumnya,

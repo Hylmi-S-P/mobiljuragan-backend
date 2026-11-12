@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import { bookingModel } from '../model/bookingModel.js';
 import { BookingStatus, BookingStatusActor, OperationalStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
+import { deskripsikanTenggat } from '../lib/documentDeadline.js';
 import type { createBookingSchema, customerCancelBookingSchema } from '../validators/bookingSchemas.js';
 
 /**
@@ -141,7 +142,13 @@ export const bookingController = {
         );
       }
 
-      sendSuccess(res, booking);
+      sendSuccess(res, {
+        ...booking,
+        deadline: deskripsikanTenggat({
+          state: booking.documentDeadlineState,
+          deadlineAt: booking.documentDeadlineAt,
+        }),
+      });
     } catch (error) {
       next(error);
     }
@@ -172,7 +179,13 @@ export const bookingController = {
         );
       }
 
-      sendSuccess(res, booking);
+      sendSuccess(res, {
+        ...booking,
+        deadline: deskripsikanTenggat({
+          state: booking.documentDeadlineState,
+          deadlineAt: booking.documentDeadlineAt,
+        }),
+      });
     } catch (error) {
       next(error);
     }

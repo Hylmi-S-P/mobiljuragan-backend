@@ -1,6 +1,7 @@
 import { documentModel } from '../model/documentModel.js';
-import { DocumentStatus, UserRole } from '../generated/prisma/client.js';
+import { DocumentDeadlineState, DocumentStatus, UserRole } from '../generated/prisma/client.js';
 import { assertBookingDocumentsMutable } from '../lib/bookingStage.js';
+import { tenggatSetelahDitolak } from '../lib/documentDeadline.js';
 import { AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
 import {
@@ -221,6 +222,18 @@ export const documentService = {
       ktpUrl,
       simUrl,
     });
+
+    /*
+     * Jam tenggat berhenti begitu berkas masuk. Pelanggan sudah melakukan
+     * bagiannya; yang tersisa adalah admin membuka berkas. Tanpa jeda ini,
+     * pesanan bisa dibatalkan otomatis saat berkasnya justru sedang diantre.
+     */
+    if (record.booking.documentDeadlineState === DocumentDeadlineState.RUNNING) {
+      await documentModel.updateDocumentDeadline(record.booking.id, {
+        state: DocumentDeadlineState.PAUSED,
+      });
+    }
+
     return {
       bookingId: record.booking.id,
       bookingCode: record.booking.bookingCode,
@@ -305,6 +318,27 @@ export const documentService = {
       verifiedAt: new Date(),
       verifiedBy: input.verifierName ?? 'Admin MobilJuragan',
     });
+
+    /*
+     * Tenggat ikut bergerak bersama keputusan admin.
+     *
+     * Disetujui: tidak ada lagi yang perlu dikejar, tenggat dimatikan.
+     * Ditolak: pelanggan butuh waktu memperbaiki berkas, jadi jamnya dinyalakan
+     * kembali dengan jendela baru 12 jam (tetap dibatasi 12 jam sebelum sewa mulai).
+     */
+    if (input.action === 'APPROVE') {
+      await documentModel.updateDocumentDeadline(record.booking.id, {
+        state: DocumentDeadlineState.NONE,
+        deadlineAt: null,
+      });
+    } else {
+      const sekarang = new Date();
+      await documentModel.updateDocumentDeadline(record.booking.id, {
+        state: DocumentDeadlineState.RUNNING,
+        deadlineAt: tenggatSetelahDitolak(sekarang, record.booking.startDateTime),
+        rejectedAt: sekarang,
+      });
+    }
 
     return {
       bookingId: record.booking.id,

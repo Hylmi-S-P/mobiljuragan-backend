@@ -1,4 +1,4 @@
-import { BASE_ORIGIN, startHarness, stopServer } from './harness.js';
+import { BASE_ORIGIN, sqlUji, startHarness, stopServer } from './harness.js';
 import {
   api,
   berkasJpeg,
@@ -231,6 +231,107 @@ const kasus: Kasus[] = [
         'BOOKING_NOT_QUOTED',
         'buat pembayaran sebelum tarif dikonfirmasi',
       );
+    },
+  },
+  {
+    id: 'T1.1',
+    nama: 'Tenggat dokumen berjalan, berhenti saat diperiksa, dan membatalkan pesanan',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+
+      const bacaTenggat = async (token: string, id: string) => {
+        const respons = await api(`/bookings/${id}`, { token });
+        harapan(respons, 200, 'buka detail pesanan');
+        return respons.body.data.deadline as {
+          state: string;
+          deadlineAt: string | null;
+          pausedReason: string | null;
+        };
+      };
+
+      const sisaJam = (iso: string | null): number =>
+        iso ? (new Date(iso).getTime() - Date.now()) / 3_600_000 : Number.NaN;
+
+      // 1. Pesanan baru: jam berjalan dengan jendela 2 jam.
+      const awal = await bacaTenggat(customerToken, booking.id);
+      if (awal.state !== 'RUNNING') {
+        throw new Error(`tenggat pesanan baru: diharapkan RUNNING, menerima ${awal.state}`);
+      }
+      if (!(sisaJam(awal.deadlineAt) > 1.9 && sisaJam(awal.deadlineAt) <= 2.01)) {
+        throw new Error(
+          `tenggat pesanan baru: diharapkan sekitar 2 jam, menerima ${sisaJam(awal.deadlineAt).toFixed(2)} jam`,
+        );
+      }
+
+      // 2. Berkas diunggah: jam berhenti menunggu admin.
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah semua dokumen');
+      const setelahUnggah = await bacaTenggat(customerToken, booking.id);
+      if (setelahUnggah.state !== 'PAUSED') {
+        throw new Error(
+          `tenggat setelah unggah: diharapkan PAUSED, menerima ${setelahUnggah.state}`,
+        );
+      }
+      if (!setelahUnggah.pausedReason) {
+        throw new Error('tenggat setelah unggah: alasan jeda tidak dikirim ke klien');
+      }
+
+      // 3. Ditolak: jam berjalan lagi dengan jendela 12 jam.
+      harapan(
+        await verifyDocuments(adminToken, booking.id, 'REJECT', ['KTP']),
+        200,
+        'tolak dokumen',
+      );
+      const setelahDitolak = await bacaTenggat(customerToken, booking.id);
+      if (setelahDitolak.state !== 'RUNNING') {
+        throw new Error(
+          `tenggat setelah ditolak: diharapkan RUNNING, menerima ${setelahDitolak.state}`,
+        );
+      }
+      if (
+        !(sisaJam(setelahDitolak.deadlineAt) > 11.9 && sisaJam(setelahDitolak.deadlineAt) <= 12.01)
+      ) {
+        throw new Error(
+          `tenggat setelah ditolak: diharapkan sekitar 12 jam, menerima ${sisaJam(setelahDitolak.deadlineAt).toFixed(2)} jam`,
+        );
+      }
+
+      // 4. Disetujui: tidak ada lagi yang dikejar.
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'setujui dokumen');
+      const setelahDisetujui = await bacaTenggat(customerToken, booking.id);
+      if (setelahDisetujui.state !== 'NONE') {
+        throw new Error(
+          `tenggat setelah disetujui: diharapkan NONE, menerima ${setelahDisetujui.state}`,
+        );
+      }
+
+      // 5. Pesanan yang tenggatnya lewat dibatalkan otomatis oleh penjadwal.
+      const kedua = await siapkanPesanan(adminToken);
+      /*
+       * Tenggat dimundurkan lewat SQL, bukan lewat API, karena tidak ada endpoint
+       * yang boleh memalsukan waktu. Nilainya dihitung dengan UTC_TIMESTAMP:
+       * Prisma menyimpan DateTime sebagai UTC di kolom DATETIME, sedangkan driver
+       * mentah menulis jam lokal, sehingga mengirim objek Date dari Node akan
+       * menghasilkan selisih zona waktu.
+       */
+      await sqlUji(
+        'UPDATE bookings SET documentDeadlineAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [kedua.booking.id],
+      );
+
+      const batas = Date.now() + 15_000;
+      let statusAkhir = '';
+      while (Date.now() < batas) {
+        const cek = await api(`/bookings/${kedua.booking.id}`, { token: kedua.customerToken });
+        statusAkhir = cek.body?.data?.status ?? '';
+        if (statusAkhir === 'CANCELLED') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+
+      if (statusAkhir !== 'CANCELLED') {
+        throw new Error(
+          `pesanan kedaluwarsa: diharapkan CANCELLED, menerima ${statusAkhir || 'tanpa status'}`,
+        );
+      }
     },
   },
 ];

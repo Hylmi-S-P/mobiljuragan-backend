@@ -230,6 +230,11 @@ async function spawnServer(): Promise<void> {
       NODE_ENV: 'test',
       ALLOW_DEV_OTP_BYPASS: 'true',
       LOG_LEVEL: 'warn',
+      /*
+       * Penjadwal tenggat dokumen dipercepat ke 1 detik. Tanpa ini, kasus uji
+       * yang memaksa sebuah pesanan kedaluwarsa harus menunggu 5 menit.
+       */
+      BOOKING_DEADLINE_INTERVAL_MS: '1000',
     },
     /*
      * stdout/stderr diarahkan ke berkas, bukan pipe. Di lingkungan ini pipe
@@ -242,8 +247,26 @@ async function spawnServer(): Promise<void> {
   });
 }
 
-/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */
-export async function startHarness(): Promise<void> {
+/**
+ * Menjalankan satu perintah SQL langsung ke database uji.
+ *
+ * Dipakai hanya untuk menyiapkan keadaan yang tidak bisa dicapai lewat API,
+ * misalnya memundurkan tenggat dokumen supaya penjadwal ikut terpicu. Tidak
+ * boleh dipakai untuk memeriksa hasil: hasil tetap dibaca lewat API.
+ */
+export async function sqlUji<T = unknown>(
+  perintah: string,
+  params: unknown[] = [],
+): Promise<T> {
+  const koneksi = await mariadb.createConnection(opsiKoneksi(NAMA_DATABASE_UJI));
+  try {
+    return (await koneksi.query(perintah, params)) as T;
+  } finally {
+    await koneksi.end();
+  }
+}
+
+/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */export async function startHarness(): Promise<void> {
   console.log(`Database uji: ${TEST_DATABASE_URL}`);
   await siapkanDatabaseUji();
   await jalankanMigrasi();

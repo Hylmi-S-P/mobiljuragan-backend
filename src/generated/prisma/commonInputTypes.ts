@@ -310,6 +310,13 @@ export type EnumBookingStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel> | $Enums.BookingStatus
 }
 
+export type EnumDocumentDeadlineStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.DocumentDeadlineState | Prisma.EnumDocumentDeadlineStateFieldRefInput<$PrismaModel>
+  in?: $Enums.DocumentDeadlineState[]
+  notIn?: $Enums.DocumentDeadlineState[]
+  not?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel> | $Enums.DocumentDeadlineState
+}
+
 export type EnumRentalTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.RentalType | Prisma.EnumRentalTypeFieldRefInput<$PrismaModel>
   in?: $Enums.RentalType[]
@@ -380,6 +387,16 @@ export type EnumBookingStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel>
+}
+
+export type EnumDocumentDeadlineStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DocumentDeadlineState | Prisma.EnumDocumentDeadlineStateFieldRefInput<$PrismaModel>
+  in?: $Enums.DocumentDeadlineState[]
+  notIn?: $Enums.DocumentDeadlineState[]
+  not?: Prisma.NestedEnumDocumentDeadlineStateWithAggregatesFilter<$PrismaModel> | $Enums.DocumentDeadlineState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel>
 }
 
 export type DecimalFilter<$PrismaModel = never> = {
@@ -942,6 +959,13 @@ export type NestedEnumBookingStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel> | $Enums.BookingStatus
 }
 
+export type NestedEnumDocumentDeadlineStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.DocumentDeadlineState | Prisma.EnumDocumentDeadlineStateFieldRefInput<$PrismaModel>
+  in?: $Enums.DocumentDeadlineState[]
+  notIn?: $Enums.DocumentDeadlineState[]
+  not?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel> | $Enums.DocumentDeadlineState
+}
+
 export type NestedEnumRentalTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.RentalType | Prisma.EnumRentalTypeFieldRefInput<$PrismaModel>
   in?: $Enums.RentalType[]
@@ -1023,6 +1047,16 @@ export type NestedEnumBookingStatusWithAggregatesFilter<$PrismaModel = never> = 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumBookingStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumDocumentDeadlineStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DocumentDeadlineState | Prisma.EnumDocumentDeadlineStateFieldRefInput<$PrismaModel>
+  in?: $Enums.DocumentDeadlineState[]
+  notIn?: $Enums.DocumentDeadlineState[]
+  not?: Prisma.NestedEnumDocumentDeadlineStateWithAggregatesFilter<$PrismaModel> | $Enums.DocumentDeadlineState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDocumentDeadlineStateFilter<$PrismaModel>
 }
 
 export type NestedDecimalFilter<$PrismaModel = never> = {

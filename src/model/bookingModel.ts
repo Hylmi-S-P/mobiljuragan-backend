@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import {
   BookingStatus,
   BookingStatusActor,
+  DocumentDeadlineState,
   DocumentStatus,
   DriverReadiness,
   DriverRoute,
@@ -12,6 +13,7 @@ import {
   type Prisma,
 } from '../generated/prisma/client.js';
 import { assertBookingTransition } from '../lib/bookingStage.js';
+import { tenggatAwal } from '../lib/documentDeadline.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
 import { AppError } from '../lib/response.js';
 
@@ -131,6 +133,13 @@ export const bookingModel = {
     numberGuests: number | null;
   }) {
     return db.$transaction(async (tx) => {
+      /*
+       * Tenggat dokumen dihitung dari satu titik waktu yang sama dengan
+       * `createdAt`, supaya jam yang dilihat pelanggan tidak meleset beberapa
+       * milidetik dari jam yang dipakai penjadwal.
+       */
+      const sekarang = new Date();
+
       const booking = await tx.booking.create({
         data: {
           bookingCode: input.bookingCode,
@@ -147,6 +156,9 @@ export const bookingModel = {
           tariffStatus: TariffStatus.PENDING_TEAM_CONFIRMATION,
           quotedAmount: null,
           status: BookingStatus.CREATED,
+          createdAt: sekarang,
+          documentDeadlineAt: tenggatAwal(sekarang, input.start),
+          documentDeadlineState: DocumentDeadlineState.RUNNING,
         },
         include: { vehicle: bookingVehicleSummary },
       });
@@ -232,6 +244,9 @@ export const bookingModel = {
         startDateTime: true,
         endDateTime: true,
         createdAt: true,
+        documentDeadlineAt: true,
+        documentDeadlineState: true,
+        documentRejectedAt: true,
         statusHistory: {
           orderBy: { changedAt: 'asc' },
           select: {
@@ -750,5 +765,78 @@ export const bookingModel = {
 
       return { kind: 'ok' as const, item: updated };
     });
+  },
+
+  /**
+   * Membatalkan pesanan yang tenggat unggah dokumennya sudah lewat.
+   *
+   * Hanya pesanan yang jamnya sedang berjalan yang ikut disapu. Pesanan yang
+   * dijeda menunggu pemeriksaan admin sengaja dilewati: pelanggan sudah
+   * mengunggah, yang kurang adalah admin membuka berkasnya.
+   *
+   * Setiap pesanan dibatalkan dalam transaksinya sendiri supaya satu baris yang
+   * bermasalah tidak menggagalkan sapuan untuk pesanan lain.
+   */
+  async expireOverdueDocumentDeadlines(now: Date = new Date()): Promise<number> {
+    const kedaluwarsa = await db.booking.findMany({
+      where: {
+        documentDeadlineState: DocumentDeadlineState.RUNNING,
+        documentDeadlineAt: { lt: now },
+        status: { in: [BookingStatus.CREATED, BookingStatus.PENDING_CONFIRMATION] },
+      },
+      select: { id: true, bookingCode: true, status: true },
+    });
+
+    let dibatalkan = 0;
+
+    for (const booking of kedaluwarsa) {
+      try {
+        await db.$transaction(async (tx) => {
+          /* Dibaca ulang di dalam transaksi: pelanggan bisa saja mengunggah
+             berkas tepat saat sapuan berjalan, dan berkas itu mengubah keadaan
+             tenggat menjadi PAUSED. */
+          const terkini = await tx.booking.findUnique({
+            where: { id: booking.id },
+            select: { documentDeadlineState: true, documentDeadlineAt: true, status: true },
+          });
+
+          if (
+            !terkini ||
+            terkini.documentDeadlineState !== DocumentDeadlineState.RUNNING ||
+            !terkini.documentDeadlineAt ||
+            terkini.documentDeadlineAt >= now ||
+            (terkini.status !== BookingStatus.CREATED &&
+              terkini.status !== BookingStatus.PENDING_CONFIRMATION)
+          ) {
+            return;
+          }
+
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: BookingStatus.CANCELLED,
+              documentDeadlineState: DocumentDeadlineState.NONE,
+            },
+          });
+
+          await tx.bookingStatusHistory.create({
+            data: {
+              bookingId: booking.id,
+              fromStatus: terkini.status,
+              toStatus: BookingStatus.CANCELLED,
+              actor: BookingStatusActor.SYSTEM,
+              note: 'Dibatalkan otomatis: dokumen persyaratan sewa tidak diunggah sebelum batas waktu.',
+            },
+          });
+
+          dibatalkan += 1;
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`[BookingDeadline] Gagal membatalkan ${booking.bookingCode}:`, error);
+      }
+    }
+
+    return dibatalkan;
   },
 };

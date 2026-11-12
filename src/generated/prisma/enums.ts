@@ -146,6 +146,15 @@ export const DocumentStatus = {
 export type DocumentStatus = (typeof DocumentStatus)[keyof typeof DocumentStatus]
 
 
+export const DocumentDeadlineState = {
+  NONE: 'NONE',
+  RUNNING: 'RUNNING',
+  PAUSED: 'PAUSED'
+} as const
+
+export type DocumentDeadlineState = (typeof DocumentDeadlineState)[keyof typeof DocumentDeadlineState]
+
+
 export const DriverLicenseType = {
   SIM_A: 'SIM_A',
   SIM_B1: 'SIM_B1',
