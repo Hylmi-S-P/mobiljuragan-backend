@@ -177,69 +177,52 @@ mobile supaya tombol bisa dinonaktifkan dengan alasan yang jelas.
 
 ## 9. Celah yang diketahui
 
-Bagian ini mencatat lubang yang **masih ada** pada kode saat dokumen ini ditulis.
-Setiap butir menyebut berkas dan barisnya supaya bisa diperiksa ulang.
+Bagian ini mencatat lubang pada kode. Butir yang sudah ditutup tetap dicantumkan
+beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
+
+### 9.1 Sudah ditutup
+
+| # | Celah | Ditutup oleh |
+| --- | --- | --- |
+| 2 | Tidak ada pembatalan otomatis untuk pesanan yang dokumennya tidak diunggah | `ee73746` — tenggat 2 jam, dijeda saat menunggu pemeriksaan, 12 jam setelah ditolak |
+| 3 | Tidak ada penyelesaian otomatis saat `endDateTime` lewat | `e055a8b` — sapuan `IN_PROGRESS` yang lewat jadwal |
+| 4 | Tenggat pembayaran hanya ditegakkan di klien | `9e38790` — sapuan tagihan `UNPAID` yang lewat `expiresAt` |
+| 5 | Dua definisi "mengunci" yang berbeda antara katalog dan pemeriksaan bentrok | `ea5e908` — satu daftar `BOOKING_BLOCKING_STATUSES` |
+| 6 | `IN_SERVICE` bisa dilepas manual dan stempel waktunya tertinggal | `14441c5` — semua perubahan manual ditolak 409 selama `IN_SERVICE` |
+| 7 | Pesanan `CANCELLED` masih bisa ditagih | `f8776ae` — `BOOKING_NOT_PAYABLE` 409 |
+| 10 | Pembayaran tunai (COD) melewati gerbang pembayaran | `3115ac8` (backend) dan `b80e44b` (mobile) |
+| 12 | Tidak ada tenggat dokumen | `ee73746` |
+
+### 9.2 Masih ada
 
 1. **`CONFIRMED` boleh langsung ke `COMPLETED`.** Tabel transisi mengizinkan
    `CONFIRMED -> COMPLETED` (`src/lib/bookingStage.ts:30-34`), sehingga sewa bisa
    ditandai selesai tanpa pernah berstatus `IN_PROGRESS`. Akibatnya armada tidak
    pernah tercatat `BOOKED` dan tidak ada jejak serah terima.
 
-2. **Tidak ada pembatalan otomatis.** Tidak ada job yang membatalkan pesanan yang
-   tidak pernah mengunggah dokumen atau tidak pernah membayar. Pesanan yang
-   ditinggalkan tetap `PENDING_CONFIRMATION` selamanya.
-
-3. **Tidak ada penyelesaian otomatis.** `COMPLETED` hanya terjadi kalau staf menekan
-   tombol. Pesanan yang `endDateTime`-nya sudah lewat tetap `IN_PROGRESS`.
-
-4. **Tenggat pembayaran hanya ditegakkan di klien.** `src/services/payment.service.ts:252-253`
-   menulis `expiresAt = sekarang + 2 jam`, tetapi nilai itu tidak pernah dibaca di
-   server: `uploadPaymentProof` tidak memeriksa kedaluwarsa. Mobile yang menyembunyikan
-   tombol unggah, jadi backend tetap menerima bukti yang terlambat.
-
-5. **Dua definisi "mengunci" yang berbeda.** Katalog menyembunyikan unit untuk status
-   `CREATED`, `PENDING_CONFIRMATION`, `CONFIRMED`, `IN_PROGRESS`
-   (`src/model/vehicleModel.ts:159-177`), sedangkan pemeriksaan bentrok jadwal hanya
-   memakai `CONFIRMED` dan `IN_PROGRESS` (`src/model/bookingModel.ts:184-194`).
-   Akibatnya pesanan yang ditinggalkan menyembunyikan unit tanpa batas, sementara
-   sistem tetap mengizinkan pesanan lain untuk tanggal yang sama.
-
-6. **`IN_SERVICE` bisa dilepas manual.** `src/model/vehicleModel.ts:80-89` mengizinkan
-   `IN_SERVICE -> AVAILABLE`, dan `updateOperationalStatus` tidak membersihkan
-   `serviceStartedAt`/`serviceExpectedDoneAt`, sehingga stempel waktu pemeriksaan
-   tertinggal pada unit yang sudah tersedia.
-
-7. **Pesanan `CANCELLED` masih bisa ditagih.** `src/services/payment.service.ts:167-312`
-   tidak memeriksa `booking.status`, sehingga tagihan bisa dibuat untuk pesanan yang
-   sudah dibatalkan.
-
-8. **Penolakan pembayaran tidak membatalkan pesanan.** `src/services/payment.service.ts:661-707`
+2. **Penolakan pembayaran tidak membatalkan pesanan.** `src/services/payment.service.ts:661-707`
    hanya mengubah `Payment.status` menjadi `FAILED`; pesanan tetap `CONFIRMED` dan
    pelanggan masih bisa mengunggah ulang. Riwayat status juga mencatat transisi palsu
    karena `fromStatus` dan `toStatus` sama.
 
-9. **Refund tidak tercatat di server.** Pembatalan oleh pelanggan menghitung potongan
+3. **Refund tidak tercatat di server.** Pembatalan oleh pelanggan menghitung potongan
    di aplikasi mobile dan menyimpannya di cache lokal. `PATCH /bookings/:id/cancel`
    hanya menerima `bookingId` dan `reason`, sehingga nominal refund tidak pernah
    sampai ke server. `PaymentStatus.REFUNDED` belum pernah dipakai.
 
-10. **Pembayaran tunai (COD) melewati gerbang pembayaran.** `PaymentMethod.CASH`
-    masih bisa dipilih pelanggan, dan pesanan COD tidak pernah menjadi `PAID` lewat
-    verifikasi, sehingga aturan "armada hanya diserahkan setelah `PAID`" tidak berlaku
-    untuk jalur ini.
+4. **Tidak ada stempel serah terima.** `startDateTime` dan `endDateTime` diisi
+   pelanggan saat membuat pesanan dan tidak pernah diubah saat armada diserahkan.
+   Tidak ada `handedOverAt`, sehingga "jam sewa mulai" hanya berarti jam yang
+   diminta pelanggan, bukan jam unit benar-benar keluar.
 
-11. **Tidak ada stempel serah terima.** `startDateTime` dan `endDateTime` diisi
-    pelanggan saat membuat pesanan dan tidak pernah diubah saat armada diserahkan.
-    Tidak ada `handedOverAt`, sehingga "jam sewa mulai" hanya berarti jam yang
-    diminta pelanggan, bukan jam unit benar-benar keluar.
+5. **Penutupan tiket oleh pelanggan selalu gagal.** `src/controllers/ticketController.ts:698`
+   menutup tiket lalu memanggil `createMessage` pada baris berikutnya, dan
+   `src/model/ticketModel.ts:153-159` menolak pesan pada tiket `CLOSED`. Setiap
+   permintaan tutup tiket dari pelanggan berakhir 409.
 
-12. **Tidak ada tenggat dokumen.** Dokumen bisa diunggah kapan saja selama pesanan
-    belum final, tanpa batas waktu dan tanpa penjedaan saat menunggu pemeriksaan.
-
-13. **Penutupan tiket oleh pelanggan selalu gagal.** `src/controllers/ticketController.ts:698`
-    menutup tiket lalu memanggil `createMessage` pada baris berikutnya, dan
-    `src/model/ticketModel.ts:153-159` menolak pesan pada tiket `CLOSED`. Setiap
-    permintaan tutup tiket dari pelanggan berakhir 409.
+6. **Pengingat tenggat admin belum ada.** Pesanan di `PENDING_CONFIRMATION` sudah
+   punya `adminDeadlineAt` (24 jam) dan dibatalkan otomatis saat lewat, tetapi belum
+   ada pemberitahuan pada jam ke-12 karena kanal notifikasi belum dibangun.
 
 ---
 
@@ -250,11 +233,9 @@ di akar workspace.
 
 | Aturan | Gelombang |
 | --- | --- |
-| Tenggat unggah dokumen 2 jam, dijeda selama menunggu pemeriksaan, 12 jam setelah ditolak, batas keras `startDateTime - 12 jam`. | 1 dan 3 |
-| Pembatalan otomatis pesanan yang melewati tenggat, beserta pelepasan armada. | 1 |
-| Penyelesaian otomatis saat `endDateTime` lewat, armada masuk `IN_SERVICE`. | 1 |
-| `CONFIRMED -> COMPLETED` ditutup; selesai hanya lewat `IN_PROGRESS`. | 1 |
-| Tenggat pembayaran 2 jam ditegakkan di server, bukan hanya di klien. | 2 |
+| `CONFIRMED -> COMPLETED` ditutup; selesai hanya lewat `IN_PROGRESS`. | 2 |
 | Refund dicatat di server: 100% bila dibatalkan admin/sistem, potongan tetap Rp 50.000 bila pelanggan membatalkan setelah bayar. | 2 |
-| COD dihapus dari pilihan pelanggan; pembayaran tunai hanya lewat aksi admin di kantor. | 0 |
 | `handedOverAt` dicatat saat serah terima. | 2 |
+| Penolakan pembayaran membatalkan pesanan, bukan hanya menandai tagihan gagal. | 2 |
+| Pengingat tenggat admin pada jam ke-12. | 6 |
+
