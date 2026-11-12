@@ -44,6 +44,31 @@ export const FINAL_BOOKING_STATUSES: BookingStatus[] = [
   BookingStatus.CANCELLED,
 ];
 
+/**
+ * Status pesanan yang menahan satu unit armada pada rentang tanggalnya.
+ *
+ * Sebelumnya katalog memakai daftar ini sedangkan pemeriksaan bentrok jadwal
+ * memakai daftar yang lebih pendek (hanya CONFIRMED dan IN_PROGRESS). Akibatnya
+ * dua pelanggan bisa memesan mobil yang sama untuk tanggal yang sama, lalu
+ * salah satunya baru ditolak saat admin mengonfirmasi tarif. Satu daftar dipakai
+ * di kedua tempat supaya katalog dan pemeriksaan bentrok tidak pernah berbeda.
+ */
+export const BOOKING_BLOCKING_STATUSES: BookingStatus[] = [
+  BookingStatus.CREATED,
+  BookingStatus.PENDING_CONFIRMATION,
+  BookingStatus.CONFIRMED,
+  BookingStatus.IN_PROGRESS,
+];
+
+/**
+ * Batas waktu admin menetapkan tarif setelah permintaan diterima.
+ *
+ * Selama pesanan berada di PENDING_CONFIRMATION, unit armadanya ditahan dari
+ * katalog. Tanpa tenggat, satu permintaan yang ditinggalkan menahan unit itu
+ * selamanya dan pelanggan lain tidak pernah bisa memesannya.
+ */
+export const JAM_TENGGAT_KONFIRMASI_ADMIN = 24;
+
 export function isFinalBookingStatus(status: BookingStatus): boolean {
   return FINAL_BOOKING_STATUSES.includes(status);
 }

@@ -446,6 +446,79 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T1.7',
+    nama: 'Permintaan yang menunggu tarif menahan armada, lalu dilepas saat tenggat admin lewat',
+    async fn({ adminToken }) {
+      const { customerToken, vehicle, booking } = await siapkanPesanan(adminToken);
+
+      const terima = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      harapan(terima, 200, 'terima permintaan');
+
+      const { startDateTime, endDateTime } = booking;
+      const kueri = `startDate=${encodeURIComponent(startDateTime)}&endDate=${encodeURIComponent(endDateTime)}`;
+
+      const katalogTertahan = await api(`/vehicles?${kueri}`);
+      harapan(katalogTertahan, 200, 'buka katalog saat armada tertahan');
+      const idTertahan = (katalogTertahan.body?.data ?? []).map((v: any) => v.id);
+      if (idTertahan.includes(vehicle.id)) {
+        throw new Error('katalog masih menampilkan armada yang sedang menunggu konfirmasi tarif');
+      }
+
+      /* Pelanggan lain tidak boleh memesan unit yang sama untuk tanggal yang sama,
+         karena katalog pun sudah menyembunyikannya. */
+      const pelangganLain = await loginCustomer();
+      const pesananBentrok = await api('/bookings', {
+        method: 'POST',
+        token: pelangganLain.token,
+        body: {
+          vehicleId: vehicle.id,
+          rentalType: 'WITHOUT_DRIVER',
+          pickupLocation: 'Bandara Juanda',
+          numberGuests: 2,
+          startDateTime,
+          endDateTime,
+        },
+      });
+      if (pesananBentrok.status !== 409) {
+        throw new Error(
+          `pesanan bentrok: diharapkan HTTP 409, menerima ${pesananBentrok.status} ` +
+            `${JSON.stringify(pesananBentrok.body)}`,
+        );
+      }
+
+      await sqlUji(
+        'UPDATE bookings SET adminDeadlineAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [booking.id],
+      );
+
+      const batas = Date.now() + 15_000;
+      let statusPesanan = '';
+      while (Date.now() < batas) {
+        const cek = await api(`/bookings/${booking.id}`, { token: customerToken });
+        statusPesanan = cek.body?.data?.status ?? '';
+        if (statusPesanan === 'CANCELLED') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+
+      if (statusPesanan !== 'CANCELLED') {
+        throw new Error(
+          `tenggat admin lewat: diharapkan CANCELLED, menerima ${statusPesanan || 'tanpa status'}`,
+        );
+      }
+
+      const katalogLepas = await api(`/vehicles?${kueri}`);
+      harapan(katalogLepas, 200, 'buka katalog setelah armada dilepas');
+      const idLepas = (katalogLepas.body?.data ?? []).map((v: any) => v.id);
+      if (!idLepas.includes(vehicle.id)) {
+        throw new Error('armada tidak kembali muncul di katalog setelah pesanan dibatalkan');
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

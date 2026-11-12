@@ -12,7 +12,7 @@ import {
   TariffStatus,
   type Prisma,
 } from '../generated/prisma/client.js';
-import { assertBookingTransition } from '../lib/bookingStage.js';
+import { assertBookingTransition, BOOKING_BLOCKING_STATUSES, JAM_TENGGAT_KONFIRMASI_ADMIN } from '../lib/bookingStage.js';
 import { tenggatAwal } from '../lib/documentDeadline.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
 import { AppError } from '../lib/response.js';
@@ -193,12 +193,12 @@ export const bookingModel = {
     });
   },
 
-  /** Bentrok jadwal armada: hanya booking aktif yang mengunci tanggal. */
+  /** Bentrok jadwal armada: status yang menahan unit sama dengan yang dipakai katalog. */
   findVehicleScheduleConflict(vehicleId: string, start: Date, end: Date) {
     return db.booking.findFirst({
       where: {
         vehicleId,
-        status: { in: ACTIVE_BOOKING_STATUSES },
+        status: { in: BOOKING_BLOCKING_STATUSES },
         startDateTime: { lt: end },
         endDateTime: { gt: start },
       },
@@ -384,13 +384,13 @@ export const bookingModel = {
       const isConfirming = input.nextStatus === BookingStatus.CONFIRMED;
       const isStartingRental = input.nextStatus === BookingStatus.IN_PROGRESS;
 
-      // Konfirmasi tidak boleh menabrak jadwal aktif pesanan lain di armada yang sama.
+      // Konfirmasi tidak boleh menabrak jadwal pesanan lain di armada yang sama.
       if (isConfirming) {
         const conflict = await tx.booking.findFirst({
           where: {
             id: { not: booking.id },
             vehicleId: booking.vehicleId,
-            status: { in: ACTIVE_BOOKING_STATUSES },
+            status: { in: BOOKING_BLOCKING_STATUSES },
             startDateTime: { lt: booking.endDateTime },
             endDateTime: { gt: booking.startDateTime },
           },
@@ -429,6 +429,17 @@ export const bookingModel = {
       }
 
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };
+
+      /* Tenggat admin hanya berlaku selama pesanan menunggu penetapan tarif.
+         Begitu keluar dari tahap itu, tenggatnya dikosongkan supaya penjadwal
+         tidak pernah membatalkan pesanan yang sudah diproses. */
+      if (input.nextStatus === BookingStatus.PENDING_CONFIRMATION) {
+        updateData.adminDeadlineAt = new Date(
+          Date.now() + JAM_TENGGAT_KONFIRMASI_ADMIN * 60 * 60 * 1000,
+        );
+      } else {
+        updateData.adminDeadlineAt = null;
+      }
 
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
       if (isConfirming) {
@@ -835,6 +846,47 @@ export const bookingModel = {
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(`[BookingDeadline] Gagal membatalkan ${booking.bookingCode}:`, error);
+      }
+    }
+
+    return dibatalkan;
+  },
+
+  /**
+   * Membatalkan permintaan yang tidak kunjung ditetapkan tarifnya oleh admin.
+   *
+   * Pesanan di PENDING_CONFIRMATION menahan unit armada dari katalog. Kalau admin
+   * tidak pernah menetapkan tarif, unit itu tidak pernah bisa dipesan orang lain.
+   * Tenggat 24 jam membuat penahanan itu berbatas.
+   */
+  async expireUnconfirmedBookings(now: Date = new Date()): Promise<number> {
+    const kedaluwarsa = await db.booking.findMany({
+      where: {
+        status: BookingStatus.PENDING_CONFIRMATION,
+        adminDeadlineAt: { lt: now },
+      },
+      select: { id: true, bookingCode: true },
+    });
+
+    let dibatalkan = 0;
+
+    for (const booking of kedaluwarsa) {
+      try {
+        const hasil = await bookingModel.updateStatusWithHistoryAndAudit({
+          id: booking.id,
+          nextStatus: BookingStatus.CANCELLED,
+          quotedAmount: undefined,
+          note: 'Dibatalkan otomatis: admin tidak menetapkan tarif dalam 24 jam.',
+          actorUserId: null,
+          actor: BookingStatusActor.SYSTEM,
+          actorFullName: 'Sistem',
+          actorRole: 'SYSTEM',
+        });
+
+        if (hasil?.kind === 'ok') dibatalkan += 1;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`[BookingLifecycle] Gagal membatalkan ${booking.bookingCode}:`, error);
       }
     }
 

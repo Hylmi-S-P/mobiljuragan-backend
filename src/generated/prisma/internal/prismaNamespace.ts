@@ -1893,7 +1893,8 @@ export const BookingScalarFieldEnum = {
   updatedAt: 'updatedAt',
   documentDeadlineAt: 'documentDeadlineAt',
   documentDeadlineState: 'documentDeadlineState',
-  documentRejectedAt: 'documentRejectedAt'
+  documentRejectedAt: 'documentRejectedAt',
+  adminDeadlineAt: 'adminDeadlineAt'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]

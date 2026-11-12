@@ -346,6 +346,11 @@ model Booking {
   /// Waktu penolakan berkas terakhir, dipakai untuk menjelaskan tenggat ke pelanggan.
   documentRejectedAt    DateTime?
 
+  /// Batas waktu admin menetapkan tarif setelah permintaan diterima (24 jam).
+  /// Selama pesanan berada di PENDING_CONFIRMATION, unit armada ditahan dari
+  /// katalog; tanpa tenggat, pesanan yang ditinggalkan menahan unit selamanya.
+  adminDeadlineAt DateTime?
+
   payment  Payment?
   document BookingDocument?
   lineItems BookingLineItem[]
@@ -356,6 +361,7 @@ model Booking {
   @@index([status])
   @@index([startDateTime, endDateTime])
   @@index([documentDeadlineState, documentDeadlineAt])
+  @@index([status, adminDeadlineAt])
   @@map("bookings")
 }
 

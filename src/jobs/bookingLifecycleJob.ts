@@ -42,6 +42,19 @@ export function startBookingLifecycleJob(intervalMs = 5 * 60 * 1000) {
     }
 
     try {
+      const tanpaTarif = await bookingModel.expireUnconfirmedBookings();
+      if (tanpaTarif > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[BookingLifecycleJob] Permintaan tanpa tarif dibatalkan: ${tanpaTarif}.`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[BookingLifecycleJob] Gagal menyapu permintaan tanpa tarif:', error);
+    }
+
+    try {
       const diselesaikan = await bookingModel.autoCompleteFinishedRentals();
       if (diselesaikan > 0) {
         // eslint-disable-next-line no-console

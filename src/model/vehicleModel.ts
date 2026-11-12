@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { BookingStatus, OperationalStatus, type Prisma } from '../generated/prisma/client.js';
+import { BOOKING_BLOCKING_STATUSES } from '../lib/bookingStage.js';
 import { AppError } from '../lib/response.js';
 
 /** Status pesanan yang masih memegang armada. */
@@ -34,12 +35,7 @@ const CATALOG_FIELDS = {
 } as const;
 
 /** Status booking yang dianggap masih mengunci armada. */
-const BLOCKING_BOOKING_STATUS: BookingStatus[] = [
-  BookingStatus.CREATED,
-  BookingStatus.PENDING_CONFIRMATION,
-  BookingStatus.CONFIRMED,
-  BookingStatus.IN_PROGRESS,
-];
+const BLOCKING_BOOKING_STATUS: BookingStatus[] = BOOKING_BLOCKING_STATUSES;
 
 /** Bentuk filter katalog yang sudah tervalidasi dan siap dipakai menyusun query. */
 export interface VehicleCatalogFilter {
