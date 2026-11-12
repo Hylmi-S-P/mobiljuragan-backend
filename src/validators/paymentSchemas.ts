@@ -1,9 +1,26 @@
 import { z } from 'zod';
 import { PaymentMethod, PaymentStatus } from '../generated/prisma/client.js';
 
+/*
+ * Pelanggan hanya boleh memilih QRIS atau transfer bank.
+ *
+ * Pembayaran tunai dicatat admin di kantor, bukan dipilih sendiri dari aplikasi.
+ * Alasannya bukan soal selera: pesanan tunai tidak pernah melewati verifikasi
+ * pembayaran, sehingga aturan "armada hanya diserahkan setelah lunas" tidak
+ * berlaku untuk jalur itu, dan tenggat pembayaran juga tidak bisa ditegakkan.
+ *
+ * Nilai `CASH` tetap ada di enum karena pesanan lama masih memakainya; yang
+ * ditutup hanya jalur pembuatan tagihan baru dari sisi pelanggan.
+ */
 export const createPaymentSchema = z.object({
   bookingId: z.string().min(1, 'ID atau kode booking wajib diisi'),
-  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.QRIS),
+  method: z
+    .nativeEnum(PaymentMethod)
+    .refine((nilai) => nilai !== PaymentMethod.CASH, {
+      message:
+        'Pembayaran tunai tidak bisa dipilih dari aplikasi. Silakan bayar langsung di kantor.',
+    })
+    .default(PaymentMethod.QRIS),
   notes: z.string().optional(),
 });
 
