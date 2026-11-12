@@ -76,14 +76,15 @@ async function assertManualStatusChange(
   }
 
   /* Masa in-service hanya boleh ditutup lewat aksi khusus, supaya jejak
-     pemeriksaan (serviceStartedAt/serviceExpectedDoneAt) ikut dibersihkan. */
-  if (
-    vehicle.operationalStatus === OperationalStatus.IN_SERVICE &&
-    nextStatus !== OperationalStatus.AVAILABLE
-  ) {
+     pemeriksaan (serviceStartedAt/serviceExpectedDoneAt) ikut dibersihkan.
+     Sebelumnya `IN_SERVICE -> AVAILABLE` sengaja diloloskan di sini, dan
+     akibatnya admin bisa melewati aksi "Selesai Inspeksi" tanpa membersihkan
+     stempel waktu pemeriksaan: unit tampil tersedia padahal masih membawa
+     tanggal inspeksi lama. Sekarang semua perubahan manual ditolak. */
+  if (vehicle.operationalStatus === OperationalStatus.IN_SERVICE) {
     throw new AppError(
       'IN_SERVICE_ACTIVE',
-      'Armada sedang dalam masa in-service. Selesaikan inspeksi terlebih dahulu.',
+      'Armada sedang dalam masa in-service. Tutup masa pemeriksaan lewat aksi "Selesai Inspeksi", bukan dengan mengubah status.',
       409,
     );
   }
