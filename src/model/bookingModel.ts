@@ -454,6 +454,24 @@ export const bookingModel = {
         }
       }
 
+      /* Menerima permintaan berarti pesanan naik ke tahap penetapan tarif dan
+         otomatis menahan satu unit dari katalog selama 24 jam. Untuk sewa lepas
+         kunci, syaratnya dokumen sudah diperiksa lebih dulu: kalau tidak, admin
+         bisa menerima permintaan yang dokumennya masih ditolak, unitnya hilang
+         dari katalog, lalu pesanan batal sendiri karena tarif tak kunjung
+         ditetapkan sementara pelanggan belum memperbaiki berkasnya. */
+      if (
+        input.nextStatus === BookingStatus.PENDING_CONFIRMATION &&
+        booking.rentalType === RentalType.WITHOUT_DRIVER
+      ) {
+        const doc = await tx.bookingDocument.findUnique({
+          where: { bookingId: booking.id },
+        });
+        if (doc?.status !== DocumentStatus.VERIFIED) {
+          return { kind: 'documents_unverified' as const, booking };
+        }
+      }
+
       /* Armada tidak boleh diserahkan sebelum uangnya benar-benar masuk.
          Sebelumnya tombol "Serahkan Armada" bisa ditekan pada pesanan yang
          pembayarannya belum diverifikasi: status berubah menjadi IN_PROGRESS,

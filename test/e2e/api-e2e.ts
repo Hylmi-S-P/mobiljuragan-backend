@@ -462,6 +462,11 @@ const kasus: Kasus[] = [
     async fn({ adminToken }) {
       const { customerToken, vehicle, booking } = await siapkanPesanan(adminToken);
 
+      /* Sejak permintaan diterima langsung menahan unit, sewa lepas kunci wajib
+         sudah punya dokumen terverifikasi pada langkah ini. */
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'setujui dokumen');
+
       const terima = await api(`/admin/bookings/${booking.id}/status`, {
         method: 'PATCH',
         token: adminToken,
@@ -1250,6 +1255,41 @@ const kasus: Kasus[] = [
       if (Number(pesanan.quotedAmount) <= 0) {
         throw new Error(`tarif harus terhitung dari katalog, menerima ${pesanan.quotedAmount}`);
       }
+    },
+  },
+  {
+    id: 'T3.8',
+    nama: 'Permintaan lepas kunci tidak bisa diterima sebelum dokumennya disetujui',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+
+      const sebelumUnggah = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      pastikanDitolak(sebelumUnggah, 409, 'DOCUMENTS_UNVERIFIED', 'terima tanpa dokumen');
+
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      const sebelumVerifikasi = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      pastikanDitolak(
+        sebelumVerifikasi,
+        409,
+        'DOCUMENTS_UNVERIFIED',
+        'terima saat dokumen belum diperiksa',
+      );
+
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'setujui dokumen');
+      const sesudah = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      harapan(sesudah, 200, 'terima setelah dokumen disetujui');
     },
   },
   {

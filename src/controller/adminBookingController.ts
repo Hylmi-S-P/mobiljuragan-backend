@@ -6,6 +6,7 @@ import { computeBookingBlockers } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
 import { segarkanTautanMedia } from '../lib/mediaService.js';
+import { toClientDocument } from '../services/document.service.js';
 import type {
   adminBookingQuerySchema,
   assignDriverSchema,
@@ -152,12 +153,12 @@ export const adminBookingController = {
        * kategorinya publik.
        */
       const dokumen = booking.document
-        ? {
+        ? toClientDocument({
             ...booking.document,
             statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
             ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
             simUrl: await segarkanTautanMedia(booking.document.simUrl),
-          }
+          })
         : booking.document;
 
       sendSuccess(res, {
@@ -223,7 +224,7 @@ export const adminBookingController = {
       if (result.kind === 'documents_unverified') {
         throw new AppError(
           'DOCUMENTS_UNVERIFIED',
-          'Booking lepas kunci harus memiliki seluruh dokumen (e-KTP, SIM A, Surat Pernyataan) yang telah diverifikasi staf sebelum tarif dapat dikonfirmasi.',
+          'Booking lepas kunci harus memiliki seluruh dokumen (e-KTP, SIM A, Surat Pernyataan) yang telah diverifikasi staf sebelum permintaan diterima dan tarif ditetapkan.',
           409,
         );
       }

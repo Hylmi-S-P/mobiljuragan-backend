@@ -28,7 +28,7 @@ export type DocumentActor = { userId: string; role: UserRole };
  * target diturunkan dari teks alasan supaya aplikasi versi lama tetap menandai
  * dokumen yang benar.
  */
-function toClientDocument<
+export function toClientDocument<
   T extends { rejectionReason?: string | null; rejectionTargets?: string | null; status?: string },
 >(doc: T): Omit<T, 'rejectionTargets'> & { rejectionTargets: DocumentTarget[] } {
   const stored = parseDocumentTargets(doc.rejectionTargets);
