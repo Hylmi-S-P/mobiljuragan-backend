@@ -1841,6 +1841,23 @@ const kasus: Kasus[] = [
         token: pelangganLain.token,
       });
       pastikanDitolak(pesananOrangLain, 404, 'BOOKING_NOT_FOUND', 'tiket pesanan orang lain');
+
+      /* Lewat tujuh hari sejak sewa berakhir, tombol bantuan pesanan ditutup. */
+      const pesananLama = await siapkanPesanan(adminToken);
+      await sqlUji(
+        'UPDATE bookings SET endDateTime = UTC_TIMESTAMP(3) - INTERVAL 8 DAY WHERE id = ?',
+        [pesananLama.booking.id],
+      );
+      const bantuanKedaluwarsa = await api(`/tickets/booking/${pesananLama.booking.id}`, {
+        method: 'POST',
+        token: pesananLama.customerToken,
+      });
+      pastikanDitolak(
+        bantuanKedaluwarsa,
+        409,
+        'BOOKING_HELP_EXPIRED',
+        'tiket pesanan yang sudah lewat tujuh hari',
+      );
     },
   },
   {

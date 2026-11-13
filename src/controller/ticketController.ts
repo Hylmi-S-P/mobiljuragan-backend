@@ -29,6 +29,11 @@ const MAKS_PANJANG_PESAN = 2000;
    bisa dipanggil langsung. */
 const MAKS_PANJANG_JUDUL = 100;
 
+/** Tombol "Chat dengan CS" pada satu pesanan hanya berguna selama sewa masih
+ *  relevan. Setelah tujuh hari sejak sewa berakhir, pelanggan membuat tiket
+ *  bantuan biasa. */
+const BATAS_HARI_BANTUAN_PESANAN = 7;
+
 /** Deskripsi dipakai sebagai pesan pertama percakapan, jadi tidak boleh lebih
     panjang dari satu pesan biasa. */
 const MAKS_PANJANG_DESKRIPSI = MAKS_PANJANG_PESAN;
@@ -669,6 +674,20 @@ export const ticketController = {
       if (terbuka) {
         sendSuccess(res, { ...terbuka, dipakaiUlang: true }, 200);
         return;
+      }
+
+      /* Bantuan lewat tiket hanya berguna selama sewa masih relevan. Setelah
+         tujuh hari sejak sewa berakhir, percakapan lama sudah tidak bisa
+         ditindaklanjuti; pelanggan membuat tiket bantuan biasa. */
+      const batasBantuan = new Date(
+        booking.endDateTime.getTime() + BATAS_HARI_BANTUAN_PESANAN * 24 * 60 * 60 * 1000,
+      );
+      if (Date.now() > batasBantuan.getTime()) {
+        throw new AppError(
+          'BOOKING_HELP_EXPIRED',
+          'Masa bantuan untuk pesanan ini sudah lewat tujuh hari setelah sewa selesai. Silakan buat tiket bantuan baru.',
+          409,
+        );
       }
 
       const judul = `Bantuan pesanan ${booking.bookingCode}`.slice(0, MAKS_PANJANG_JUDUL);
