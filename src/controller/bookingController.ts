@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { bookingModel } from '../model/bookingModel.js';
-import { BookingStatus, BookingStatusActor, OperationalStatus, UserRole } from '../generated/prisma/client.js';
+import { refundModel } from '../model/refundModel.js';
+import { BookingStatus, BookingStatusActor, OperationalStatus, RefundStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
 import { MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
-import type { createBookingSchema, customerCancelBookingSchema } from '../validators/bookingSchemas.js';
+import type { createBookingSchema, customerCancelBookingSchema, updateRefundAccountSchema } from '../validators/bookingSchemas.js';
 
 /**
  * Controller pemesanan sewa sisi pelanggan.
@@ -286,6 +287,61 @@ export const bookingController = {
       sendSuccess(res, {
         message: 'Pesanan berhasil dibatalkan.',
         booking: result.booking,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+  /**
+   * PATCH /api/v1/bookings/:id/refund-account
+   * Pelanggan melengkapi rekening tujuan pengembalian dana setelah membatalkan.
+   */
+  async claimRefundAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { refundAccount } = (req.body ?? {}) as z.infer<typeof updateRefundAccountSchema>;
+      const customer = req.user!;
+      const isStaffOrAdmin = customer.role === UserRole.STAFF || customer.role === UserRole.ADMIN;
+
+      const booking = await bookingModel.findCustomerDetail({
+        id,
+        customerId: customer.userId,
+        isStaffOrAdmin,
+      });
+
+      if (!booking) {
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
+          404,
+        );
+      }
+
+      if (!booking.refund) {
+        throw new AppError(
+          'REFUND_NOT_FOUND',
+          'Pesanan ini tidak punya pengembalian dana yang perlu diklaim.',
+          404,
+        );
+      }
+
+      if (booking.refund.status === RefundStatus.SELESAI) {
+        throw new AppError(
+          'REFUND_ALREADY_SETTLED',
+          'Pengembalian dana pesanan ini sudah ditransfer kantor.',
+          409,
+        );
+      }
+
+      const updated = await refundModel.update(booking.refund.id, {
+        namaBank: refundAccount.bankName,
+        nomorRekening: refundAccount.accountNumber,
+        namaPemilik: refundAccount.accountHolderName,
+      });
+
+      sendSuccess(res, {
+        message: 'Rekening tujuan pengembalian dana tersimpan.',
+        refund: updated,
       });
     } catch (error) {
       next(error);

@@ -95,6 +95,42 @@ async function ambilDokumen(customerToken: string, bookingId: string): Promise<a
   return respons.body.data?.document ?? respons.body.data;
 }
 
+/** Menyiapkan pesanan yang sudah dibayar dan menunggu penyerahan armada. */
+async function siapkanPesananTerbayar(adminToken: string): Promise<{
+  customerToken: string;
+  vehicle: any;
+  booking: any;
+  paymentId: string;
+  totalAmount: number;
+}> {
+  const pesanan = await siapkanPesanan(adminToken);
+  const unggah = await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id);
+  harapan(unggah, 200, 'unggah dokumen');
+  const verifikasi = await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE');
+  harapan(verifikasi, 200, 'verifikasi dokumen');
+
+  const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
+  if (konfirmasi.status !== 'CONFIRMED') {
+    throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
+  }
+
+  const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
+  harapan(tagihan, 201, 'buat tagihan');
+  const paymentId = tagihan.body.data.id;
+  const totalAmount = Number(tagihan.body.data.totalAmount);
+
+  const bukti = await uploadPaymentProof(pesanan.customerToken, paymentId);
+  harapan(bukti, 200, 'unggah bukti transfer');
+
+  const lunas = await verifyPayment(adminToken, paymentId, 'APPROVE');
+  harapan(lunas, 200, 'verifikasi pembayaran');
+  if (lunas.body.data.status !== 'PAID') {
+    throw new Error(`pembayaran harus PAID, menerima ${lunas.body.data.status}`);
+  }
+
+  return { ...pesanan, paymentId, totalAmount };
+}
+
 const kasus: Kasus[] = [
   {
     id: 'smoke',
@@ -792,38 +828,8 @@ const kasus: Kasus[] = [
     id: 'T2.5',
     nama: 'Refund tercatat di server: pelanggan dipotong, admin/sistem dikembalikan penuh',
     async fn({ adminToken }) {
-      /** Menyiapkan pesanan yang sudah dibayar dan menunggu penyerahan armada. */
-      async function siapkanPesananTerbayar() {
-        const pesanan = await siapkanPesanan(adminToken);
-        const unggah = await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id);
-        harapan(unggah, 200, 'unggah dokumen');
-        const verifikasi = await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE');
-        harapan(verifikasi, 200, 'verifikasi dokumen');
-
-        const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
-        if (konfirmasi.status !== 'CONFIRMED') {
-          throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
-        }
-
-        const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
-        harapan(tagihan, 201, 'buat tagihan');
-        const paymentId = tagihan.body.data.id;
-        const totalAmount = Number(tagihan.body.data.totalAmount);
-
-        const bukti = await uploadPaymentProof(pesanan.customerToken, paymentId);
-        harapan(bukti, 200, 'unggah bukti transfer');
-
-        const lunas = await verifyPayment(adminToken, paymentId, 'APPROVE');
-        harapan(lunas, 200, 'verifikasi pembayaran');
-        if (lunas.body.data.status !== 'PAID') {
-          throw new Error(`pembayaran harus PAID, menerima ${lunas.body.data.status}`);
-        }
-
-        return { ...pesanan, paymentId, totalAmount };
-      }
-
       /* 1. Pelanggan membatalkan setelah membayar: dipotong Rp 50.000. */
-      const olehPelanggan = await siapkanPesananTerbayar();
+      const olehPelanggan = await siapkanPesananTerbayar(adminToken);
 
       const batal = await api(`/bookings/${olehPelanggan.booking.id}/cancel`, {
         method: 'PATCH',
@@ -885,7 +891,7 @@ const kasus: Kasus[] = [
       }
 
       /* 2. Admin membatalkan setelah membayar: dikembalikan penuh. */
-      const olehAdmin = await siapkanPesananTerbayar();
+      const olehAdmin = await siapkanPesananTerbayar(adminToken);
 
       const batalAdmin = await api(`/admin/bookings/${olehAdmin.booking.id}/status`, {
         method: 'PATCH',
@@ -1126,6 +1132,87 @@ const kasus: Kasus[] = [
           `baris harus ditutup SELESAI, menerima ${danaTidakAda.body.data.status}`,
         );
       }
+    },
+  },
+  {
+    id: 'T6.16',
+    nama: 'Pelanggan bisa melengkapi rekening refund setelah membatalkan, tetapi tidak setelah kantor menutupnya',
+    async fn({ adminToken }) {
+      const pesanan = await siapkanPesananTerbayar(adminToken);
+
+      /* Batal tanpa mengirim rekening: inilah pelanggan yang dulu membatalkan
+         lewat versi aplikasi lama, atau yang menutup layar sebelum mengisi. */
+      const batal = await api(`/bookings/${pesanan.booking.id}/cancel`, {
+        method: 'PATCH',
+        token: pesanan.customerToken,
+        body: { reason: 'Rencana berubah.' },
+      });
+      harapan(batal, 200, 'batalkan tanpa rekening');
+      const refund = batal.body.data.booking.refund;
+      if (!refund) {
+        throw new Error('pembatalan tidak membuat catatan refund');
+      }
+      if (refund.namaBank) {
+        throw new Error('rekening seharusnya masih kosong pada pembatalan ini');
+      }
+
+      const klaim = await api(`/bookings/${pesanan.booking.id}/refund-account`, {
+        method: 'PATCH',
+        token: pesanan.customerToken,
+        body: {
+          refundAccount: {
+            bankName: 'Bank Papua',
+            accountNumber: '9876543210',
+            accountHolderName: 'Yahya Pratama',
+          },
+        },
+      });
+      harapan(klaim, 200, 'klaim rekening refund');
+      if (klaim.body.data.refund.namaBank !== 'Bank Papua') {
+        throw new Error(
+          `nama bank harus tersimpan, menerima ${klaim.body.data.refund.namaBank}`,
+        );
+      }
+      if (klaim.body.data.refund.nomorRekening !== '9876543210') {
+        throw new Error(
+          `nomor rekening harus tersimpan, menerima ${klaim.body.data.refund.nomorRekening}`,
+        );
+      }
+
+      /* Nomor rekening berisi huruf harus ditolak sebelum disimpan. */
+      const salah = await api(`/bookings/${pesanan.booking.id}/refund-account`, {
+        method: 'PATCH',
+        token: pesanan.customerToken,
+        body: {
+          refundAccount: {
+            bankName: 'Bank Papua',
+            accountNumber: '12ab34',
+            accountHolderName: 'Yahya Pratama',
+          },
+        },
+      });
+      harapan(salah, 400, 'nomor rekening berisi huruf ditolak');
+
+      /* Setelah kantor menutup barisnya, rekening tidak boleh diubah lagi. */
+      const tutup = await api(`/admin/refunds/${refund.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'SELESAI', catatan: 'Sudah ditransfer.' },
+      });
+      harapan(tutup, 200, 'kantor menutup baris refund');
+
+      const setelahTutup = await api(`/bookings/${pesanan.booking.id}/refund-account`, {
+        method: 'PATCH',
+        token: pesanan.customerToken,
+        body: {
+          refundAccount: {
+            bankName: 'Bank BRI',
+            accountNumber: '111222333',
+            accountHolderName: 'Yahya Pratama',
+          },
+        },
+      });
+      harapan(setelahTutup, 409, 'klaim setelah refund selesai ditolak');
     },
   },
   {

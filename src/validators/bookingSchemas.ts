@@ -102,6 +102,17 @@ export const customerCancelBookingSchema = z.object({
 });
 
 /**
+ * Rekening tujuan yang dikirim pelanggan setelah pesanannya dibatalkan.
+ *
+ * Dipakai tombol "Klaim Pengembalian Dana" di riwayat pesanan: pelanggan yang
+ * dulu membatalkan tanpa mengisi rekening tetap bisa melengkapinya selama
+ * kantor belum memproses pengembaliannya.
+ */
+export const updateRefundAccountSchema = z.object({
+  refundAccount: refundAccountSchema,
+});
+
+/**
  * Penyesuaian biaya manual (surcharge) pada satu booking.
  *
  * Semua isian wajib, termasuk justifikasi. Dashboard sudah memintanya sebagai
