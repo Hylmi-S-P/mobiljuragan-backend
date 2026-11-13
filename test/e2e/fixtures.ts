@@ -459,3 +459,36 @@ export async function closeTicket(customerToken: string, ticketId: string): Prom
   });
   harapan(respons, 200, 'tutup tiket');
 }
+
+/**
+ * Membuat akun pengelola baru lalu login, dipakai untuk menguji dua admin yang
+ * bekerja pada tiket yang sama.
+ */
+export async function buatAdminBaru(
+  adminToken: string,
+  role: 'ADMIN' | 'STAFF' = 'ADMIN',
+  nama = 'Admin Uji Kedua',
+): Promise<{ token: string; phone: string }> {
+  const phone = nomorHpUnik();
+  const dibuat = await api('/admin/users', {
+    method: 'POST',
+    token: adminToken,
+    body: { fullName: nama, phoneNumber: phone, role, password: 'Admin123!' },
+  });
+  harapan(dibuat, 201, `buat akun ${role}`);
+
+  const masuk = await api('/admin/auth/login', {
+    method: 'POST',
+    body: { phoneNumber: phone, password: 'Admin123!' },
+  });
+  harapan(masuk, 200, `login akun ${role} baru`);
+  return { token: masuk.body.data.token as string, phone };
+}
+
+/** Menyerahkan tiket dari asisten AI ke staf supaya admin boleh membalas. */
+export async function handoverTiket(adminToken: string, ticketId: string): Promise<ResponsApi> {
+  return api(`/admin/tickets/${ticketId}/handover`, {
+    method: 'POST',
+    token: adminToken,
+  });
+}

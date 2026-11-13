@@ -258,6 +258,89 @@ export const ticketModel = {
     });
   },
 
+  /**
+   * Mengambil alih tiket yang sedang dipegang admin lain.
+   *
+   * Perbedaannya dengan `assignTo`: fungsi itu hanya berhasil bila tiket belum
+   * dipegang siapa pun, sedangkan pengambilalihan justru menyasar tiket yang
+   * sudah ada pemegangnya. Keduanya memakai pola yang sama — `updateMany`
+   * bersyarat — supaya keputusan diambil dari keadaan baris saat itu, bukan dari
+   * data yang dibaca beberapa milidetik sebelumnya.
+   *
+   * `expectedAdminId` adalah pemegang yang dilihat pemanggil. Kalau ternyata
+   * sudah berganti, hitungannya 0 dan pemanggil tahu bahwa ia kalah cepat.
+   */
+  async takeOver(
+    ticketId: string,
+    nextAdminId: string,
+    expectedAdminId: string | null,
+  ) {
+    const hasil = await db.supportTicket.updateMany({
+      where: { id: ticketId, assignedAdminId: expectedAdminId },
+      data: { assignedAdminId: nextAdminId, assignedAt: new Date() },
+    });
+
+    const sekarang = await db.supportTicket.findUnique({
+      where: { id: ticketId },
+      select: { assignedAdminId: true, assignedAt: true },
+    });
+
+    return {
+      assignedAdminId: sekarang?.assignedAdminId ?? null,
+      assignedAt: sekarang?.assignedAt ?? null,
+      berhasil: hasil.count > 0,
+    };
+  },
+
+  /**
+   * Menutup tiket sekaligus mencatat pesan penutupnya dalam satu transaksi.
+   *
+   * Sebelumnya controller mengubah status lebih dulu, lalu memanggil
+   * `createMessage` — yang menolak tiket berstatus final. Akibatnya penutupan
+   * selalu berakhir 409 padahal barisnya sudah terlanjur CLOSED: pelanggan
+   * melihat galat, tiketnya tetap tertutup, dan tidak ada catatan mengapa.
+   * Urutannya dibalik di sini: pesan masuk saat tiket masih terbuka, lalu status
+   * ditutup, semuanya atau tidak sama sekali.
+   */
+  async closeWithMessage(input: {
+    ticketId: string;
+    senderId: string;
+    body: string;
+    isCustomer: boolean;
+  }) {
+    return db.$transaction(async (tx) => {
+      const tiket = await tx.supportTicket.findUnique({
+        where: { id: input.ticketId },
+        select: { status: true },
+      });
+
+      if (!tiket) return null;
+
+      if (!STATUS_FINAL.includes(tiket.status)) {
+        const terakhir = await tx.ticketMessage.findFirst({
+          where: { ticketId: input.ticketId },
+          orderBy: { sequence: 'desc' },
+          select: { sequence: true },
+        });
+
+        await tx.ticketMessage.create({
+          data: {
+            ticket: { connect: { id: input.ticketId } },
+            sender: { connect: { id: input.senderId } },
+            body: input.body,
+            isCustomer: input.isCustomer,
+            sequence: (terakhir?.sequence ?? 0) + 1,
+          },
+        });
+      }
+
+      return tx.supportTicket.update({
+        where: { id: input.ticketId },
+        data: { status: TicketStatus.CLOSED },
+      });
+    });
+  },
+
   async handoverToHuman(ticketId: string, at: Date) {
     const hasil = await db.supportTicket.updateMany({
       where: { id: ticketId, handledBy: TicketHandler.AI },

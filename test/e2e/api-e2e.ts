@@ -5,12 +5,14 @@ import {
   berkasJpeg,
   berkasKebesaran,
   berkasPdf,
+  buatAdminBaru,
   confirmTariff,
   createBooking,
   createDriver,
   createPayment,
   createTicket,
   createVehicle,
+  handoverTiket,
   harapan,
   handover,
   loginAdmin,
@@ -155,12 +157,10 @@ const kasus: Kasus[] = [
       });
       harapan(serah, [200, 201], 'serahkan tiket ke admin');
 
-      const tutup = await api(`/admin/tickets/${tiket.id}/status`, {
-        method: 'PATCH',
-        token: adminToken,
-        body: { status: 'RESOLVED' },
-      });
-      harapan(tutup, 200, 'admin menandai tiket selesai');
+      /* Staf tidak lagi boleh menutup tiket (lihat T5.5), jadi status akhir
+         diset langsung seperti yang dilakukan penjadwal sistem. Yang diuji di sini
+         adalah penolakan pesan pada tiket final, bukan cara tiket menjadi final. */
+      await sqlUji('UPDATE support_tickets SET status = ? WHERE id = ?', ['RESOLVED', tiket.id]);
 
       const pesan = await api(`/tickets/${tiket.id}/messages`, {
         method: 'POST',
@@ -1250,6 +1250,178 @@ const kasus: Kasus[] = [
       if (Number(pesanan.quotedAmount) <= 0) {
         throw new Error(`tarif harus terhitung dari katalog, menerima ${pesanan.quotedAmount}`);
       }
+    },
+  },
+  {
+    id: 'T5.1',
+    nama: 'Dua admin membalas bersamaan: satu memegang tiket, satu ditolak 409',
+    async fn({ adminToken }) {
+      const pelanggan = await loginCustomer();
+      const tiket = await createTicket(pelanggan.token, {
+        title: 'Tiket uji balapan admin',
+        description: 'Dua admin akan mencoba menjawab tiket ini pada saat yang sama.',
+      });
+      harapan(await handoverTiket(adminToken, tiket.id), 200, 'serahkan tiket ke staf');
+
+      const adminKedua = await buatAdminBaru(adminToken, 'ADMIN', 'Admin Uji Balapan');
+
+      const kirim = (token: string) =>
+        api(`/admin/tickets/${tiket.id}/messages`, {
+          method: 'POST',
+          token,
+          body: { body: 'Balasan pertama dari admin.' },
+        });
+
+      const [a, b] = await Promise.all([kirim(adminToken), kirim(adminKedua.token)]);
+      const kode = [a.status, b.status].sort((x, y) => x - y);
+
+      /* Hanya satu yang boleh menang. Kalau keduanya 201, dua admin mengira
+         dirinya pemegang tiket dan pelanggan bisa menerima dua jawaban berbeda. */
+      if (kode[0] !== 201 || kode[1] !== 409) {
+        throw new Error(`harus tepat satu 201 dan satu 409, menerima ${a.status} dan ${b.status}`);
+      }
+
+      const pemenang = a.status === 201 ? adminToken : adminKedua.token;
+      const detail = await api(`/admin/tickets/${tiket.id}`, { token: pemenang });
+      harapan(detail, 200, 'baca tiket setelah balapan');
+      if (!detail.body.data?.assignedAdminId) {
+        throw new Error('tiket harus dipegang admin yang menang');
+      }
+
+      const pesan = (detail.body.data.messages ?? []) as Array<{ body: string }>;
+      const balasan = pesan.filter((p) => p.body.includes('Balasan pertama dari admin.'));
+      if (balasan.length !== 1) {
+        throw new Error(`balasan admin harus tepat satu, menerima ${balasan.length}`);
+      }
+    },
+  },
+  {
+    id: 'T5.3',
+    nama: 'Ambil alih tiket benar-benar berpindah pemegang dan menghentikan AI',
+    async fn({ adminToken }) {
+      const pelanggan = await loginCustomer();
+      const tiket = await createTicket(pelanggan.token, {
+        title: 'Tiket uji pengambilalihan',
+        description: 'Tiket ini dibuat masih ditangani asisten AI.',
+      });
+
+      const staff = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Ambil Alih');
+
+      /* STAFF tidak boleh merebut tiket milik orang lain. */
+      const olehStaff = await api(`/admin/tickets/${tiket.id}/takeover`, {
+        method: 'POST',
+        token: staff.token,
+      });
+      harapan(olehStaff, 403, 'staff tidak boleh mengambil alih');
+
+      const pertama = await api(`/admin/tickets/${tiket.id}/takeover`, {
+        method: 'POST',
+        token: adminToken,
+      });
+      harapan(pertama, 200, 'admin mengambil tiket yang masih dipegang AI');
+      if (pertama.body.data.assignedAdminId === null) {
+        throw new Error('pengambilalihan harus mengisi pemegang tiket');
+      }
+      if (pertama.body.data.aiDihentikan !== true) {
+        throw new Error('AI harus dihentikan saat tiket diambil alih manusia');
+      }
+
+      const detail = await api(`/admin/tickets/${tiket.id}`, { token: adminToken });
+      harapan(detail, 200, 'baca tiket setelah diambil alih');
+      if (detail.body.data.handledBy !== 'HUMAN') {
+        throw new Error(`handledBy harus HUMAN, menerima ${detail.body.data.handledBy}`);
+      }
+
+      /* Pesan sistem penyerahan + pengambilalihan harus terlihat di riwayat. */
+      const isi = ((detail.body.data.messages ?? []) as Array<{ body: string }>)
+        .map((p) => p.body)
+        .join(' | ');
+      if (!isi.includes('diambil alih oleh admin')) {
+        throw new Error('riwayat harus memuat pesan pengambilalihan');
+      }
+
+      /* Menekan tombol yang sama dua kali tidak boleh berubah jadi galat. */
+      const ulang = await api(`/admin/tickets/${tiket.id}/takeover`, {
+        method: 'POST',
+        token: adminToken,
+      });
+      harapan(ulang, 200, 'ambil alih ulang oleh pemegang yang sama tetap diterima');
+    },
+  },
+  {
+    id: 'T5.4',
+    nama: 'Pelanggan menutup tiketnya sendiri berhasil dan pesan penutup tercatat',
+    async fn({ adminToken }) {
+      const pelanggan = await loginCustomer();
+      const tiket = await createTicket(pelanggan.token, {
+        title: 'Tiket uji penutupan',
+        description: 'Pelanggan akan menutup tiket ini sendiri.',
+      });
+
+      const tutup = await api(`/tickets/${tiket.id}/close`, {
+        method: 'PATCH',
+        token: pelanggan.token,
+      });
+      harapan(tutup, 200, 'pelanggan menutup tiketnya sendiri');
+      if (tutup.body.data.status !== 'CLOSED') {
+        throw new Error(`status harus CLOSED, menerima ${tutup.body.data.status}`);
+      }
+
+      const detail = await api(`/admin/tickets/${tiket.id}`, { token: adminToken });
+      harapan(detail, 200, 'admin membaca tiket yang sudah ditutup');
+      if (detail.body.data.status !== 'CLOSED') {
+        throw new Error('tiket harus benar-benar tersimpan CLOSED');
+      }
+
+      const isi = ((detail.body.data.messages ?? []) as Array<{ body: string }>)
+        .map((p) => p.body)
+        .join(' | ');
+      if (!isi.includes('menutup tiket bantuan ini')) {
+        throw new Error('pesan penutup tidak tercatat di riwayat');
+      }
+
+      /* Setelah tertutup, balasan baru tetap ditolak supaya tidak menggantung. */
+      const telat = await api(`/admin/tickets/${tiket.id}/messages`, {
+        method: 'POST',
+        token: adminToken,
+        body: { body: 'Balasan setelah tiket ditutup.' },
+      });
+      harapan(telat, 409, 'balasan setelah tiket ditutup ditolak');
+    },
+  },
+  {
+    id: 'T5.4b',
+    nama: 'Staf tidak bisa menyelesaikan atau menutup tiket secara manual',
+    async fn({ adminToken }) {
+      const pelanggan = await loginCustomer();
+      const tiket = await createTicket(pelanggan.token, {
+        title: 'Tiket uji wewenang penutupan',
+        description: 'Staf akan mencoba menutup tiket ini secara manual.',
+      });
+
+      const staff = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Penutupan');
+      await handoverTiket(adminToken, tiket.id);
+
+      for (const status of ['RESOLVED', 'CLOSED']) {
+        const coba = await api(`/admin/tickets/${tiket.id}/status`, {
+          method: 'PATCH',
+          token: staff.token,
+          body: { status },
+        });
+        if (coba.status !== 409 || coba.body.error?.code !== 'TICKET_CLOSE_BY_SYSTEM') {
+          throw new Error(
+            `staf tidak boleh menutup tiket; status ${status} menerima ${coba.status} ${coba.body.error?.code ?? ''}`,
+          );
+        }
+      }
+
+      /* Status bukan akhir tetap boleh diubah staf. */
+      const boleh = await api(`/admin/tickets/${tiket.id}/status`, {
+        method: 'PATCH',
+        token: staff.token,
+        body: { status: 'WAITING_CUSTOMER' },
+      });
+      harapan(boleh, 200, 'staf tetap boleh mengubah status bukan akhir');
     },
   },
 ];

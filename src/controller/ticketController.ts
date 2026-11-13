@@ -165,6 +165,23 @@ export const ticketController = {
         );
       }
 
+      /* Penutupan dan penyelesaian tiket bukan wewenang staf.
+       *
+       * Staf yang bisa menutup tiket akan menutup percakapan yang sebenarnya belum
+       * selesai — pelanggan kehilangan kesempatan menjawab, dan tiket yang masih
+       * hidup hilang dari antrean. Karena itu perpindahan ke RESOLVED maupun CLOSED
+       * hanya dilakukan sistem: asisten AI menanyakan apakah masalahnya sudah
+       * selesai, dan penjadwal menutup tiket yang tidak dijawab lagi selama 24 jam.
+       *
+       * Pelanggan tetap bisa menutup tiketnya sendiri lewat endpoint pelanggan. */
+      if (rawStatus === TicketStatus.RESOLVED || rawStatus === TicketStatus.CLOSED) {
+        throw new AppError(
+          'TICKET_CLOSE_BY_SYSTEM',
+          'Tiket diselesaikan atau ditutup otomatis oleh sistem setelah pelanggan menyatakan selesai atau tidak ada balasan selama 24 jam.',
+          409,
+        );
+      }
+
       const updated = await ticketModel.updateStatus(id, rawStatus as TicketStatus);
       sendSuccess(res, updated);
     } catch (error) {
@@ -242,9 +259,21 @@ export const ticketController = {
 
       /* Kalau tiket belum dipegang siapa pun, balasan pertama otomatis mengklaimnya.
        * Admin tidak perlu menekan dua tombol untuk hal yang jelas: membalas
-       * berarti mengerjakan. */
+       * berarti mengerjakan.
+       *
+       * Klaimnya lewat update bersyarat, dan hasilnya diperiksa. Tanpa pemeriksaan
+       * ini dua admin yang menekan kirim hampir bersamaan sama-sama membaca
+       * "belum ada pemegang", sama-sama mengirim balasan, lalu yang kalah tetap
+       * menjawab pelanggan padahal tiketnya sudah dipegang orang lain. */
       if (!existing.assignedAdminId) {
-        await ticketModel.assignTo(id, actor.userId);
+        const klaim = await ticketModel.assignTo(id, actor.userId);
+        if (!klaim.berhasil) {
+          throw new AppError(
+            'TICKET_ASSIGNED_TO_OTHER',
+            'Tiket ini baru saja diambil admin lain. Muat ulang daftar untuk melihat pemegang terbaru.',
+            409,
+          );
+        }
       }
 
       const message = await ticketModel.createMessage({
@@ -337,11 +366,57 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      const updated = await ticketModel.assignTo(id, actor.userId);
+      if (TIKET_FINAL.includes(existing.status)) {
+        throw new AppError(
+          'TICKET_CLOSED',
+          'Tiket ini sudah selesai, tidak ada yang perlu diambil alih.',
+          409,
+        );
+      }
+
+      /* Sudah dipegang sendiri: tidak ada yang berubah, tetapi tetap dilaporkan
+         berhasil supaya tombol yang ditekan dua kali tidak berubah jadi galat. */
+      if (existing.assignedAdminId === actor.userId) {
+        sendSuccess(res, {
+          assignedAdminId: existing.assignedAdminId,
+          assignedAt: existing.assignedAt,
+          previousAdminId: existing.assignedAdminId,
+        });
+        return;
+      }
+
+      /* Pengambilalihan memakai syarat "pemegangnya masih yang tadi saya lihat".
+         Sebelumnya fungsi ini memakai `assignTo`, yang hanya berhasil bila tiket
+         belum dipegang siapa pun — sehingga mengambil tiket milik admin lain
+         tidak mengubah apa pun dan tetap dijawab 200. Staf mengira tiketnya sudah
+         berpindah padahal pemegang lama masih menerima balasan pelanggan. */
+      const diambil = await ticketModel.takeOver(id, actor.userId, existing.assignedAdminId);
+      if (!diambil.berhasil) {
+        throw new AppError(
+          'TICKET_ASSIGNED_TO_OTHER',
+          'Tiket ini baru saja berpindah tangan. Muat ulang untuk melihat pemegang terbaru.',
+          409,
+        );
+      }
+
+      /* Asisten AI dihentikan saat tiket diambil alih, dan pelanggan diberi tahu
+         lewat pesan sistem supaya tidak mengira masih berbicara dengan mesin. */
+      const sebelumnyaAi = existing.handledBy === TicketHandler.AI;
+      if (sebelumnyaAi) {
+        await ticketModel.handoverToHuman(id, new Date());
+        await ticketModel.createMessage({
+          ticket: { connect: { id } },
+          sender: { connect: { id: actor.userId } },
+          body: `Tiket telah diambil alih oleh admin ${actor.fullName}. Percakapan ini sekarang ditangani petugas.`,
+          isCustomer: false,
+        });
+      }
+
       sendSuccess(res, {
-        assignedAdminId: updated.assignedAdminId,
-        assignedAt: updated.assignedAt,
+        assignedAdminId: diambil.assignedAdminId,
+        assignedAt: diambil.assignedAt,
         previousAdminId: existing.assignedAdminId,
+        aiDihentikan: sebelumnyaAi,
       });
     } catch (error) {
       next(error);
@@ -695,18 +770,22 @@ export const ticketController = {
         return;
       }
 
-      const updated = await ticketModel.updateStatus(id, TicketStatus.CLOSED);
-
-      // Catat pesan sistem penutupan tiket pada percakapan
-      await ticketModel.createMessage({
-        ticket: { connect: { id } },
-        sender: { connect: { id: actor.userId } },
+      /* Pesan penutup dan perubahan status dikerjakan bersama. Dulu status
+         diubah lebih dulu, lalu pesannya ditolak karena tiket sudah final —
+         sehingga setiap penutupan berakhir 409 padahal tiketnya sudah tertutup. */
+      const updated = await ticketModel.closeWithMessage({
+        ticketId: id,
+        senderId: actor.userId,
         body:
           actor.role === UserRole.CUSTOMER
             ? 'Pelanggan telah menandai kendala selesai dan menutup tiket bantuan ini.'
             : 'Staf operasional telah menutup tiket bantuan ini.',
         isCustomer: actor.role === UserRole.CUSTOMER,
       });
+
+      if (!updated) {
+        throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
+      }
 
       sendSuccess(res, updated);
     } catch (error) {
