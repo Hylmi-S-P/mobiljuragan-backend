@@ -4,6 +4,10 @@ import { fileStorage } from '../services/storage/local-storage.js';
 import { decodeLegacyDataUrl, processAndStoreImage } from '../services/upload/image-processing.js';
 import { sendSuccess, AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
+import {
+  requestDocumentRevisionSchema,
+  verifyDocumentsSchema,
+} from '../validators/documentSchemas.js';
 import type { UserRole } from '../generated/prisma/client.js';
 
 /** Identitas pemanggil setelah `requireAuth` lolos. */
@@ -175,21 +179,44 @@ export const documentController = {
   async adminVerifyDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { action, rejectionReason, targets } = req.body;
-
-      if (action !== 'APPROVE' && action !== 'REJECT') {
-        throw new AppError(
-          'INVALID_ACTION',
-          'Aksi verifikasi harus bernilai APPROVE atau REJECT.',
-          400,
-        );
-      }
+      const { action, rejectionReason, targets } = verifyDocumentsSchema.parse(req.body);
 
       const verifierName = req.user?.fullName || 'Admin MobilJuragan';
       const result = await documentService.adminVerifyDocuments(id, {
         action,
         rejectionReason,
         targets,
+        verifierName,
+      });
+
+      sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Meminta pelanggan mengunggah ulang berkas tertentu.
+   *
+   * POST /api/v1/admin/bookings/:id/documents/request-revision
+   *
+   * Endpoint terpisah dari verifikasi karena artinya berbeda bagi staf: di sini
+   * staf tidak "menolak dokumen" sebagai keputusan akhir, melainkan menuliskan
+   * apa yang harus diperbaiki. Bentuk masukannya memakai `catatan` (bukan
+   * `rejectionReason`) supaya tidak ada kebingungan dengan aksi tolak.
+   */
+  async requestDocumentRevision(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { catatan, targets, semuaBerkas } = requestDocumentRevisionSchema.parse(req.body);
+
+      const verifierName = req.user?.fullName || 'Admin MobilJuragan';
+      const result = await documentService.adminVerifyDocuments(id, {
+        action: 'REJECT',
+        rejectionReason: catatan,
+        targets: semuaBerkas
+          ? ['KTP', 'SIM', 'STATEMENT']
+          : targets,
         verifierName,
       });
 

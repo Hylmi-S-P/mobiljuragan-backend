@@ -15,6 +15,7 @@ import {
   handover,
   loginAdmin,
   loginCustomer,
+  requestDocumentRevision,
   uploadDocuments,
   uploadPaymentProof,
   uploadSemuaDokumen,
@@ -83,6 +84,13 @@ async function siapkanPesanan(
   const vehicle = await createVehicle(adminToken);
   const booking = await createBooking(pelanggan.token, vehicle.id, { rentalType });
   return { customerToken: pelanggan.token, vehicle, booking };
+}
+
+/** Membaca baris dokumen pesanan apa adanya, termasuk sisa target penolakan. */
+async function ambilDokumen(customerToken: string, bookingId: string): Promise<any> {
+  const respons = await api(`/bookings/${bookingId}/documents`, { token: customerToken });
+  harapan(respons, 200, 'baca dokumen pesanan');
+  return respons.body.data?.document ?? respons.body.data;
 }
 
 const kasus: Kasus[] = [
@@ -546,7 +554,7 @@ const kasus: Kasus[] = [
       const konfirmasi = await api(`/admin/bookings/${lepasKunci.booking.id}/status`, {
         method: 'PATCH',
         token: adminToken,
-        body: { status: 'CONFIRMED', quotedAmount: 1 },
+        body: { status: 'CONFIRMED', routeScope: 'DALAM_KOTA', quotedAmount: 1 },
       });
       harapan(konfirmasi, 200, 'konfirmasi tarif lepas kunci');
 
@@ -923,6 +931,139 @@ const kasus: Kasus[] = [
         body: { status: 'SELESAI' },
       });
       harapan(tanpaBukti, 400, 'tutup tanpa bukti ditolak');
+    },
+  },
+  {
+    id: 'T3.1',
+    nama: 'Permintaan unggah ulang hanya menyentuh berkas yang dipilih',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah tiga dokumen');
+
+      /* Catatan wajib: tanpa catatan pelanggan tidak tahu apa yang salah. */
+      const tanpaCatatan = await requestDocumentRevision(adminToken, booking.id, {
+        targets: ['KTP'],
+      });
+      harapan(tanpaCatatan, 400, 'permintaan unggah ulang tanpa catatan ditolak');
+
+      /* Tanpa target dan tanpa "semuaBerkas" juga ditolak. */
+      const tanpaTarget = await requestDocumentRevision(adminToken, booking.id, {
+        catatan: 'Foto e-KTP dan SIM kurang jelas, mohon difoto ulang di tempat terang.',
+      });
+      harapan(tanpaTarget, 400, 'permintaan unggah ulang tanpa target ditolak');
+
+      /* Skenario lapangan: staf hanya mempersoalkan dua dari tiga berkas, lalu
+         pelanggan mengunggah ulang keduanya. Berkas ketiga tidak boleh hilang. */
+      const duaBerkas = await requestDocumentRevision(adminToken, booking.id, {
+        catatan: 'Foto e-KTP dan SIM kurang jelas, mohon difoto ulang di tempat terang.',
+        targets: ['KTP', 'SIM'],
+      });
+      harapan(duaBerkas, 200, 'minta unggah ulang dua berkas');
+
+      const setelahMinta = await ambilDokumen(customerToken, booking.id);
+      if (JSON.stringify(setelahMinta.rejectionTargets) !== JSON.stringify(['KTP', 'SIM'])) {
+        throw new Error(
+          `target penolakan harus [KTP,SIM], menerima ${JSON.stringify(setelahMinta.rejectionTargets)}`,
+        );
+      }
+      const suratAwal = setelahMinta.statementLetterUrl;
+      if (!suratAwal) {
+        throw new Error('surat pernyataan harus tersimpan setelah unggahan pertama');
+      }
+
+      /* Unggah ulang satu berkas: SIM masih bermasalah, surat tetap ada. */
+      harapan(
+        await uploadDocuments(customerToken, booking.id, {
+          ktp: await berkasJpeg('ktp-baru.jpg'),
+        }),
+        200,
+        'unggah ulang e-KTP saja',
+      );
+
+      const setelahSatu = await ambilDokumen(customerToken, booking.id);
+      if (!setelahSatu.statementLetterUrl) {
+        throw new Error('surat pernyataan ikut terhapus saat mengunggah ulang e-KTP');
+      }
+      if (!setelahSatu.simUrl) {
+        throw new Error('berkas SIM yang belum diunggah ulang ikut terhapus');
+      }
+      if (JSON.stringify(setelahSatu.rejectionTargets) !== JSON.stringify(['SIM'])) {
+        throw new Error(
+          `sisa target harus [SIM], menerima ${JSON.stringify(setelahSatu.rejectionTargets)}`,
+        );
+      }
+
+      /* Unggah ulang berkas terakhir: semua target selesai, berkas lain utuh. */
+      harapan(
+        await uploadDocuments(customerToken, booking.id, {
+          sim: await berkasJpeg('sim-baru.jpg'),
+        }),
+        200,
+        'unggah ulang SIM',
+      );
+
+      const setelahDua = await ambilDokumen(customerToken, booking.id);
+      if (!setelahDua.statementLetterUrl || !setelahDua.ktpUrl || !setelahDua.simUrl) {
+        throw new Error('salah satu berkas hilang setelah semua diunggah ulang');
+      }
+      if (setelahDua.rejectionTargets.length !== 0) {
+        throw new Error(
+          `target penolakan harus kosong, menerima ${JSON.stringify(setelahDua.rejectionTargets)}`,
+        );
+      }
+
+      /* Status final mengunci aksi dokumen: 409, bukan 200 senyap. */
+      harapan(
+        await api(`/bookings/${booking.id}/cancel`, {
+          method: 'PATCH',
+          token: customerToken,
+        }),
+        200,
+        'batalkan pesanan',
+      );
+
+      const terkunci = await requestDocumentRevision(adminToken, booking.id, {
+        catatan: 'Minta ulang setelah pesanan dibatalkan tidak boleh berpengaruh.',
+        semuaBerkas: true,
+      });
+      pastikanDitolak(terkunci, 409, 'BOOKING_FINAL', 'minta unggah ulang pada pesanan final');
+    },
+  },
+  {
+    id: 'T3.3',
+    nama: 'Rute perjalanan wajib dipilih saat menetapkan tarif',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'setujui dokumen');
+
+      const keAntrean = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      harapan(keAntrean, 200, 'kirim ke antrean konfirmasi tarif');
+
+      const tanpaRute = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CONFIRMED' },
+      });
+      harapan(tanpaRute, 400, 'konfirmasi tarif tanpa rute ditolak');
+
+      const denganRute = await api(`/admin/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CONFIRMED', routeScope: 'LUAR_KOTA' },
+      });
+      harapan(denganRute, 200, 'konfirmasi tarif dengan rute');
+
+      const detail = await api(`/admin/bookings/${booking.id}`, { token: adminToken });
+      harapan(detail, 200, 'baca detail pesanan');
+      const pesanan = detail.body.data?.booking ?? detail.body.data;
+      if (pesanan.routeScope !== 'LUAR_KOTA') {
+        throw new Error(`rute harus tersimpan LUAR_KOTA, menerima ${pesanan.routeScope}`);
+      }
     },
   },
 ];

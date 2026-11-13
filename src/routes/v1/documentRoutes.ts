@@ -59,3 +59,15 @@ documentRouter.patch(
   requireRole(UserRole.ADMIN, UserRole.STAFF),
   documentController.adminVerifyDocuments,
 );
+
+/*
+ * Permintaan unggah ulang berkas. Dipisah dari verifikasi supaya staf punya
+ * satu tindakan yang jelas: "minta perbaikan", bukan "tolak" yang terdengar
+ * seperti keputusan akhir atas pesanan.
+ */
+documentRouter.post(
+  '/admin/bookings/:id/documents/request-revision',
+  requireAuth,
+  requireRole(UserRole.ADMIN, UserRole.STAFF),
+  documentController.requestDocumentRevision,
+);

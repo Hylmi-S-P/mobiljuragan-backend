@@ -1,5 +1,10 @@
 import { db } from '../db.js';
 import { DocumentDeadlineState, DocumentStatus } from '../generated/prisma/client.js';
+import {
+  parseDocumentTargets,
+  serializeDocumentTargets,
+  type DocumentTarget,
+} from '../lib/documentTargets.js';
 
 export const documentModel = {
   /**
@@ -58,6 +63,28 @@ export const documentModel = {
       ? DocumentStatus.PENDING_VERIFICATION
       : DocumentStatus.PENDING_UPLOAD;
 
+    /* Berkas mana yang benar-benar diunggah pada permintaan ini.
+       Penting untuk dua hal: menandai berkas mana yang sudah diperbaiki, dan
+       memastikan berkas lama tidak ikut terhapus. */
+    const targetDiunggah: DocumentTarget[] = [
+      ...(data.ktpUrl ? (['KTP'] as const) : []),
+      ...(data.simUrl ? (['SIM'] as const) : []),
+      ...(data.statementLetterUrl ? (['STATEMENT'] as const) : []),
+    ];
+
+    /*
+     * Sisa berkas yang masih bermasalah.
+     *
+     * Admin bisa menolak dua berkas (mis. e-KTP dan SIM). Begitu pelanggan
+     * mengunggah ulang keduanya, tidak boleh ada lagi yang ditandai merah.
+     * Tapi kalau baru satu yang diunggah, berkas lain tetap perlu diperbaiki,
+     * dan catatan admin masih berlaku untuknya.
+     */
+    const targetSisa = parseDocumentTargets(existing?.rejectionTargets).filter(
+      (target) => !targetDiunggah.includes(target),
+    );
+    const masihAdaYangBermasalah = targetSisa.length > 0;
+
     return db.bookingDocument.upsert({
       where: { bookingId },
       create: {
@@ -69,13 +96,16 @@ export const documentModel = {
         rejectionReason: null,
       },
       update: {
-        ...(data.statementLetterUrl !== undefined
-          ? { statementLetterUrl: data.statementLetterUrl }
-          : {}),
-        ...(data.ktpUrl !== undefined ? { ktpUrl: data.ktpUrl } : {}),
-        ...(data.simUrl !== undefined ? { simUrl: data.simUrl } : {}),
+        /* Nilai yang sudah diresolusi, bukan nilai mentah dari permintaan.
+           Dulu kolom yang tidak dikirim ikut ditulis sebagai `null`, sehingga
+           mengunggah ulang dua berkas menghapus berkas ketiga yang sebelumnya
+           sudah dinyatakan benar oleh staf. */
+        statementLetterUrl,
+        ktpUrl,
+        simUrl,
         status,
-        rejectionReason: null,
+        rejectionReason: masihAdaYangBermasalah ? existing?.rejectionReason ?? null : null,
+        rejectionTargets: serializeDocumentTargets(targetSisa),
       },
     });
   },

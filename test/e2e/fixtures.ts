@@ -324,6 +324,29 @@ export async function verifyDocuments(
 }
 
 /**
+ * Meminta pelanggan mengunggah ulang berkas.
+ *
+ * Menempuh endpoint eksplisit (bukan `action: REJECT` pada verifikasi) supaya
+ * kasus uji memakai jalur yang sama dengan yang dipakai dashboard.
+ */
+export async function requestDocumentRevision(
+  adminToken: string,
+  bookingId: string,
+  payload: { catatan?: string; targets?: string[]; semuaBerkas?: boolean },
+): Promise<ResponsApi> {
+  const body: Record<string, unknown> = {};
+  if (payload.catatan !== undefined) body.catatan = payload.catatan;
+  if (payload.targets !== undefined) body.targets = payload.targets;
+  if (payload.semuaBerkas !== undefined) body.semuaBerkas = payload.semuaBerkas;
+
+  return api(`/admin/bookings/${bookingId}/documents/request-revision`, {
+    method: 'POST',
+    token: adminToken,
+    body,
+  });
+}
+
+/**
  * Mengonfirmasi tarif.
  *
  * Status CREATED tidak boleh langsung ke CONFIRMED; alurnya harus melewati
@@ -350,7 +373,7 @@ export async function confirmTariff(
     token: adminToken,
     body: {
       status: 'CONFIRMED',
-      ...(payload.routeScope ? { routeScope: payload.routeScope } : {}),
+      routeScope: payload.routeScope ?? 'DALAM_KOTA',
       ...(payload.note ? { note: payload.note } : {}),
     },
   });
