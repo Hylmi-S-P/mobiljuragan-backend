@@ -708,6 +708,73 @@ const kasus: Kasus[] = [
       harapan(salahPakai, 400, 'tolak cancelBooking pada persetujuan');
     },
   },
+  {
+    id: 'T2.4',
+    nama: 'Satu nomor hanya boleh memegang dua pesanan aktif',
+    async fn({ adminToken }) {
+      const pelanggan = await loginCustomer();
+
+      /* Tiga armada berbeda supaya yang menolak adalah batas per nomor, bukan
+         bentrok jadwal pada armada yang sama. */
+      const armada = [
+        await createVehicle(adminToken),
+        await createVehicle(adminToken),
+        await createVehicle(adminToken),
+      ];
+
+      const pertama = await createBooking(pelanggan.token, armada[0].id);
+      const kedua = await createBooking(pelanggan.token, armada[1].id);
+
+      const ketiga = await api('/bookings', {
+        method: 'POST',
+        token: pelanggan.token,
+        body: {
+          vehicleId: armada[2].id,
+          rentalType: 'WITHOUT_DRIVER',
+          pickupLocation: 'Bandara Juanda',
+          numberGuests: 2,
+          startDateTime: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+          endDateTime: new Date(Date.now() + 12 * 86_400_000).toISOString(),
+        },
+      });
+
+      harapan(ketiga, 409, 'pesanan ketiga ditolak');
+      if (ketiga.body.error?.code !== 'BOOKING_ACTIVE_LIMIT_REACHED') {
+        throw new Error(
+          `kode galat batas pesanan tidak sesuai: ${JSON.stringify(ketiga.body.error)}`,
+        );
+      }
+
+      /* Setelah satu pesanan dibatalkan, nomor itu boleh memesan lagi. */
+      const batal = await api(`/bookings/${pertama.id}/cancel`, {
+        method: 'PATCH',
+        token: pelanggan.token,
+        body: { reason: 'Ganti rencana.' },
+      });
+      harapan(batal, 200, 'batalkan pesanan pertama');
+
+      const keempat = await api('/bookings', {
+        method: 'POST',
+        token: pelanggan.token,
+        body: {
+          vehicleId: armada[2].id,
+          rentalType: 'WITHOUT_DRIVER',
+          pickupLocation: 'Bandara Juanda',
+          numberGuests: 2,
+          startDateTime: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+          endDateTime: new Date(Date.now() + 12 * 86_400_000).toISOString(),
+        },
+      });
+      harapan(keempat, 201, 'pesanan baru setelah satu dibatalkan');
+
+      /* Pastikan pesanan kedua memang masih hidup, bukan dibatalkan diam-diam. */
+      const cek = await api(`/bookings/${kedua.id}`, { token: pelanggan.token });
+      harapan(cek, 200, 'baca pesanan kedua');
+      if (cek.body.data.status !== 'CREATED') {
+        throw new Error(`pesanan kedua harus tetap CREATED, menerima ${cek.body.data.status}`);
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

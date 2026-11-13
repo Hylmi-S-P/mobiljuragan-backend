@@ -69,6 +69,15 @@ export const BOOKING_BLOCKING_STATUSES: BookingStatus[] = [
  */
 export const JAM_TENGGAT_KONFIRMASI_ADMIN = 24;
 
+/**
+ * Jumlah pesanan hidup yang boleh dipegang satu nomor telepon sekaligus.
+ *
+ * Satu nomor yang menumpuk banyak pesanan akan menahan armada dari katalog
+ * tanpa pernah membayar. Dua dipilih supaya satu keluarga masih bisa memesan
+ * dua unit, sementara penumpukan puluhan pesanan dari satu nomor terhenti.
+ */
+export const MAKS_PESANAN_AKTIF_PER_NOMOR = 2;
+
 export function isFinalBookingStatus(status: BookingStatus): boolean {
   return FINAL_BOOKING_STATUSES.includes(status);
 }

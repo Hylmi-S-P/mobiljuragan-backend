@@ -4,6 +4,7 @@ import { bookingModel } from '../model/bookingModel.js';
 import { BookingStatus, BookingStatusActor, OperationalStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
+import { MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
 import type { createBookingSchema, customerCancelBookingSchema } from '../validators/bookingSchemas.js';
 
 /**
@@ -38,6 +39,20 @@ export const bookingController = {
       const start = new Date(payload.startDateTime);
       const end = new Date(payload.endDateTime);
 
+      /* Satu nomor hanya boleh memegang sejumlah pesanan hidup. Setiap pesanan
+         hidup menahan satu unit armada dari katalog, jadi nomor yang menumpuk
+         pesanan tanpa membayar bisa mengosongkan katalog untuk pelanggan lain. */
+      const pesananAktif = await bookingModel.countActiveBookingsByPhone(
+        req.user!.phoneNumber,
+      );
+      if (pesananAktif >= MAKS_PESANAN_AKTIF_PER_NOMOR) {
+        throw new AppError(
+          'BOOKING_ACTIVE_LIMIT_REACHED',
+          `Nomor ini sudah memegang ${pesananAktif} pesanan yang belum selesai. Selesaikan atau batalkan salah satunya dulu sebelum memesan lagi (maksimal ${MAKS_PESANAN_AKTIF_PER_NOMOR} pesanan aktif).`,
+          409,
+        );
+      }
+
       const vehicle = await bookingModel.findVehicleByIdOrExternalId(payload.vehicleId);
 
       if (!vehicle) {
@@ -62,7 +77,6 @@ export const bookingController = {
         start,
         end,
       );
-
       if (conflictingBooking) {
         throw new AppError(
           'BOOKING_VEHICLE_UNAVAILABLE',

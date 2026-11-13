@@ -210,6 +210,21 @@ export const bookingModel = {
     return db.booking.findUnique({ where: { bookingCode } });
   },
 
+  /**
+   * Menghitung pesanan hidup milik satu nomor telepon.
+   *
+   * Dipakai untuk menahan satu nomor yang menumpuk pesanan tanpa pernah
+   * membayar: setiap pesanan hidup menahan satu unit armada dari katalog.
+   */
+  countActiveBookingsByPhone(phoneNumber: string) {
+    return db.booking.count({
+      where: {
+        status: { in: BOOKING_BLOCKING_STATUSES },
+        customer: { phoneNumber },
+      },
+    });
+  },
+
   /** Daftar pesanan milik pelanggan; staf dan admin melihat seluruh antrean. */
   listForActor(input: { customerId: string; isStaffOrAdmin: boolean }) {
     return db.booking.findMany({

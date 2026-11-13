@@ -41,6 +41,31 @@ export const ticketMessageRateLimiter = rateLimit({
 });
 
 /**
+ * Pembatas pembuatan pesanan baru (/api/v1/bookings).
+ *
+ * Dihitung per nomor telepon, bukan per alamat IP: batas pesanan aktif sudah
+ * dijaga per nomor, sehingga penyerang yang membuat banyak akun dari satu
+ * perangkat tetap harus melewati pembatas ini per akun. Lima pesanan per jam
+ * cukup longgar untuk pemakaian wajar (salah tanggal, ganti armada) tetapi
+ * menghentikan pembuatan pesanan beruntun secara otomatis.
+ */
+export const bookingCreateRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 jam
+  max: process.env.NODE_ENV === 'test' ? 1000 : 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.phoneNumber || req.ip || 'tanpa-identitas',
+  handler: (req, res) => {
+    sendError(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Terlalu banyak pembuatan pesanan dalam waktu singkat. Silakan tunggu satu jam sebelum memesan lagi.',
+      429,
+    );
+  },
+});
+
+/**
  * Pembatas percobaan login panel staf dan admin.
  *
  * Dua lapis, karena masing-masing menutup celah yang berbeda:
