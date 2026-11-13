@@ -103,6 +103,97 @@ export const ticketModel = {
     return db.supportTicket.create({ data });
   },
 
+  /**
+   * Tiket terbuka milik satu pesanan.
+   *
+   * Dipakai tombol "Chat dengan CS" supaya menekan tombol dua kali tidak
+   * menghasilkan dua percakapan untuk pesanan yang sama. Tiket yang sudah
+   * ditutup tidak dihitung: pelanggan yang kembali setelah lama diam berhak
+   * memulai percakapan baru, dan riwayat lama tetap tersimpan.
+   */
+  findOpenByBooking(bookingId: string, customerId: string) {
+    return db.supportTicket.findFirst({
+      where: {
+        bookingId,
+        customerId,
+        status: { notIn: STATUS_FINAL },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        messages: {
+          orderBy: { sequence: 'asc' },
+          include: {
+            sender: { select: { id: true, fullName: true, role: true } },
+          },
+        },
+      },
+    });
+  },
+
+  /**
+   * Membuat tiket dari satu pesanan beserta pesan pembuka dari asisten.
+   *
+   * Tiket dan pesan pertamanya dibuat dalam satu transaksi: tiket tanpa pesan
+   * pembuka akan tampil sebagai percakapan kosong di aplikasi pelanggan, dan
+   * pesan tanpa tiket tidak mungkin ada. Nomor tiket dihitung di luar transaksi
+   * karena hanya membaca tabel yang sama sekali berbeda.
+   */
+  async createForBooking(input: {
+    customerId: string;
+    bookingId: string;
+    title: string;
+    category: Prisma.SupportTicketCreateInput['category'];
+    description: string;
+    openingMessage: string;
+  }) {
+    const ticketNumber = await ticketModel.nextTicketNumber(new Date());
+
+    return db.$transaction(async (tx) => {
+      const tiket = await tx.supportTicket.create({
+        data: {
+          ticketNumber,
+          customer: { connect: { id: input.customerId } },
+          booking: { connect: { id: input.bookingId } },
+          title: input.title,
+          category: input.category,
+          description: input.description,
+          /* Tiket pesanan selalu dibuka asisten: pesan pertama memang balasan
+             otomatis berisi ringkasan sewa, dan pelanggan bisa langsung
+             bertanya. Penyerahan ke petugas terjadi lewat `handoverToHuman`. */
+          handledBy: TicketHandler.AI,
+          status: TicketStatus.OPEN,
+        },
+      });
+
+      await tx.ticketMessage.create({
+        data: {
+          ticket: { connect: { id: tiket.id } },
+          body: input.openingMessage,
+          isCustomer: false,
+          isAi: true,
+          sequence: 1,
+        },
+      });
+
+      return tiket;
+    });
+  },
+
+  /**
+   * Membuka kembali tiket yang ditutup sistem ketika pelanggan menulis lagi.
+   *
+   * Hanya berlaku untuk tiket yang ditutup otomatis (`closedBySystem`), bukan
+   * tiket yang ditutup pelanggan sendiri — yang terakhir itu keputusan sadar dan
+   * tidak boleh dibatalkan diam-diam oleh satu pesan.
+   */
+  async reopenClosedBySystem(ticketId: string) {
+    const hasil = await db.supportTicket.updateMany({
+      where: { id: ticketId, status: TicketStatus.CLOSED, closedBySystem: true },
+      data: { status: TicketStatus.OPEN, closedBySystem: false, closedAt: null },
+    });
+    return hasil.count > 0;
+  },
+
   updateStatus(id: string, status: TicketStatus) {
     return db.supportTicket.update({ where: { id }, data: { status } });
   },
@@ -362,27 +453,93 @@ export const ticketModel = {
       },
       data: {
         status: TicketStatus.CLOSED,
+        closedAt: new Date(),
+        closedBySystem: true,
       },
     });
     return result.count;
   },
 
   /**
-   * Menutup otomatis sesi AI yang ditinggalkan tanpa pesan baru selama lebih dari 24 jam.
+   * Menutup tiket yang tidak bergerak selama lebih dari 24 jam.
+   *
+   * Berlaku untuk semua tiket, bukan hanya yang dipegang asisten. Keputusan ini
+   * diambil karena staf tidak bisa menutup tiket dan pelanggan sering tidak
+   * peduli menutupnya: tanpa penutupan oleh sistem, antrean customer care akan
+   * menumpuk dengan percakapan yang sudah selesai.
+   *
+   * Ukurannya `lastActivityAt`, bukan `updatedAt`: kolom terakhir ikut berubah
+   * saat admin hanya mengganti kategori, dan itu bukan tanda percakapan hidup.
+   *
+   * Tiket yang pesan terakhirnya dari pelanggan dan belum dijawab tetap ditutup,
+   * tetapi diberi catatan penutup supaya staf tahu ada pertanyaan yang terlewat.
    */
-  async autoCloseStaleAiSessions(olderThanHours = 24) {
+  async autoCloseIdleTickets(olderThanHours = 24) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
-    const result = await db.supportTicket.updateMany({
+
+    const kandidat = await db.supportTicket.findMany({
       where: {
-        handledBy: TicketHandler.AI,
-        status: { notIn: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
-        updatedAt: { lte: cutoff },
+        status: { notIn: STATUS_FINAL },
+        lastActivityAt: { lte: cutoff },
       },
-      data: {
-        status: TicketStatus.CLOSED,
+      select: {
+        id: true,
+        messages: {
+          orderBy: { sequence: 'desc' },
+          take: 1,
+          select: { isCustomer: true },
+        },
       },
     });
-    return result.count;
+
+    let ditutup = 0;
+    for (const tiket of kandidat) {
+      const terakhirDariPelanggan = tiket.messages[0]?.isCustomer === true;
+      const catatan = terakhirDariPelanggan
+        ? 'Tiket ditutup otomatis karena tidak ada balasan selama 24 jam. Pesan terakhir Anda belum sempat dijawab petugas; tulis lagi di tiket ini bila masih perlu dibantu.'
+        : 'Tiket ditutup otomatis karena tidak ada aktivitas selama 24 jam. Tulis lagi di tiket ini bila masih perlu dibantu.';
+
+      const hasil = await db.$transaction(async (tx) => {
+        const terakhir = await tx.ticketMessage.findFirst({
+          where: { ticketId: tiket.id },
+          orderBy: { sequence: 'desc' },
+          select: { sequence: true },
+        });
+
+        await tx.ticketMessage.create({
+          data: {
+            ticket: { connect: { id: tiket.id } },
+            body: catatan,
+            isCustomer: false,
+            isAi: true,
+            sequence: (terakhir?.sequence ?? 0) + 1,
+          },
+        });
+
+        return tx.supportTicket.updateMany({
+          where: { id: tiket.id, status: { notIn: STATUS_FINAL } },
+          data: {
+            status: TicketStatus.CLOSED,
+            closedAt: new Date(),
+            closedBySystem: true,
+          },
+        });
+      });
+
+      ditutup += hasil.count;
+    }
+
+    return ditutup;
+  },
+
+  /**
+   * Menutup otomatis sesi AI yang ditinggalkan tanpa pesan baru selama lebih dari 24 jam.
+   *
+   * Dipertahankan untuk pemanggil lama; perilakunya kini sama dengan
+   * `autoCloseIdleTickets` karena penutupan berlaku untuk semua tiket.
+   */
+  async autoCloseStaleAiSessions(olderThanHours = 24) {
+    return ticketModel.autoCloseIdleTickets(olderThanHours);
   },
 
   /**
@@ -396,6 +553,8 @@ export const ticketModel = {
       },
       data: {
         status: TicketStatus.CLOSED,
+        closedAt: new Date(),
+        closedBySystem: false,
       },
     });
     return result.count > 0;

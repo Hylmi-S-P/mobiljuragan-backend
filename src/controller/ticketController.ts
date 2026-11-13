@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import { TicketCategory, TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
 import { ticketModel } from '../model/ticketModel.js';
+import { bookingModel } from '../model/bookingModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
+import { NOMOR_WHATSAPP_KANTOR, formatWaktuBantuan } from '../lib/kontak.js';
 
 /**
  * Controller customer care.
@@ -46,6 +48,46 @@ function validateTicketText(title: string, description: string): void {
       400,
     );
   }
+}
+
+/**
+ * Menyusun pesan pembuka percakapan bantuan untuk satu pesanan.
+ *
+ * Isinya hanya data yang memang sudah tercatat di sistem. Sengaja tidak memuat
+ * status pembayaran: status itu bisa berubah setelah pesan ini tersimpan, dan
+ * pesan lama yang menyebut "sudah lunas" akan menyesatkan pembaca berikutnya.
+ */
+function susunPesanPembukaBantuan(booking: {
+  bookingCode: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  pickupLocation: string | null;
+  rentalType: string;
+  vehicle: { name: string; licensePlate: string };
+  driver: { fullName: string; phoneNumber: string | null } | null;
+}): string {
+  const baris = [
+    `Halo, ini percakapan bantuan untuk pesanan ${booking.bookingCode}.`,
+    '',
+    `Unit: ${booking.vehicle.name} (${booking.vehicle.licensePlate})`,
+    `Jadwal: ${formatWaktuBantuan(booking.startDateTime)} sampai ${formatWaktuBantuan(booking.endDateTime)}`,
+    `Titik jemput: ${booking.pickupLocation ?? 'Kantor MobilJuragan'}`,
+  ];
+
+  if (booking.rentalType === 'WITH_DRIVER') {
+    baris.push(
+      booking.driver
+        ? `Supir: ${booking.driver.fullName}${booking.driver.phoneNumber ? ` (${booking.driver.phoneNumber})` : ''}`
+        : 'Supir: belum ditugaskan',
+    );
+  }
+
+  baris.push(
+    '',
+    `Tulis kebutuhan Anda di sini. Bila perlu bicara langsung, kantor bisa dihubungi di ${NOMOR_WHATSAPP_KANTOR}.`,
+  );
+
+  return baris.join('\n');
 }
 
 const CATEGORY_MAP: Record<string, TicketCategory> = {
@@ -589,6 +631,68 @@ export const ticketController = {
   },
 
   /**
+   * POST /api/v1/tickets/booking/:bookingId
+   *
+   * Membuka percakapan bantuan untuk satu pesanan, atau mengembalikan percakapan
+   * yang masih terbuka untuk pesanan itu.
+   *
+   * Tombol "Chat dengan CS" di aplikasi pelanggan memakai endpoint ini. Tanpa
+   * aturan "satu tiket terbuka per pesanan", menekan tombol dua kali akan
+   * menghasilkan dua percakapan untuk pesanan yang sama, dan staf harus membaca
+   * keduanya untuk tahu apa yang sudah dijawab.
+   *
+   * Pesan pembuka ditulis asisten, bukan pelanggan: isinya ringkasan sewa yang
+   * memang sudah diketahui sistem (unit, jadwal, titik jemput, supir, nomor
+   * kantor), sehingga pelanggan tidak perlu mengetik ulang dan staf langsung
+   * melihat konteksnya.
+   */
+  async createBookingTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const actor = req.user!;
+
+      const booking = await bookingModel.findCustomerDetail({
+        id: bookingId,
+        customerId: actor.userId,
+        isStaffOrAdmin: actor.role !== UserRole.CUSTOMER,
+      });
+
+      if (!booking) {
+        throw new AppError(
+          'BOOKING_NOT_FOUND',
+          `Pesanan dengan ID '${bookingId}' tidak ditemukan.`,
+          404,
+        );
+      }
+
+      const terbuka = await ticketModel.findOpenByBooking(booking.id, booking.customerId);
+      if (terbuka) {
+        sendSuccess(res, { ...terbuka, dipakaiUlang: true }, 200);
+        return;
+      }
+
+      const judul = `Bantuan pesanan ${booking.bookingCode}`.slice(0, MAKS_PANJANG_JUDUL);
+      const pembuka = susunPesanPembukaBantuan(booking);
+
+      const created = await ticketModel.createForBooking({
+        customerId: booking.customerId,
+        bookingId: booking.id,
+        title: judul,
+        category: TicketCategory.GENERAL,
+        description: `Percakapan bantuan untuk pesanan ${booking.bookingCode}.`,
+        openingMessage: pembuka,
+      });
+
+      /* Dibaca ulang lewat `findById`: pelanggan harus langsung melihat pesan
+         pembuka di layar, dan respons pembuatan tiket tidak memuat percakapan. */
+      const lengkap = await ticketModel.findById(created.id);
+      sendSuccess(res, { ...(lengkap ?? created), dipakaiUlang: false }, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * POST /api/v1/tickets/ai-session
    *
    * Membuat tiket dari percakapan dengan asisten AI, atau mengembalikan tiket sesi
@@ -670,14 +774,32 @@ export const ticketController = {
       /* Bug produksi: pelanggan masih bisa mengirim pesan ke tiket yang sudah
          selesai, dan tiket RESOLVED bahkan dibuka kembali menjadi IN_PROGRESS.
          Akibatnya percakapan yang sudah ditutup hidup lagi tanpa ada yang
-         menanganinya. Tiket final kini menolak pesan; pelanggan diarahkan
-         membuat tiket baru. */
-      if (TIKET_FINAL.includes(existing.status)) {
+         menanganinya.
+
+         Aturannya sekarang dibedakan menurut siapa yang menutup:
+         - Ditutup sistem karena diam 24 jam: boleh hidup lagi bila pelanggan
+           menulis dalam 7 hari. Pelanggan yang baru sempat membalas setelah
+           seharian tidak seharusnya kehilangan riwayat percakapannya.
+         - Ditutup pelanggan sendiri: tidak dibuka lagi. Itu keputusan sadar.
+         - RESOLVED (menunggu konfirmasi pelanggan): pesan pelanggan memang
+           tanda percakapan berlanjut, jadi tiket kembali IN_PROGRESS. */
+      const batasBukaUlang = 7 * 24 * 60 * 60 * 1000;
+      const bolehBukaUlang =
+        existing.status === TicketStatus.CLOSED &&
+        existing.closedBySystem &&
+        existing.closedAt !== null &&
+        Date.now() - existing.closedAt.getTime() <= batasBukaUlang;
+
+      if (TIKET_FINAL.includes(existing.status) && !bolehBukaUlang) {
         throw new AppError(
           'TICKET_CLOSED',
           'Tiket ini sudah selesai dan tidak menerima pesan baru. Buat tiket baru untuk melanjutkan.',
           409,
         );
+      }
+
+      if (bolehBukaUlang) {
+        await ticketModel.reopenClosedBySystem(id);
       }
 
       const message = await ticketModel.createMessage({
@@ -688,7 +810,10 @@ export const ticketController = {
       });
 
       // Kembalikan tiket ke proses tim jika sebelumnya menunggu pelanggan.
-      if (existing.status === TicketStatus.WAITING_CUSTOMER) {
+      if (
+        existing.status === TicketStatus.WAITING_CUSTOMER ||
+        existing.status === TicketStatus.RESOLVED
+      ) {
         await ticketModel.updateStatus(id, TicketStatus.IN_PROGRESS);
       }
 

@@ -37,6 +37,9 @@ export type SupportTicketMinAggregateOutputType = {
   lastActivityAt: Date | null
   assignedAdminId: string | null
   assignedAt: Date | null
+  bookingId: string | null
+  closedAt: Date | null
+  closedBySystem: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,6 +57,9 @@ export type SupportTicketMaxAggregateOutputType = {
   lastActivityAt: Date | null
   assignedAdminId: string | null
   assignedAt: Date | null
+  bookingId: string | null
+  closedAt: Date | null
+  closedBySystem: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -71,6 +77,9 @@ export type SupportTicketCountAggregateOutputType = {
   lastActivityAt: number
   assignedAdminId: number
   assignedAt: number
+  bookingId: number
+  closedAt: number
+  closedBySystem: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -90,6 +99,9 @@ export type SupportTicketMinAggregateInputType = {
   lastActivityAt?: true
   assignedAdminId?: true
   assignedAt?: true
+  bookingId?: true
+  closedAt?: true
+  closedBySystem?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -107,6 +119,9 @@ export type SupportTicketMaxAggregateInputType = {
   lastActivityAt?: true
   assignedAdminId?: true
   assignedAt?: true
+  bookingId?: true
+  closedAt?: true
+  closedBySystem?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -124,6 +139,9 @@ export type SupportTicketCountAggregateInputType = {
   lastActivityAt?: true
   assignedAdminId?: true
   assignedAt?: true
+  bookingId?: true
+  closedAt?: true
+  closedBySystem?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -214,6 +232,9 @@ export type SupportTicketGroupByOutputType = {
   lastActivityAt: Date
   assignedAdminId: string | null
   assignedAt: Date | null
+  bookingId: string | null
+  closedAt: Date | null
+  closedBySystem: boolean
   createdAt: Date
   updatedAt: Date
   _count: SupportTicketCountAggregateOutputType | null
@@ -252,10 +273,14 @@ export type SupportTicketWhereInput = {
   lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   assignedAdminId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
   assignedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  bookingId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
+  closedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  closedBySystem?: Prisma.BoolFilter<"SupportTicket"> | boolean
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   customer?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   assignedAdmin?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  booking?: Prisma.XOR<Prisma.BookingNullableScalarRelationFilter, Prisma.BookingWhereInput> | null
   messages?: Prisma.TicketMessageListRelationFilter
 }
 
@@ -272,10 +297,14 @@ export type SupportTicketOrderByWithRelationInput = {
   lastActivityAt?: Prisma.SortOrder
   assignedAdminId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  bookingId?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedBySystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   customer?: Prisma.UserOrderByWithRelationInput
   assignedAdmin?: Prisma.UserOrderByWithRelationInput
+  booking?: Prisma.BookingOrderByWithRelationInput
   messages?: Prisma.TicketMessageOrderByRelationAggregateInput
   _relevance?: Prisma.SupportTicketOrderByRelevanceInput
 }
@@ -296,10 +325,14 @@ export type SupportTicketWhereUniqueInput = Prisma.AtLeast<{
   lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   assignedAdminId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
   assignedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  bookingId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
+  closedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  closedBySystem?: Prisma.BoolFilter<"SupportTicket"> | boolean
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   customer?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   assignedAdmin?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  booking?: Prisma.XOR<Prisma.BookingNullableScalarRelationFilter, Prisma.BookingWhereInput> | null
   messages?: Prisma.TicketMessageListRelationFilter
 }, "id" | "ticketNumber">
 
@@ -316,6 +349,9 @@ export type SupportTicketOrderByWithAggregationInput = {
   lastActivityAt?: Prisma.SortOrder
   assignedAdminId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  bookingId?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedBySystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SupportTicketCountOrderByAggregateInput
@@ -339,6 +375,9 @@ export type SupportTicketScalarWhereWithAggregatesInput = {
   lastActivityAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
   assignedAdminId?: Prisma.StringNullableWithAggregatesFilter<"SupportTicket"> | string | null
   assignedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupportTicket"> | Date | string | null
+  bookingId?: Prisma.StringNullableWithAggregatesFilter<"SupportTicket"> | string | null
+  closedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupportTicket"> | Date | string | null
+  closedBySystem?: Prisma.BoolWithAggregatesFilter<"SupportTicket"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SupportTicket"> | Date | string
 }
@@ -354,10 +393,13 @@ export type SupportTicketCreateInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   customer: Prisma.UserCreateNestedOneWithoutTicketsInput
   assignedAdmin?: Prisma.UserCreateNestedOneWithoutAssignedTicketsInput
+  booking?: Prisma.BookingCreateNestedOneWithoutTicketsInput
   messages?: Prisma.TicketMessageCreateNestedManyWithoutTicketInput
 }
 
@@ -374,6 +416,9 @@ export type SupportTicketUncheckedCreateInput = {
   lastActivityAt?: Date | string
   assignedAdminId?: string | null
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
@@ -390,10 +435,13 @@ export type SupportTicketUpdateInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
   assignedAdmin?: Prisma.UserUpdateOneWithoutAssignedTicketsNestedInput
+  booking?: Prisma.BookingUpdateOneWithoutTicketsNestedInput
   messages?: Prisma.TicketMessageUpdateManyWithoutTicketNestedInput
 }
 
@@ -410,6 +458,9 @@ export type SupportTicketUncheckedUpdateInput = {
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
@@ -428,6 +479,9 @@ export type SupportTicketCreateManyInput = {
   lastActivityAt?: Date | string
   assignedAdminId?: string | null
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -443,6 +497,8 @@ export type SupportTicketUpdateManyMutationInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -460,6 +516,9 @@ export type SupportTicketUncheckedUpdateManyInput = {
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -493,6 +552,9 @@ export type SupportTicketCountOrderByAggregateInput = {
   lastActivityAt?: Prisma.SortOrder
   assignedAdminId?: Prisma.SortOrder
   assignedAt?: Prisma.SortOrder
+  bookingId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedBySystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -510,6 +572,9 @@ export type SupportTicketMaxOrderByAggregateInput = {
   lastActivityAt?: Prisma.SortOrder
   assignedAdminId?: Prisma.SortOrder
   assignedAt?: Prisma.SortOrder
+  bookingId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedBySystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -527,6 +592,9 @@ export type SupportTicketMinOrderByAggregateInput = {
   lastActivityAt?: Prisma.SortOrder
   assignedAdminId?: Prisma.SortOrder
   assignedAt?: Prisma.SortOrder
+  bookingId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedBySystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -620,6 +688,48 @@ export type SupportTicketUncheckedUpdateManyWithoutAssignedAdminNestedInput = {
   deleteMany?: Prisma.SupportTicketScalarWhereInput | Prisma.SupportTicketScalarWhereInput[]
 }
 
+export type SupportTicketCreateNestedManyWithoutBookingInput = {
+  create?: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput> | Prisma.SupportTicketCreateWithoutBookingInput[] | Prisma.SupportTicketUncheckedCreateWithoutBookingInput[]
+  connectOrCreate?: Prisma.SupportTicketCreateOrConnectWithoutBookingInput | Prisma.SupportTicketCreateOrConnectWithoutBookingInput[]
+  createMany?: Prisma.SupportTicketCreateManyBookingInputEnvelope
+  connect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+}
+
+export type SupportTicketUncheckedCreateNestedManyWithoutBookingInput = {
+  create?: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput> | Prisma.SupportTicketCreateWithoutBookingInput[] | Prisma.SupportTicketUncheckedCreateWithoutBookingInput[]
+  connectOrCreate?: Prisma.SupportTicketCreateOrConnectWithoutBookingInput | Prisma.SupportTicketCreateOrConnectWithoutBookingInput[]
+  createMany?: Prisma.SupportTicketCreateManyBookingInputEnvelope
+  connect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+}
+
+export type SupportTicketUpdateManyWithoutBookingNestedInput = {
+  create?: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput> | Prisma.SupportTicketCreateWithoutBookingInput[] | Prisma.SupportTicketUncheckedCreateWithoutBookingInput[]
+  connectOrCreate?: Prisma.SupportTicketCreateOrConnectWithoutBookingInput | Prisma.SupportTicketCreateOrConnectWithoutBookingInput[]
+  upsert?: Prisma.SupportTicketUpsertWithWhereUniqueWithoutBookingInput | Prisma.SupportTicketUpsertWithWhereUniqueWithoutBookingInput[]
+  createMany?: Prisma.SupportTicketCreateManyBookingInputEnvelope
+  set?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  disconnect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  delete?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  connect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  update?: Prisma.SupportTicketUpdateWithWhereUniqueWithoutBookingInput | Prisma.SupportTicketUpdateWithWhereUniqueWithoutBookingInput[]
+  updateMany?: Prisma.SupportTicketUpdateManyWithWhereWithoutBookingInput | Prisma.SupportTicketUpdateManyWithWhereWithoutBookingInput[]
+  deleteMany?: Prisma.SupportTicketScalarWhereInput | Prisma.SupportTicketScalarWhereInput[]
+}
+
+export type SupportTicketUncheckedUpdateManyWithoutBookingNestedInput = {
+  create?: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput> | Prisma.SupportTicketCreateWithoutBookingInput[] | Prisma.SupportTicketUncheckedCreateWithoutBookingInput[]
+  connectOrCreate?: Prisma.SupportTicketCreateOrConnectWithoutBookingInput | Prisma.SupportTicketCreateOrConnectWithoutBookingInput[]
+  upsert?: Prisma.SupportTicketUpsertWithWhereUniqueWithoutBookingInput | Prisma.SupportTicketUpsertWithWhereUniqueWithoutBookingInput[]
+  createMany?: Prisma.SupportTicketCreateManyBookingInputEnvelope
+  set?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  disconnect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  delete?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  connect?: Prisma.SupportTicketWhereUniqueInput | Prisma.SupportTicketWhereUniqueInput[]
+  update?: Prisma.SupportTicketUpdateWithWhereUniqueWithoutBookingInput | Prisma.SupportTicketUpdateWithWhereUniqueWithoutBookingInput[]
+  updateMany?: Prisma.SupportTicketUpdateManyWithWhereWithoutBookingInput | Prisma.SupportTicketUpdateManyWithWhereWithoutBookingInput[]
+  deleteMany?: Prisma.SupportTicketScalarWhereInput | Prisma.SupportTicketScalarWhereInput[]
+}
+
 export type EnumTicketCategoryFieldUpdateOperationsInput = {
   set?: $Enums.TicketCategory
 }
@@ -657,9 +767,12 @@ export type SupportTicketCreateWithoutCustomerInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   assignedAdmin?: Prisma.UserCreateNestedOneWithoutAssignedTicketsInput
+  booking?: Prisma.BookingCreateNestedOneWithoutTicketsInput
   messages?: Prisma.TicketMessageCreateNestedManyWithoutTicketInput
 }
 
@@ -675,6 +788,9 @@ export type SupportTicketUncheckedCreateWithoutCustomerInput = {
   lastActivityAt?: Date | string
   assignedAdminId?: string | null
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
@@ -701,9 +817,12 @@ export type SupportTicketCreateWithoutAssignedAdminInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   customer: Prisma.UserCreateNestedOneWithoutTicketsInput
+  booking?: Prisma.BookingCreateNestedOneWithoutTicketsInput
   messages?: Prisma.TicketMessageCreateNestedManyWithoutTicketInput
 }
 
@@ -719,6 +838,9 @@ export type SupportTicketUncheckedCreateWithoutAssignedAdminInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
@@ -766,6 +888,9 @@ export type SupportTicketScalarWhereInput = {
   lastActivityAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   assignedAdminId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
   assignedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  bookingId?: Prisma.StringNullableFilter<"SupportTicket"> | string | null
+  closedAt?: Prisma.DateTimeNullableFilter<"SupportTicket"> | Date | string | null
+  closedBySystem?: Prisma.BoolFilter<"SupportTicket"> | boolean
   createdAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SupportTicket"> | Date | string
 }
@@ -786,6 +911,72 @@ export type SupportTicketUpdateManyWithWhereWithoutAssignedAdminInput = {
   data: Prisma.XOR<Prisma.SupportTicketUpdateManyMutationInput, Prisma.SupportTicketUncheckedUpdateManyWithoutAssignedAdminInput>
 }
 
+export type SupportTicketCreateWithoutBookingInput = {
+  id?: string
+  ticketNumber: string
+  title: string
+  category: $Enums.TicketCategory
+  description: string
+  status?: $Enums.TicketStatus
+  handledBy?: $Enums.TicketHandler
+  handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
+  assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  customer: Prisma.UserCreateNestedOneWithoutTicketsInput
+  assignedAdmin?: Prisma.UserCreateNestedOneWithoutAssignedTicketsInput
+  messages?: Prisma.TicketMessageCreateNestedManyWithoutTicketInput
+}
+
+export type SupportTicketUncheckedCreateWithoutBookingInput = {
+  id?: string
+  ticketNumber: string
+  customerId: string
+  title: string
+  category: $Enums.TicketCategory
+  description: string
+  status?: $Enums.TicketStatus
+  handledBy?: $Enums.TicketHandler
+  handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
+  assignedAdminId?: string | null
+  assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutTicketInput
+}
+
+export type SupportTicketCreateOrConnectWithoutBookingInput = {
+  where: Prisma.SupportTicketWhereUniqueInput
+  create: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput>
+}
+
+export type SupportTicketCreateManyBookingInputEnvelope = {
+  data: Prisma.SupportTicketCreateManyBookingInput | Prisma.SupportTicketCreateManyBookingInput[]
+  skipDuplicates?: boolean
+}
+
+export type SupportTicketUpsertWithWhereUniqueWithoutBookingInput = {
+  where: Prisma.SupportTicketWhereUniqueInput
+  update: Prisma.XOR<Prisma.SupportTicketUpdateWithoutBookingInput, Prisma.SupportTicketUncheckedUpdateWithoutBookingInput>
+  create: Prisma.XOR<Prisma.SupportTicketCreateWithoutBookingInput, Prisma.SupportTicketUncheckedCreateWithoutBookingInput>
+}
+
+export type SupportTicketUpdateWithWhereUniqueWithoutBookingInput = {
+  where: Prisma.SupportTicketWhereUniqueInput
+  data: Prisma.XOR<Prisma.SupportTicketUpdateWithoutBookingInput, Prisma.SupportTicketUncheckedUpdateWithoutBookingInput>
+}
+
+export type SupportTicketUpdateManyWithWhereWithoutBookingInput = {
+  where: Prisma.SupportTicketScalarWhereInput
+  data: Prisma.XOR<Prisma.SupportTicketUpdateManyMutationInput, Prisma.SupportTicketUncheckedUpdateManyWithoutBookingInput>
+}
+
 export type SupportTicketCreateWithoutMessagesInput = {
   id?: string
   ticketNumber: string
@@ -797,10 +988,13 @@ export type SupportTicketCreateWithoutMessagesInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   customer: Prisma.UserCreateNestedOneWithoutTicketsInput
   assignedAdmin?: Prisma.UserCreateNestedOneWithoutAssignedTicketsInput
+  booking?: Prisma.BookingCreateNestedOneWithoutTicketsInput
 }
 
 export type SupportTicketUncheckedCreateWithoutMessagesInput = {
@@ -816,6 +1010,9 @@ export type SupportTicketUncheckedCreateWithoutMessagesInput = {
   lastActivityAt?: Date | string
   assignedAdminId?: string | null
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -847,10 +1044,13 @@ export type SupportTicketUpdateWithoutMessagesInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
   assignedAdmin?: Prisma.UserUpdateOneWithoutAssignedTicketsNestedInput
+  booking?: Prisma.BookingUpdateOneWithoutTicketsNestedInput
 }
 
 export type SupportTicketUncheckedUpdateWithoutMessagesInput = {
@@ -866,6 +1066,9 @@ export type SupportTicketUncheckedUpdateWithoutMessagesInput = {
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -882,6 +1085,9 @@ export type SupportTicketCreateManyCustomerInput = {
   lastActivityAt?: Date | string
   assignedAdminId?: string | null
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -898,6 +1104,9 @@ export type SupportTicketCreateManyAssignedAdminInput = {
   handoverAt?: Date | string | null
   lastActivityAt?: Date | string
   assignedAt?: Date | string | null
+  bookingId?: string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -913,9 +1122,12 @@ export type SupportTicketUpdateWithoutCustomerInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdmin?: Prisma.UserUpdateOneWithoutAssignedTicketsNestedInput
+  booking?: Prisma.BookingUpdateOneWithoutTicketsNestedInput
   messages?: Prisma.TicketMessageUpdateManyWithoutTicketNestedInput
 }
 
@@ -931,6 +1143,9 @@ export type SupportTicketUncheckedUpdateWithoutCustomerInput = {
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
@@ -948,6 +1163,9 @@ export type SupportTicketUncheckedUpdateManyWithoutCustomerInput = {
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -963,9 +1181,12 @@ export type SupportTicketUpdateWithoutAssignedAdminInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
+  booking?: Prisma.BookingUpdateOneWithoutTicketsNestedInput
   messages?: Prisma.TicketMessageUpdateManyWithoutTicketNestedInput
 }
 
@@ -981,6 +1202,9 @@ export type SupportTicketUncheckedUpdateWithoutAssignedAdminInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
@@ -998,6 +1222,87 @@ export type SupportTicketUncheckedUpdateManyWithoutAssignedAdminInput = {
   handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bookingId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type SupportTicketCreateManyBookingInput = {
+  id?: string
+  ticketNumber: string
+  customerId: string
+  title: string
+  category: $Enums.TicketCategory
+  description: string
+  status?: $Enums.TicketStatus
+  handledBy?: $Enums.TicketHandler
+  handoverAt?: Date | string | null
+  lastActivityAt?: Date | string
+  assignedAdminId?: string | null
+  assignedAt?: Date | string | null
+  closedAt?: Date | string | null
+  closedBySystem?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type SupportTicketUpdateWithoutBookingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ticketNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.EnumTicketCategoryFieldUpdateOperationsInput | $Enums.TicketCategory
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+  handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
+  handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customer?: Prisma.UserUpdateOneRequiredWithoutTicketsNestedInput
+  assignedAdmin?: Prisma.UserUpdateOneWithoutAssignedTicketsNestedInput
+  messages?: Prisma.TicketMessageUpdateManyWithoutTicketNestedInput
+}
+
+export type SupportTicketUncheckedUpdateWithoutBookingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ticketNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.EnumTicketCategoryFieldUpdateOperationsInput | $Enums.TicketCategory
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+  handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
+  handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.TicketMessageUncheckedUpdateManyWithoutTicketNestedInput
+}
+
+export type SupportTicketUncheckedUpdateManyWithoutBookingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ticketNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.EnumTicketCategoryFieldUpdateOperationsInput | $Enums.TicketCategory
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+  handledBy?: Prisma.EnumTicketHandlerFieldUpdateOperationsInput | $Enums.TicketHandler
+  handoverAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastActivityAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assignedAdminId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedBySystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1046,10 +1351,14 @@ export type SupportTicketSelect<ExtArgs extends runtime.Types.Extensions.Interna
   lastActivityAt?: boolean
   assignedAdminId?: boolean
   assignedAt?: boolean
+  bookingId?: boolean
+  closedAt?: boolean
+  closedBySystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   customer?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   assignedAdmin?: boolean | Prisma.SupportTicket$assignedAdminArgs<ExtArgs>
+  booking?: boolean | Prisma.SupportTicket$bookingArgs<ExtArgs>
   messages?: boolean | Prisma.SupportTicket$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.SupportTicketCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["supportTicket"]>
@@ -1069,14 +1378,18 @@ export type SupportTicketSelectScalar = {
   lastActivityAt?: boolean
   assignedAdminId?: boolean
   assignedAt?: boolean
+  bookingId?: boolean
+  closedAt?: boolean
+  closedBySystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SupportTicketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketNumber" | "customerId" | "title" | "category" | "description" | "status" | "handledBy" | "handoverAt" | "lastActivityAt" | "assignedAdminId" | "assignedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["supportTicket"]>
+export type SupportTicketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketNumber" | "customerId" | "title" | "category" | "description" | "status" | "handledBy" | "handoverAt" | "lastActivityAt" | "assignedAdminId" | "assignedAt" | "bookingId" | "closedAt" | "closedBySystem" | "createdAt" | "updatedAt", ExtArgs["result"]["supportTicket"]>
 export type SupportTicketInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customer?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   assignedAdmin?: boolean | Prisma.SupportTicket$assignedAdminArgs<ExtArgs>
+  booking?: boolean | Prisma.SupportTicket$bookingArgs<ExtArgs>
   messages?: boolean | Prisma.SupportTicket$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.SupportTicketCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1086,6 +1399,7 @@ export type $SupportTicketPayload<ExtArgs extends runtime.Types.Extensions.Inter
   objects: {
     customer: Prisma.$UserPayload<ExtArgs>
     assignedAdmin: Prisma.$UserPayload<ExtArgs> | null
+    booking: Prisma.$BookingPayload<ExtArgs> | null
     messages: Prisma.$TicketMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1133,6 +1447,23 @@ export type $SupportTicketPayload<ExtArgs extends runtime.Types.Extensions.Inter
      * memungkinkan pelepasan klaim secara sadar oleh admin atau super admin.
      */
     assignedAt: Date | null
+    /**
+     * Pesanan yang menjadi pokok percakapan, bila tiket ini lahir dari tombol
+     * "Chat dengan CS" pada satu pesanan. Null untuk tiket bantuan umum.
+     * 
+     * Satu pesanan hanya punya satu tiket terbuka; tiket lama yang sudah ditutup
+     * tetap menyimpan tautannya supaya riwayat percakapan bisa ditelusuri.
+     */
+    bookingId: string | null
+    /**
+     * Kapan tiket ditutup, dan apakah yang menutupnya sistem.
+     * 
+     * Dipakai aturan pembukaan ulang: tiket yang ditutup sistem boleh hidup lagi
+     * bila pelanggan menulis dalam 7 hari, sedangkan tiket yang ditutup pelanggan
+     * sendiri tidak — itu keputusan sadar dan tidak boleh dibatalkan diam-diam.
+     */
+    closedAt: Date | null
+    closedBySystem: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["supportTicket"]>
@@ -1477,6 +1808,7 @@ export interface Prisma__SupportTicketClient<T, Null = never, ExtArgs extends ru
   readonly [Symbol.toStringTag]: "PrismaPromise"
   customer<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   assignedAdmin<T extends Prisma.SupportTicket$assignedAdminArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SupportTicket$assignedAdminArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  booking<T extends Prisma.SupportTicket$bookingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SupportTicket$bookingArgs<ExtArgs>>): Prisma.Prisma__BookingClient<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   messages<T extends Prisma.SupportTicket$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SupportTicket$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1519,6 +1851,9 @@ export interface SupportTicketFieldRefs {
   readonly lastActivityAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
   readonly assignedAdminId: Prisma.FieldRef<"SupportTicket", 'String'>
   readonly assignedAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
+  readonly bookingId: Prisma.FieldRef<"SupportTicket", 'String'>
+  readonly closedAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
+  readonly closedBySystem: Prisma.FieldRef<"SupportTicket", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SupportTicket", 'DateTime'>
 }
@@ -1885,6 +2220,25 @@ export type SupportTicket$assignedAdminArgs<ExtArgs extends runtime.Types.Extens
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * SupportTicket.booking
+ */
+export type SupportTicket$bookingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Booking
+   */
+  select?: Prisma.BookingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Booking
+   */
+  omit?: Prisma.BookingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BookingInclude<ExtArgs> | null
+  where?: Prisma.BookingWhereInput
 }
 
 /**

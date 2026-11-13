@@ -1784,6 +1784,65 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T6.20',
+    nama: 'Tombol chat pesanan membuka satu tiket berisi ringkasan sewa',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+
+      const pertama = await api(`/tickets/booking/${booking.id}`, {
+        method: 'POST',
+        token: customerToken,
+      });
+      harapan(pertama, 201, 'buka tiket pesanan');
+
+      const tiket = pertama.body.data;
+      if (tiket.bookingId !== booking.id) {
+        throw new Error('tiket tidak menyimpan tautan ke pesanan');
+      }
+      if (tiket.handledBy !== 'AI') {
+        throw new Error(`tiket pesanan harus dibuka asisten, bukan ${tiket.handledBy}`);
+      }
+
+      const pesanPembuka = tiket.messages?.[0];
+      if (!pesanPembuka) {
+        throw new Error('tiket pesanan dibuat tanpa pesan pembuka');
+      }
+      if (!pesanPembuka.isAi) {
+        throw new Error('pesan pembuka harus ditulis asisten');
+      }
+      if (!pesanPembuka.body.includes(booking.bookingCode)) {
+        throw new Error('pesan pembuka tidak menyebut kode pesanan');
+      }
+      if (!pesanPembuka.body.includes(booking.vehicle.name)) {
+        throw new Error('pesan pembuka tidak menyebut unit yang disewa');
+      }
+      if (!pesanPembuka.body.includes('0812-3456-7890')) {
+        throw new Error('pesan pembuka tidak memuat nomor kantor');
+      }
+
+      /* Menekan tombol lagi tidak boleh membuat percakapan kedua. */
+      const kedua = await api(`/tickets/booking/${booking.id}`, {
+        method: 'POST',
+        token: customerToken,
+      });
+      harapan(kedua, 200, 'buka tiket pesanan kedua kali');
+      if (kedua.body.data.id !== tiket.id) {
+        throw new Error('tombol yang ditekan dua kali membuat tiket baru');
+      }
+      if (kedua.body.data.dipakaiUlang !== true) {
+        throw new Error('respons kedua harus menandai tiket dipakai ulang');
+      }
+
+      /* Pesanan milik orang lain tidak boleh dibuka. */
+      const pelangganLain = await loginCustomer();
+      const pesananOrangLain = await api(`/tickets/booking/${booking.id}`, {
+        method: 'POST',
+        token: pelangganLain.token,
+      });
+      pastikanDitolak(pesananOrangLain, 404, 'BOOKING_NOT_FOUND', 'tiket pesanan orang lain');
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

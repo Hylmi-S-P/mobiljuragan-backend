@@ -19,6 +19,10 @@ ticketRouter.post('/', ticketController.createCustomerTicket);
    rute berparameter supaya "/ai-session" tidak tertangkap sebagai ":id". */
 ticketRouter.post('/ai-session', ticketController.createAiSession);
 
+/* Percakapan bantuan untuk satu pesanan. Didaftarkan sebelum "/:id" karena
+   "booking" akan tertangkap sebagai id tiket kalau urutannya dibalik. */
+ticketRouter.post('/booking/:bookingId', ticketController.createBookingTicket);
+
 ticketRouter.get('/:id', ticketController.detailCustomerTicket);
 ticketRouter.post('/:id/messages', ticketMessageRateLimiter, ticketController.addCustomerMessage);
 

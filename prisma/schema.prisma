@@ -355,6 +355,7 @@ model Booking {
   document BookingDocument?
   lineItems BookingLineItem[]
   refund   BookingRefund?
+  tickets  SupportTicket[]
 
   @@index([customerId])
   @@index([vehicleId])
@@ -525,6 +526,22 @@ model SupportTicket {
   /// memungkinkan pelepasan klaim secara sadar oleh admin atau super admin.
   assignedAt DateTime?
 
+  /// Pesanan yang menjadi pokok percakapan, bila tiket ini lahir dari tombol
+  /// "Chat dengan CS" pada satu pesanan. Null untuk tiket bantuan umum.
+  ///
+  /// Satu pesanan hanya punya satu tiket terbuka; tiket lama yang sudah ditutup
+  /// tetap menyimpan tautannya supaya riwayat percakapan bisa ditelusuri.
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  /// Kapan tiket ditutup, dan apakah yang menutupnya sistem.
+  ///
+  /// Dipakai aturan pembukaan ulang: tiket yang ditutup sistem boleh hidup lagi
+  /// bila pelanggan menulis dalam 7 hari, sedangkan tiket yang ditutup pelanggan
+  /// sendiri tidak — itu keputusan sadar dan tidak boleh dibatalkan diam-diam.
+  closedAt       DateTime?
+  closedBySystem Boolean   @default(false)
+
   messages  TicketMessage[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
@@ -534,6 +551,7 @@ model SupportTicket {
   @@index([handledBy])
   @@index([lastActivityAt])
   @@index([assignedAdminId])
+  @@index([bookingId])
   @@map("support_tickets")
 }
 

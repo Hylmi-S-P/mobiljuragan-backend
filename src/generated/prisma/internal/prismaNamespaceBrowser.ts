@@ -270,6 +270,9 @@ export const SupportTicketScalarFieldEnum = {
   lastActivityAt: 'lastActivityAt',
   assignedAdminId: 'assignedAdminId',
   assignedAt: 'assignedAt',
+  bookingId: 'bookingId',
+  closedAt: 'closedAt',
+  closedBySystem: 'closedBySystem',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -618,7 +621,8 @@ export const SupportTicketOrderByRelevanceFieldEnum = {
   customerId: 'customerId',
   title: 'title',
   description: 'description',
-  assignedAdminId: 'assignedAdminId'
+  assignedAdminId: 'assignedAdminId',
+  bookingId: 'bookingId'
 } as const
 
 export type SupportTicketOrderByRelevanceFieldEnum = (typeof SupportTicketOrderByRelevanceFieldEnum)[keyof typeof SupportTicketOrderByRelevanceFieldEnum]
