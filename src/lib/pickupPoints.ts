@@ -62,21 +62,14 @@ export function findPickupPoint(idOrLabel: string | null | undefined): PickupPoi
 /**
  * Menormalkan input pelanggan ke label resmi.
  *
- * Sebutan lama tetap diterima agar pesanan yang sudah ada tidak kehilangan
- * informasinya, tetapi yang disimpan selalu label baru sehingga tidak ada dua
- * nama untuk satu tempat.
+ * Input boleh berupa id (`kantor-mobiljuragan`) atau label persis. Nilai yang
+ * tidak dikenali dikembalikan apa adanya supaya titik jemput bebas yang diketik
+ * pelanggan tidak hilang.
  */
 export function normalizePickupLocation(input: string | null | undefined): string | null {
   if (!input) return null;
   const value = input.trim();
   if (value === '') return null;
-
-  /* Sebutan lama untuk kantor (dua kata, kadang berspasi ganda) dipetakan ke
-     label resmi. Ditulis sebagai pola agar tidak ada satu pun teks yang tampil
-     ke pengguna memakai nama lama. */
-  if (/pool\s+kantor/i.test(value)) {
-    return PICKUP_POINTS[0]!.label;
-  }
 
   const match = findPickupPoint(value);
   return match ? match.label : value;
