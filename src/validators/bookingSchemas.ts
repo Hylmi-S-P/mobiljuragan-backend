@@ -42,34 +42,23 @@ export const adminBookingQuerySchema = z.object({
   search: z.string().optional(),
 });
 
-export const updateBookingStatusSchema = z
-  .object({
-    status: z.nativeEnum(BookingStatus, {
-      error: 'Status sewa tidak valid.',
-    }),
-    routeScope: z
-      .nativeEnum(DriverRoute, {
-        error: 'Rute perjalanan tidak valid (pilih DALAM_KOTA atau LUAR_KOTA).',
-      })
-      .optional(),
-    note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
-  })
+export const updateBookingStatusSchema = z.object({
+  status: z.nativeEnum(BookingStatus, {
+    error: 'Status sewa tidak valid.',
+  }),
   /*
-   * Rute menentukan tarif dan supir mana yang layak ditugaskan, jadi tidak
-   * boleh diputuskan setelah tarif ditetapkan. Dulu kolomnya opsional: pesanan
-   * bisa berstatus CONFIRMED tanpa rute, lalu detail pesanan menampilkan rute
-   * kosong dan alokasi supir menyaring dengan asumsi yang salah.
+   * Rute tidak lagi ditanyakan saat menetapkan tarif. Biaya rute, diskon, dan
+   * cashback semuanya dicatat sebagai baris penyesuaian manual (surcharge),
+   * sehingga kolom ini hanya dipertahankan untuk data lama dan pemanggil yang
+   * masih mengirimnya.
    */
-  .superRefine((data, ctx) => {
-    if (data.status === BookingStatus.CONFIRMED && !data.routeScope) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['routeScope'],
-        message:
-          'Rute perjalanan wajib dipilih saat menetapkan tarif (DALAM_KOTA atau LUAR_KOTA).',
-      });
-    }
-  });
+  routeScope: z
+    .nativeEnum(DriverRoute, {
+      error: 'Rute perjalanan tidak valid (pilih DALAM_KOTA atau LUAR_KOTA).',
+    })
+    .optional(),
+  note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+});
 
 export const assignDriverSchema = z.object({
   driverId: z

@@ -1031,7 +1031,7 @@ const kasus: Kasus[] = [
   },
   {
     id: 'T3.3',
-    nama: 'Rute perjalanan wajib dipilih saat menetapkan tarif',
+    nama: 'Tarif bisa ditetapkan tanpa memilih rute; biaya rute lewat surcharge',
     async fn({ adminToken }) {
       const { customerToken, booking } = await siapkanPesanan(adminToken);
       harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
@@ -1049,20 +1049,16 @@ const kasus: Kasus[] = [
         token: adminToken,
         body: { status: 'CONFIRMED' },
       });
-      harapan(tanpaRute, 400, 'konfirmasi tarif tanpa rute ditolak');
-
-      const denganRute = await api(`/admin/bookings/${booking.id}/status`, {
-        method: 'PATCH',
-        token: adminToken,
-        body: { status: 'CONFIRMED', routeScope: 'LUAR_KOTA' },
-      });
-      harapan(denganRute, 200, 'konfirmasi tarif dengan rute');
+      harapan(tanpaRute, 200, 'konfirmasi tarif tanpa rute tetap diterima');
 
       const detail = await api(`/admin/bookings/${booking.id}`, { token: adminToken });
       harapan(detail, 200, 'baca detail pesanan');
       const pesanan = detail.body.data?.booking ?? detail.body.data;
-      if (pesanan.routeScope !== 'LUAR_KOTA') {
-        throw new Error(`rute harus tersimpan LUAR_KOTA, menerima ${pesanan.routeScope}`);
+      if (pesanan.status !== 'CONFIRMED') {
+        throw new Error(`status harus CONFIRMED, menerima ${pesanan.status}`);
+      }
+      if (Number(pesanan.quotedAmount) <= 0) {
+        throw new Error(`tarif harus terhitung dari katalog, menerima ${pesanan.quotedAmount}`);
       }
     },
   },
