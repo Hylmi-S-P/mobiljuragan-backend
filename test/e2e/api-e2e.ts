@@ -935,7 +935,8 @@ const kasus: Kasus[] = [
   },
   {
     id: 'T2.7',
-    nama: 'Pesanan yang dibatalkan saat bukti transfer belum diperiksa tetap masuk antrean refund',
+    nama:
+      'Pesanan yang dibatalkan saat bukti transfer belum diperiksa masuk antrean refund dan dananya bisa dikonfirmasi',
     async fn({ adminToken }) {
       const pesanan = await siapkanPesanan(adminToken);
       harapan(
@@ -1013,6 +1014,89 @@ const kasus: Kasus[] = [
       if (armada.body.data.operationalStatus !== 'AVAILABLE') {
         throw new Error(
           `armada harus AVAILABLE, menerima ${armada.body.data.operationalStatus}`,
+        );
+      }
+
+      /* Staf mencocokkan mutasi bank dan uangnya ternyata ADA. Pembatalan ini
+         dilakukan admin, jadi aturan B12 memberi pengembalian penuh — berbeda
+         dengan T2.5 yang dibatalkan pelanggan sendiri (dipotong 50.000). */
+      const danaMasuk = await api(`/admin/refunds/${refund.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { konfirmasiDana: true },
+      });
+      harapan(danaMasuk, 200, 'konfirmasi dana masuk');
+      if (danaMasuk.body.data.danaTerverifikasi !== true) {
+        throw new Error('danaTerverifikasi harus true setelah dikonfirmasi');
+      }
+      if (Number(danaMasuk.body.data.potongan) !== 0) {
+        throw new Error(
+          `potongan harus 0 untuk pembatalan oleh admin, menerima ${danaMasuk.body.data.potongan}`,
+        );
+      }
+      if (Number(danaMasuk.body.data.nominal) !== totalAmount) {
+        throw new Error(
+          `nominal harus ${totalAmount}, menerima ${danaMasuk.body.data.nominal}`,
+        );
+      }
+
+      /* Konfirmasi kedua harus ditolak: nominal tidak boleh berubah dua kali. */
+      const ulang = await api(`/admin/refunds/${refund.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { konfirmasiDana: true },
+      });
+      harapan(ulang, 409, 'konfirmasi dana dua kali ditolak');
+
+      /* Kasus kedua: uangnya TIDAK ADA di mutasi bank. Barisnya ditutup dengan
+         nominal nol supaya antrean tidak menyimpan utang hantu. */
+      const kedua = await siapkanPesanan(adminToken);
+      harapan(
+        await uploadSemuaDokumen(kedua.customerToken, kedua.booking.id),
+        200,
+        'unggah tiga dokumen (kasus kedua)',
+      );
+      harapan(
+        await verifyDocuments(adminToken, kedua.booking.id, 'APPROVE'),
+        200,
+        'verifikasi dokumen (kasus kedua)',
+      );
+      const konfirmasiKedua = await confirmTariff(adminToken, kedua.booking.id);
+      if (konfirmasiKedua.status !== 'CONFIRMED') {
+        throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasiKedua.status}`);
+      }
+      const tagihanKedua = await createPayment(kedua.customerToken, kedua.booking.id);
+      harapan(tagihanKedua, 201, 'buat tagihan (kasus kedua)');
+      harapan(
+        await uploadPaymentProof(kedua.customerToken, tagihanKedua.body.data.id),
+        200,
+        'unggah bukti transfer (kasus kedua)',
+      );
+      const batalKedua = await api(`/admin/bookings/${kedua.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CANCELLED', note: 'Bukti transfer tidak bisa diverifikasi.' },
+      });
+      harapan(batalKedua, 200, 'batalkan pesanan kedua');
+      const refundKedua = batalKedua.body.data.refund;
+      if (!refundKedua) {
+        throw new Error('pesanan kedua tidak membuat catatan refund');
+      }
+
+      const danaTidakAda = await api(`/admin/refunds/${refundKedua.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { konfirmasiDana: false },
+      });
+      harapan(danaTidakAda, 200, 'konfirmasi dana tidak masuk');
+      if (Number(danaTidakAda.body.data.nominal) !== 0) {
+        throw new Error(
+          `nominal harus 0 saat dana tidak ditemukan, menerima ${danaTidakAda.body.data.nominal}`,
+        );
+      }
+      if (danaTidakAda.body.data.status !== 'SELESAI') {
+        throw new Error(
+          `baris harus ditutup SELESAI, menerima ${danaTidakAda.body.data.status}`,
         );
       }
     },

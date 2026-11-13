@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { RefundStatus, type Prisma } from '../generated/prisma/client.js';
 import { refundModel } from '../model/refundModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
+import { hitungNominalRefund, type PembatalOleh } from '../lib/refund.js';
 import { listRefundQuerySchema, updateRefundSchema } from '../validators/refundSchemas.js';
 
 /**
@@ -107,6 +108,38 @@ export const adminRefundController = {
 
       const data: Prisma.BookingRefundUpdateInput = {};
 
+      /* Konfirmasi dana: staf mencocokkan mutasi bank untuk pesanan yang ditutup
+         saat bukti transfernya belum diperiksa. Dua kemungkinan, dua akibat:
+         uangnya ada → aturan potongan normal berlaku; uangnya tidak ada → tidak
+         ada yang perlu dikembalikan, barisnya ditutup dengan nominal nol. */
+      if (body.konfirmasiDana !== undefined) {
+        if (refund.danaTerverifikasi) {
+          throw new AppError(
+            'REFUND_FUNDS_ALREADY_CONFIRMED',
+            'Dana pengembalian ini sudah pernah dikonfirmasi.',
+            409,
+          );
+        }
+
+        if (body.konfirmasiDana) {
+          const hitungan = hitungNominalRefund(
+            Number(refund.totalDibayar),
+            refund.dibatalkanOleh as PembatalOleh,
+          );
+          data.danaTerverifikasi = true;
+          data.potongan = hitungan.potongan;
+          data.nominal = hitungan.nominal;
+        } else {
+          data.potongan = 0;
+          data.nominal = 0;
+          data.status = RefundStatus.SELESAI;
+          data.diselesaikanPada = new Date();
+          data.alasan = refund.alasan
+            ? `${refund.alasan} | Dana tidak ditemukan di mutasi bank.`
+            : 'Dana tidak ditemukan di mutasi bank.';
+        }
+      }
+
       if (body.nominal !== undefined) {
         /* Nominal tidak boleh melebihi uang yang benar-benar masuk: mengembalikan
            lebih banyak daripada yang dibayar berarti kantor kehilangan uang tanpa
@@ -135,8 +168,9 @@ export const adminRefundController = {
       if (body.status !== undefined) {
         data.status = body.status;
         data.diselesaikanPada = body.status === RefundStatus.SELESAI ? new Date() : null;
-      } else if (refund.status === RefundStatus.MENUNGGU) {
-        /* Begitu admin mengisi data rekening, barisnya berarti sedang dikerjakan. */
+      } else if (refund.status === RefundStatus.MENUNGGU && data.status === undefined) {
+        /* Begitu admin mengisi data rekening, barisnya berarti sedang dikerjakan.
+           Tidak menimpa status yang sudah ditentukan oleh konfirmasi dana. */
         data.status = RefundStatus.DIPROSES;
       }
 

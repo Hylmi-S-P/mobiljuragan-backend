@@ -25,6 +25,9 @@ export const updateRefundSchema = z
     buktiMediaId: z.string().trim().max(120).optional(),
     catatan: z.string().trim().max(500).optional(),
     status: z.nativeEnum(RefundStatus).optional(),
+    /* Dipakai untuk pesanan yang ditutup saat bukti transfer belum diperiksa:
+       `true` = uangnya ada di mutasi bank, `false` = tidak ada. */
+    konfirmasiDana: z.boolean().optional(),
   })
   .refine(
     (nilai) =>
