@@ -199,6 +199,8 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 17 | Penutupan tiket oleh pelanggan selalu gagal 409 | `d2386d1` — pesan penutup dibuat lebih dulu di dalam satu transaksi (`closeWithMessage`) |
 | 18 | Staf bisa menutup tiket secara manual, padahal penutupan hanya milik sistem | `d2386d1` — `RESOLVED`/`CLOSED` dari endpoint admin ditolak 409 `TICKET_CLOSE_BY_SYSTEM` |
 | 19 | Mengambil alih tiket milik admin lain tidak mengubah apa pun tetapi dijawab 200 | `d2386d1` — `takeOver` memakai CAS pada pemegang yang dibaca, 409 bila sudah berpindah |
+| 20 | Permintaan lepas kunci bisa diterima (dan menahan unit 24 jam) sebelum dokumennya disetujui | `c30a218` — `CREATED -> PENDING_CONFIRMATION` menolak 409 `DOCUMENTS_UNVERIFIED` selama dokumen belum `VERIFIED` |
+| 21 | Target penolakan dokumen dikirim sebagai teks JSON, sehingga klien menandai berkas yang salah | `c30a218` — respons detail memakai `toClientDocument` (array); klien juga menormalkan bentuk apa pun |
 
 ### 9.2 Masih ada
 
