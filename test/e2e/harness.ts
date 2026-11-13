@@ -235,6 +235,11 @@ async function spawnServer(): Promise<void> {
        * yang memaksa sebuah pesanan kedaluwarsa harus menunggu 5 menit.
        */
       BOOKING_DEADLINE_INTERVAL_MS: '1000',
+      /*
+       * Batas unggahan diturunkan dari 20 menjadi 5 supaya kasus uji bisa
+       * mencapai 429 tanpa mengunggah dua puluh berkas.
+       */
+      UPLOAD_RATE_MAX: '5',
     },
     /*
      * stdout/stderr diarahkan ke berkas, bukan pipe. Di lingkungan ini pipe

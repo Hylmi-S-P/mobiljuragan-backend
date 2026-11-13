@@ -1622,6 +1622,41 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T5.11',
+    nama: 'Unggahan berkas yang terlalu sering ditahan dan tercatat di audit log',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+      const berkas = await berkasJpeg('ktp.jpg');
+
+      /*
+       * Harness menurunkan batas unggahan menjadi 5 per 10 menit. Lima unggahan
+       * pertama tetap harus 200; yang keenam harus ditahan, bukan diproses.
+       */
+      for (let i = 0; i < 5; i += 1) {
+        const unggah = await uploadDocuments(customerToken, booking.id, { ktp: berkas });
+        harapan(unggah, 200, `unggah berkas ke-${i + 1}`);
+      }
+
+      const keenam = await uploadDocuments(customerToken, booking.id, { ktp: berkas });
+      pastikanDitolak(keenam, 429, 'UPLOAD_RATE_LIMITED', 'unggahan berkas keenam');
+
+      /* Audit ditulis tanpa ditunggu, jadi diberi waktu singkat sebelum dibaca. */
+      let baris: Array<{ action: string }> = [];
+      for (let i = 0; i < 10 && baris.length === 0; i += 1) {
+        baris = await sqlUji<Array<{ action: string }>>(
+          'SELECT action FROM audit_logs WHERE action = ? LIMIT 1',
+          ['UPLOAD_RATE_LIMITED'],
+        );
+        if (baris.length === 0) {
+          await new Promise((selesai) => setTimeout(selesai, 100));
+        }
+      }
+      if (baris.length === 0) {
+        throw new Error('penolakan unggahan tidak tercatat di audit_logs');
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { sendError } from '../lib/response.js';
+import { db } from '../db.js';
 
 /**
  * Rate limiter untuk endpoint percakapan asisten AI pelanggan (/api/v1/ai/chat).
@@ -79,11 +80,31 @@ export const bookingCreateRateLimiter = rateLimit({
  */
 export const uploadRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 menit
-  max: process.env.NODE_ENV === 'test' ? 1000 : 20,
+  /* Bisa diturunkan lewat env supaya batasnya bisa diuji tanpa mengunggah
+     dua puluh berkas lebih dulu. */
+  max: Number(process.env.UPLOAD_RATE_MAX ?? (process.env.NODE_ENV === 'test' ? 1000 : 20)),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.userId || req.ip || 'tanpa-identitas',
-  handler: (_req, res) => {
+  handler: (req, res) => {
+    /* Dicatat supaya pemblokiran bisa ditelusuri: tanpa catatan, "terlalu banyak"
+       tidak bisa dibedakan dari gangguan jaringan biasa. Penulisan audit sengaja
+       tidak ditunggu — respons 429 tetap harus cepat, dan kegagalan menulis log
+       tidak boleh mengubah jawaban server. */
+    void db.auditLog
+      .create({
+        data: {
+          actorId: req.user?.userId ?? null,
+          action: 'UPLOAD_RATE_LIMITED',
+          entityType: 'Upload',
+          metadata: {
+            ip: req.ip || req.socket.remoteAddress || null,
+            path: req.originalUrl,
+          },
+        },
+      })
+      .catch(() => undefined);
+
     sendError(
       res,
       'UPLOAD_RATE_LIMITED',
