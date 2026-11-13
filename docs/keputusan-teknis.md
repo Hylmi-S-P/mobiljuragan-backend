@@ -77,6 +77,15 @@ atau status datang dari server.
 ringkasan sewa dan nomor kantor. Aplikasi tidak lagi menyusun percakapan sendiri
 di memori, yang hilang begitu aplikasi ditutup.
 
+**Peristiwa tiket lewat WebSocket, bukan SSE.** Saluran SSE memeriksa database
+tiap dua detik per penonton; dua ratus pelanggan membuka tiket berarti sekitar
+seratus kueri per detik hanya untuk menjawab "ada yang baru?". Server sekarang
+menyiarkan peristiwa saat pesan atau status berubah
+(`src/lib/ticketEvents.ts` → `src/ws/ticketSocket.ts`), dan klien berlangganan
+ke `/api/v1/ws/tickets`. Klien membuang peristiwa `pesan` dengan `sequence` yang
+sudah lewat supaya sambung ulang tidak menggandakan pesan. Rincian dan syarat
+deploy ada di `docs/adr-websocket-tiket.md`.
+
 ## Alat dan proses
 
 **Jangan pakai `Set-Content`/`Add-Content` PowerShell 5.1 untuk berkas kode.**

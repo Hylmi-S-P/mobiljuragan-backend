@@ -204,6 +204,7 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 22 | Tombol "Koordinasi Penjemputan" mengarang "E-Ticket resmi" dan klaim "LUNAS" di perangkat, tanpa tersimpan di mana pun | `0ed2831` · `92ae874` — tiket pesanan dibuat server, berisi ringkasan sewa dan nomor kantor; pesan karangan dihapus |
 | 23 | Staf tidak bisa menutup tiket, pelanggan sering tidak menutup: tiket menggantung selamanya | `0ed2831` — sistem menutup semua tiket setelah 24 jam tanpa pesan; pesan pelanggan dalam 7 hari membuka ulang, setelah itu 409 |
 | 24 | Tombol bantuan pesanan tetap bisa dipakai untuk sewa yang sudah lama selesai | `3b6d31f` — lewat 7 hari sejak `endDateTime`, `POST /tickets/booking/:id` menolak 409 `BOOKING_HELP_EXPIRED` |
+| 25 | Peristiwa tiket dikirim lewat SSE yang memeriksa database tiap dua detik per penonton | `9401048` — WebSocket di `/api/v1/ws/tickets`; peristiwa disiarkan saat pesan/status berubah, klien membuang `sequence` ganda. Lihat `docs/adr-websocket-tiket.md` |
 
 ### 9.2 Masih ada
 
