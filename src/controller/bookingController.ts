@@ -212,7 +212,7 @@ export const bookingController = {
   async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { reason } = (req.body ?? {}) as z.infer<typeof customerCancelBookingSchema>;
+      const { reason, refundAccount } = (req.body ?? {}) as z.infer<typeof customerCancelBookingSchema>;
       const customer = req.user!;
       const isStaffOrAdmin = customer.role === UserRole.STAFF || customer.role === UserRole.ADMIN;
 
@@ -272,6 +272,7 @@ export const bookingController = {
         actor: BookingStatusActor.CUSTOMER,
         actorFullName: customer.fullName,
         actorRole: customer.role,
+        refundAccount,
       });
 
       if (!result) {

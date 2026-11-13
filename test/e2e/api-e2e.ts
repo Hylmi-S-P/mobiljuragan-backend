@@ -823,13 +823,35 @@ const kasus: Kasus[] = [
       const batal = await api(`/bookings/${olehPelanggan.booking.id}/cancel`, {
         method: 'PATCH',
         token: olehPelanggan.customerToken,
-        body: { reason: 'Rencana berubah.' },
+        body: {
+          reason: 'Rencana berubah.',
+          /* Rekening yang diisi pelanggan di aplikasi harus ikut tersimpan,
+             supaya kantor tidak perlu menelepon untuk menanyakan tujuan transfer. */
+          refundAccount: {
+            bankName: 'Bank Papua',
+            accountNumber: '1234567890',
+            accountHolderName: 'Yahya Pratama',
+          },
+        },
       });
       harapan(batal, 200, 'pelanggan membatalkan');
 
       const refundPelanggan = batal.body.data.booking.refund;
       if (!refundPelanggan) {
         throw new Error('pembatalan oleh pelanggan tidak membuat catatan refund');
+      }
+      if (refundPelanggan.namaBank !== 'Bank Papua') {
+        throw new Error(`namaBank refund harus tersimpan, menerima ${refundPelanggan.namaBank}`);
+      }
+      if (refundPelanggan.nomorRekening !== '1234567890') {
+        throw new Error(
+          `nomorRekening refund harus tersimpan, menerima ${refundPelanggan.nomorRekening}`,
+        );
+      }
+      if (refundPelanggan.namaPemilik !== 'Yahya Pratama') {
+        throw new Error(
+          `namaPemilik refund harus tersimpan, menerima ${refundPelanggan.namaPemilik}`,
+        );
       }
       if (Number(refundPelanggan.potongan) !== 50_000) {
         throw new Error(

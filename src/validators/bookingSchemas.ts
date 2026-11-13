@@ -68,8 +68,37 @@ export const assignDriverSchema = z.object({
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 
+/**
+ * Rekening tujuan pengembalian dana.
+ *
+ * Pelanggan sudah mengisi ini di aplikasi saat membatalkan pesanan yang sudah
+ * dibayar. Sebelumnya isian itu berhenti di perangkat dan kantor harus
+ * menelepon pelanggan untuk menanyakan nomor rekening; sekarang ikut terkirim
+ * bersama pembatalan supaya antrean pengembalian dana langsung bisa diproses.
+ */
+export const refundAccountSchema = z.object({
+  bankName: z
+    .string()
+    .trim()
+    .min(2, 'Nama bank atau e-wallet wajib diisi.')
+    .max(60, 'Nama bank atau e-wallet maksimal 60 karakter.'),
+  accountNumber: z
+    .string()
+    .trim()
+    .min(6, 'Nomor rekening minimal 6 digit.')
+    .max(30, 'Nomor rekening maksimal 30 karakter.')
+    .regex(/^[0-9]+$/, 'Nomor rekening hanya boleh berisi angka.'),
+  accountHolderName: z
+    .string()
+    .trim()
+    .min(2, 'Nama pemilik rekening wajib diisi.')
+    .max(120, 'Nama pemilik rekening maksimal 120 karakter.'),
+});
+
 export const customerCancelBookingSchema = z.object({
   reason: z.string().max(500, 'Alasan pembatalan maksimal 500 karakter.').optional(),
+  /** Opsional: hanya dikirim pelanggan yang pesanannya sudah dibayar. */
+  refundAccount: refundAccountSchema.optional(),
 });
 
 /**

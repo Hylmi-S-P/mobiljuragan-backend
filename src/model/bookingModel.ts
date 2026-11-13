@@ -369,6 +369,15 @@ export const bookingModel = {
     actor: BookingStatusActor;
     actorFullName: string;
     actorRole: string;
+    /**
+     * Rekening tujuan pengembalian dana yang diisi pelanggan saat membatalkan.
+     * Hanya dipakai bila pembatalan itu memang memunculkan baris refund.
+     */
+    refundAccount?: {
+      bankName: string;
+      accountNumber: string;
+      accountHolderName: string;
+    };
   }) {
     return db.$transaction(async (tx) => {
       const booking = await tx.booking.findFirst({
@@ -515,6 +524,16 @@ export const bookingModel = {
               .filter(Boolean)
               .join(' ');
 
+        /* Rekening yang diisi pelanggan saat membatalkan ikut disimpan supaya
+           kantor tidak perlu menelepon untuk menanyakan tujuan transfer. */
+        const rekening = input.refundAccount
+          ? {
+              namaBank: input.refundAccount.bankName,
+              nomorRekening: input.refundAccount.accountNumber,
+              namaPemilik: input.refundAccount.accountHolderName,
+            }
+          : {};
+
         /* Pembatalan oleh admin/sistem tidak memotong apa pun, tetapi admin tetap
            boleh menimpa nominalnya saat memproses pengembalian. */
         await tx.bookingRefund.upsert({
@@ -530,6 +549,7 @@ export const bookingModel = {
             danaTerverifikasi: terverifikasi,
             status: RefundStatus.MENUNGGU,
             dicatatOleh: input.actorUserId,
+            ...rekening,
           },
           update: {
             totalDibayar: new Prisma.Decimal(hitungan.totalDibayar),
@@ -538,6 +558,7 @@ export const bookingModel = {
             dibatalkanOleh,
             alasan,
             danaTerverifikasi: terverifikasi,
+            ...rekening,
           },
         });
 
