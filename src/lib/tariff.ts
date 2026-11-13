@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { RentalType } from '../generated/prisma/client.js';
+import { AppError } from './response.js';
 
 /**
  * Perhitungan tarif pesanan.
@@ -17,6 +18,31 @@ export async function getDriverDailyRate(): Promise<number> {
     where: { id: 'default' },
     update: {},
     create: { id: 'default' },
+  });
+
+  return pengaturan.driverDailyRate;
+}
+
+/**
+ * Menyimpan tarif jasa supir global.
+ *
+ * Nilai nol ditolak karena pesanan bersupir akan menjadi gratis tanpa jejak
+ * keputusan; kalau memang ingin membebaskan biaya supir, itu urusan baris
+ * penyesuaian biaya yang tercatat, bukan tarif global.
+ */
+export async function simpanDriverDailyRate(driverDailyRate: number): Promise<number> {
+  if (!Number.isInteger(driverDailyRate) || driverDailyRate <= 0) {
+    throw new AppError(
+      'INVALID_DRIVER_RATE',
+      'Tarif jasa supir harus bilangan bulat lebih besar dari nol.',
+      400,
+    );
+  }
+
+  const pengaturan = await db.tariffSetting.upsert({
+    where: { id: 'default' },
+    update: { driverDailyRate },
+    create: { id: 'default', driverDailyRate },
   });
 
   return pengaturan.driverDailyRate;

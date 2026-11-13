@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { fleetModel } from '../model/fleetModel.js';
+import { getDriverDailyRate, simpanDriverDailyRate } from '../lib/tariff.js';
 import { sendSuccess } from '../lib/response.js';
 
 /**
@@ -91,6 +92,38 @@ export const adminFleetController = {
     try {
       const ids = await fleetModel.vehicleIdsRentedAt(new Date());
       sendSuccess(res, { vehicleIds: [...ids] });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/v1/admin/fleet/tariff-settings
+   *
+   * Tarif jasa supir global. Dashboard membutuhkannya untuk menampilkan
+   * perkiraan tarif pesanan bersupir sebelum admin mengonfirmasi, karena angka
+   * finalnya dihitung server dari harga katalog ditambah tarif ini.
+   */
+  async getTariffSettings(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const driverDailyRate = await getDriverDailyRate();
+      sendSuccess(res, { driverDailyRate });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * PATCH /api/v1/admin/fleet/tariff-settings
+   *
+   * Mengubah tarif jasa supir global. Hanya ADMIN: angka ini berlaku untuk semua
+   * pesanan baru, jadi bukan keputusan operasional harian staf.
+   */
+  async updateTariffSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { driverDailyRate } = req.body as { driverDailyRate: number };
+      const tersimpan = await simpanDriverDailyRate(driverDailyRate);
+      sendSuccess(res, { driverDailyRate: tersimpan });
     } catch (error) {
       next(error);
     }

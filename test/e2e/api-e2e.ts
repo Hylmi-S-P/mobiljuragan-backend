@@ -585,7 +585,12 @@ const kasus: Kasus[] = [
 
       /* Tarif supir global bisa diubah admin; perubahan itu harus langsung
          terpakai pada konfirmasi berikutnya. */
-      await sqlUji("UPDATE tariff_settings SET driverDailyRate = 200000 WHERE id = 'default'");
+      const ubahTarif = await api('/admin/fleet/tariff-settings', {
+        method: 'PATCH',
+        token: adminToken,
+        body: { driverDailyRate: 200_000 },
+      });
+      harapan(ubahTarif, 200, 'ubah tarif supir global');
 
       const supirKedua = await createDriver(adminToken);
       const bersupirKedua = await siapkanPesanan(adminToken, 'WITH_DRIVER');
@@ -598,7 +603,12 @@ const kasus: Kasus[] = [
         );
       }
 
-      await sqlUji("UPDATE tariff_settings SET driverDailyRate = 150000 WHERE id = 'default'");
+      const pulihkan = await api('/admin/fleet/tariff-settings', {
+        method: 'PATCH',
+        token: adminToken,
+        body: { driverDailyRate: 150_000 },
+      });
+      harapan(pulihkan, 200, 'pulihkan tarif supir global');
     },
   },
 ];

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { adminFleetController } from '../../controller/adminFleetController.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { validateQuery } from '../../middleware/validate.js';
+import { validateBody, validateQuery } from '../../middleware/validate.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
 /**
@@ -39,6 +39,25 @@ adminFleetRouter.get(
   adminFleetController.calendar,
 );
 
+const tariffSettingsSchema = z.object({
+  driverDailyRate: z
+    .number({ error: 'Tarif jasa supir wajib berupa angka.' })
+    .int('Tarif jasa supir harus bilangan bulat.')
+    .positive('Tarif jasa supir harus lebih besar dari nol.')
+    .max(10_000_000, 'Tarif jasa supir terlalu besar.'),
+});
+
 /* Unit yang sedang tersewa saat ini. Dipakai katalog untuk badge "Disewa".
    Tidak menerima parameter: yang ditanyakan selalu "sekarang". */
 adminFleetRouter.get('/rented', adminFleetController.rented);
+
+/* Tarif jasa supir global. Dibaca staf untuk perkiraan tarif, diubah hanya oleh
+   ADMIN karena angkanya berlaku untuk semua pesanan baru. */
+adminFleetRouter.get('/tariff-settings', adminFleetController.getTariffSettings);
+
+adminFleetRouter.patch(
+  '/tariff-settings',
+  requireRole(UserRole.ADMIN),
+  validateBody(tariffSettingsSchema),
+  adminFleetController.updateTariffSettings,
+);
