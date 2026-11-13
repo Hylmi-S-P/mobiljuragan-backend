@@ -1843,6 +1843,51 @@ const kasus: Kasus[] = [
       pastikanDitolak(pesananOrangLain, 404, 'BOOKING_NOT_FOUND', 'tiket pesanan orang lain');
     },
   },
+  {
+    id: 'T6.24',
+    nama: 'Tiket yang ditutup sistem bisa dibuka lagi oleh pesan pelanggan dalam tujuh hari',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+
+      const dibuka = await api(`/tickets/booking/${booking.id}`, {
+        method: 'POST',
+        token: customerToken,
+      });
+      harapan(dibuka, 201, 'buka tiket pesanan');
+      const tiket = dibuka.body.data;
+
+      /* Sistem menutup tiket yang tidak ada balasan selama 24 jam. */
+      await sqlUji(
+        'UPDATE support_tickets SET status = ?, closedAt = UTC_TIMESTAMP(3), closedBySystem = 1 WHERE id = ?',
+        ['CLOSED', tiket.id],
+      );
+
+      const pesan = await api(`/tickets/${tiket.id}/messages`, {
+        method: 'POST',
+        token: customerToken,
+        body: { body: 'Saya masih butuh bantuan soal penjemputan.' },
+      });
+      harapan(pesan, 201, 'kirim pesan ke tiket yang ditutup sistem');
+
+      const setelah = await api(`/tickets/${tiket.id}`, { token: customerToken });
+      harapan(setelah, 200, 'baca tiket setelah dibuka ulang');
+      if (setelah.body.data.status === 'CLOSED') {
+        throw new Error('tiket tidak dibuka ulang setelah pelanggan mengirim pesan');
+      }
+
+      /* Lewat tujuh hari, tiket yang ditutup sistem tidak bisa dihidupkan lagi. */
+      await sqlUji(
+        'UPDATE support_tickets SET status = ?, closedAt = UTC_TIMESTAMP(3) - INTERVAL 8 DAY, closedBySystem = 1 WHERE id = ?',
+        ['CLOSED', tiket.id],
+      );
+      const pesanTerlambat = await api(`/tickets/${tiket.id}/messages`, {
+        method: 'POST',
+        token: customerToken,
+        body: { body: 'Halo, masih ada?' },
+      });
+      pastikanDitolak(pesanTerlambat, 409, 'TICKET_CLOSED', 'pesan setelah tujuh hari');
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

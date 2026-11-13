@@ -35,6 +35,9 @@ export const ticketModel = {
            admin lain. Hanya nama: tampilan tidak butuh data lain. */
         assignedAdmin: { select: { id: true, fullName: true } },
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
+        /* Kode pesanan supaya staf tahu tiket ini soal sewa yang mana tanpa
+           harus membuka percakapannya lebih dulu. */
+        booking: { select: { id: true, bookingCode: true, status: true } },
         _count: { select: { messages: true } },
       },
     });
@@ -50,6 +53,7 @@ export const ticketModel = {
       orderBy: { updatedAt: 'desc' },
       include: {
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
+        booking: { select: { id: true, bookingCode: true, status: true } },
         messages: {
           orderBy: { sequence: 'asc' },
           include: {
@@ -67,6 +71,7 @@ export const ticketModel = {
       include: {
         assignedAdmin: { select: { id: true, fullName: true } },
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
+        booking: { select: { id: true, bookingCode: true, status: true } },
         messages: {
           orderBy: { sequence: 'asc' },
           include: {
