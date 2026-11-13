@@ -196,6 +196,9 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 14 | Tarif bisa diketik staf dan tidak berasal dari katalog | `8d9d4ec` — `quotedAmount` dihitung server dari `pricePerDay` + `driverDailyRate` |
 | 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400. **Dicabut lagi** oleh `a0b4cf4`: rute, diskon, dan cashback dicatat sebagai baris penyesuaian manual, jadi `routeScope` kembali opsional |
 | 16 | Pesanan yang ditutup saat bukti transfer belum diperiksa tidak menghasilkan catatan refund | `6d82a42` — `danaTerverifikasi: false`, potongan nol, pembayaran `FAILED` |
+| 17 | Penutupan tiket oleh pelanggan selalu gagal 409 | `d2386d1` — pesan penutup dibuat lebih dulu di dalam satu transaksi (`closeWithMessage`) |
+| 18 | Staf bisa menutup tiket secara manual, padahal penutupan hanya milik sistem | `d2386d1` — `RESOLVED`/`CLOSED` dari endpoint admin ditolak 409 `TICKET_CLOSE_BY_SYSTEM` |
+| 19 | Mengambil alih tiket milik admin lain tidak mengubah apa pun tetapi dijawab 200 | `d2386d1` — `takeOver` memakai CAS pada pemegang yang dibaca, 409 bila sudah berpindah |
 
 ### 9.2 Masih ada
 
@@ -220,10 +223,10 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
    Tidak ada `handedOverAt`, sehingga "jam sewa mulai" hanya berarti jam yang
    diminta pelanggan, bukan jam unit benar-benar keluar.
 
-5. **Penutupan tiket oleh pelanggan selalu gagal.** `src/controllers/ticketController.ts:698`
-   menutup tiket lalu memanggil `createMessage` pada baris berikutnya, dan
-   `src/model/ticketModel.ts:153-159` menolak pesan pada tiket `CLOSED`. Setiap
-   permintaan tutup tiket dari pelanggan berakhir 409.
+5. **Penutupan tiket oleh pelanggan selalu gagal.** Sudah ditutup `d2386d1`:
+   pesan penutup dibuat di dalam transaksi yang sama sebelum status diubah, jadi
+   tidak ada lagi tiket tertutup tanpa catatan. Penutupan manual oleh staf juga
+   ditutup — status `RESOLVED`/`CLOSED` hanya boleh datang dari sistem.
 
 6. **Pengingat tenggat admin belum ada.** Pesanan di `PENDING_CONFIRMATION` sudah
    punya `adminDeadlineAt` (24 jam) dan dibatalkan otomatis saat lewat, tetapi belum
