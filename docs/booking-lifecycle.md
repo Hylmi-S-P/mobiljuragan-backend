@@ -194,7 +194,8 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 12 | Tidak ada tenggat dokumen | `ee73746` |
 | 13 | Mengunggah ulang sebagian berkas menghapus berkas lain yang sudah benar | `0d67eae` — kolom yang tidak dikirim memakai berkas lama |
 | 14 | Tarif bisa diketik staf dan tidak berasal dari katalog | `8d9d4ec` — `quotedAmount` dihitung server dari `pricePerDay` + `driverDailyRate` |
-| 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400 |
+| 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400. **Dicabut lagi** oleh `a0b4cf4`: rute, diskon, dan cashback dicatat sebagai baris penyesuaian manual, jadi `routeScope` kembali opsional |
+| 16 | Pesanan yang ditutup saat bukti transfer belum diperiksa tidak menghasilkan catatan refund | `6d82a42` — `danaTerverifikasi: false`, potongan nol, pembayaran `FAILED` |
 
 ### 9.2 Masih ada
 
