@@ -775,6 +775,156 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T2.5',
+    nama: 'Refund tercatat di server: pelanggan dipotong, admin/sistem dikembalikan penuh',
+    async fn({ adminToken }) {
+      /** Menyiapkan pesanan yang sudah dibayar dan menunggu penyerahan armada. */
+      async function siapkanPesananTerbayar() {
+        const pesanan = await siapkanPesanan(adminToken);
+        const unggah = await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id);
+        harapan(unggah, 200, 'unggah dokumen');
+        const verifikasi = await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE');
+        harapan(verifikasi, 200, 'verifikasi dokumen');
+
+        const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
+        if (konfirmasi.status !== 'CONFIRMED') {
+          throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
+        }
+
+        const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
+        harapan(tagihan, 201, 'buat tagihan');
+        const paymentId = tagihan.body.data.id;
+        const totalAmount = Number(tagihan.body.data.totalAmount);
+
+        const bukti = await uploadPaymentProof(pesanan.customerToken, paymentId);
+        harapan(bukti, 200, 'unggah bukti transfer');
+
+        const lunas = await verifyPayment(adminToken, paymentId, 'APPROVE');
+        harapan(lunas, 200, 'verifikasi pembayaran');
+        if (lunas.body.data.status !== 'PAID') {
+          throw new Error(`pembayaran harus PAID, menerima ${lunas.body.data.status}`);
+        }
+
+        return { ...pesanan, paymentId, totalAmount };
+      }
+
+      /* 1. Pelanggan membatalkan setelah membayar: dipotong Rp 50.000. */
+      const olehPelanggan = await siapkanPesananTerbayar();
+
+      const batal = await api(`/bookings/${olehPelanggan.booking.id}/cancel`, {
+        method: 'PATCH',
+        token: olehPelanggan.customerToken,
+        body: { reason: 'Rencana berubah.' },
+      });
+      harapan(batal, 200, 'pelanggan membatalkan');
+
+      const refundPelanggan = batal.body.data.booking.refund;
+      if (!refundPelanggan) {
+        throw new Error('pembatalan oleh pelanggan tidak membuat catatan refund');
+      }
+      if (Number(refundPelanggan.potongan) !== 50_000) {
+        throw new Error(
+          `potongan pelanggan harus 50000, menerima ${refundPelanggan.potongan}`,
+        );
+      }
+      if (Number(refundPelanggan.nominal) !== olehPelanggan.totalAmount - 50_000) {
+        throw new Error(
+          `nominal refund pelanggan harus ${olehPelanggan.totalAmount - 50_000}, menerima ${refundPelanggan.nominal}`,
+        );
+      }
+      if (refundPelanggan.dibatalkanOleh !== 'PELANGGAN') {
+        throw new Error(
+          `pembatal harus PELANGGAN, menerima ${refundPelanggan.dibatalkanOleh}`,
+        );
+      }
+
+      const paymentPelanggan = await api(`/payments/${olehPelanggan.paymentId}`, {
+        token: olehPelanggan.customerToken,
+      });
+      harapan(paymentPelanggan, 200, 'baca pembayaran setelah refund');
+      if (paymentPelanggan.body.data.status !== 'REFUNDED') {
+        throw new Error(
+          `pembayaran harus REFUNDED, menerima ${paymentPelanggan.body.data.status}`,
+        );
+      }
+
+      /* 2. Admin membatalkan setelah membayar: dikembalikan penuh. */
+      const olehAdmin = await siapkanPesananTerbayar();
+
+      const batalAdmin = await api(`/admin/bookings/${olehAdmin.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CANCELLED', note: 'Unit dibutuhkan untuk pesanan lain.' },
+      });
+      harapan(batalAdmin, 200, 'admin membatalkan');
+
+      const refundAdmin = batalAdmin.body.data.refund;
+      if (!refundAdmin) {
+        throw new Error('pembatalan oleh admin tidak membuat catatan refund');
+      }
+      if (Number(refundAdmin.potongan) !== 0) {
+        throw new Error(`pembatalan admin tidak boleh memotong, menerima ${refundAdmin.potongan}`);
+      }
+      if (Number(refundAdmin.nominal) !== olehAdmin.totalAmount) {
+        throw new Error(
+          `refund admin harus penuh ${olehAdmin.totalAmount}, menerima ${refundAdmin.nominal}`,
+        );
+      }
+
+      /* 3. Antrean refund di dashboard memuat baris yang belum ditutup. */
+      const antrean = await api('/admin/refunds?status=MENUNGGU', { token: adminToken });
+      harapan(antrean, 200, 'baca antrean refund');
+      const kode = [olehPelanggan.booking.bookingCode, olehAdmin.booking.bookingCode];
+      const ada = antrean.body.data.items.filter((baris: any) => kode.includes(baris.booking.bookingCode));
+      if (ada.length !== 2) {
+        throw new Error(`antrean refund harus memuat 2 baris uji, menerima ${ada.length}`);
+      }
+
+      /* 4. Admin boleh menimpa nominal, tetapi tidak boleh melebihi uang masuk. */
+      const barisAdmin = ada.find((b: any) => b.booking.bookingCode === olehAdmin.booking.bookingCode);
+
+      const kelebihan = await api(`/admin/refunds/${barisAdmin.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { nominal: olehAdmin.totalAmount + 1 },
+      });
+      harapan(kelebihan, 400, 'nominal melebihi pembayaran ditolak');
+
+      const tutup = await api(`/admin/refunds/${barisAdmin.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: {
+          nominal: olehAdmin.totalAmount - 10_000,
+          namaBank: 'BRI',
+          nomorRekening: '1234567890',
+          namaPemilik: 'Pelanggan Uji',
+          status: 'SELESAI',
+          catatan: 'Sudah ditransfer 13 November.',
+        },
+      });
+      harapan(tutup, 200, 'tutup pengembalian dana');
+      if (tutup.body.data.status !== 'SELESAI') {
+        throw new Error(`status refund harus SELESAI, menerima ${tutup.body.data.status}`);
+      }
+      if (Number(tutup.body.data.potongan) !== 10_000) {
+        throw new Error(
+          `potongan harus menyesuaikan nominal baru (10000), menerima ${tutup.body.data.potongan}`,
+        );
+      }
+
+      /* Menutup tanpa bukti maupun catatan harus ditolak. */
+      const barisPelanggan = ada.find(
+        (b: any) => b.booking.bookingCode === olehPelanggan.booking.bookingCode,
+      );
+      const tanpaBukti = await api(`/admin/refunds/${barisPelanggan.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'SELESAI' },
+      });
+      harapan(tanpaBukti, 400, 'tutup tanpa bukti ditolak');
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

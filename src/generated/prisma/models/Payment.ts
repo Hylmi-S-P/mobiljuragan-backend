@@ -337,6 +337,7 @@ export type PaymentWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   booking?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
+  refund?: Prisma.XOR<Prisma.BookingRefundNullableScalarRelationFilter, Prisma.BookingRefundWhereInput> | null
 }
 
 export type PaymentOrderByWithRelationInput = {
@@ -360,6 +361,7 @@ export type PaymentOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   booking?: Prisma.BookingOrderByWithRelationInput
+  refund?: Prisma.BookingRefundOrderByWithRelationInput
   _relevance?: Prisma.PaymentOrderByRelevanceInput
 }
 
@@ -387,6 +389,7 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   booking?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
+  refund?: Prisma.XOR<Prisma.BookingRefundNullableScalarRelationFilter, Prisma.BookingRefundWhereInput> | null
 }, "id" | "bookingId">
 
 export type PaymentOrderByWithAggregationInput = {
@@ -461,6 +464,7 @@ export type PaymentCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   booking: Prisma.BookingCreateNestedOneWithoutPaymentInput
+  refund?: Prisma.BookingRefundCreateNestedOneWithoutPaymentInput
 }
 
 export type PaymentUncheckedCreateInput = {
@@ -483,6 +487,7 @@ export type PaymentUncheckedCreateInput = {
   expiresAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  refund?: Prisma.BookingRefundUncheckedCreateNestedOneWithoutPaymentInput
 }
 
 export type PaymentUpdateInput = {
@@ -505,6 +510,7 @@ export type PaymentUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   booking?: Prisma.BookingUpdateOneRequiredWithoutPaymentNestedInput
+  refund?: Prisma.BookingRefundUpdateOneWithoutPaymentNestedInput
 }
 
 export type PaymentUncheckedUpdateInput = {
@@ -527,6 +533,7 @@ export type PaymentUncheckedUpdateInput = {
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refund?: Prisma.BookingRefundUncheckedUpdateOneWithoutPaymentNestedInput
 }
 
 export type PaymentCreateManyInput = {
@@ -723,6 +730,22 @@ export type EnumPaymentStatusFieldUpdateOperationsInput = {
   set?: $Enums.PaymentStatus
 }
 
+export type PaymentCreateNestedOneWithoutRefundInput = {
+  create?: Prisma.XOR<Prisma.PaymentCreateWithoutRefundInput, Prisma.PaymentUncheckedCreateWithoutRefundInput>
+  connectOrCreate?: Prisma.PaymentCreateOrConnectWithoutRefundInput
+  connect?: Prisma.PaymentWhereUniqueInput
+}
+
+export type PaymentUpdateOneWithoutRefundNestedInput = {
+  create?: Prisma.XOR<Prisma.PaymentCreateWithoutRefundInput, Prisma.PaymentUncheckedCreateWithoutRefundInput>
+  connectOrCreate?: Prisma.PaymentCreateOrConnectWithoutRefundInput
+  upsert?: Prisma.PaymentUpsertWithoutRefundInput
+  disconnect?: Prisma.PaymentWhereInput | boolean
+  delete?: Prisma.PaymentWhereInput | boolean
+  connect?: Prisma.PaymentWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PaymentUpdateToOneWithWhereWithoutRefundInput, Prisma.PaymentUpdateWithoutRefundInput>, Prisma.PaymentUncheckedUpdateWithoutRefundInput>
+}
+
 export type PaymentCreateWithoutBookingInput = {
   id?: string
   baseAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -742,6 +765,7 @@ export type PaymentCreateWithoutBookingInput = {
   expiresAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  refund?: Prisma.BookingRefundCreateNestedOneWithoutPaymentInput
 }
 
 export type PaymentUncheckedCreateWithoutBookingInput = {
@@ -763,6 +787,7 @@ export type PaymentUncheckedCreateWithoutBookingInput = {
   expiresAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  refund?: Prisma.BookingRefundUncheckedCreateNestedOneWithoutPaymentInput
 }
 
 export type PaymentCreateOrConnectWithoutBookingInput = {
@@ -800,10 +825,116 @@ export type PaymentUpdateWithoutBookingInput = {
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refund?: Prisma.BookingRefundUpdateOneWithoutPaymentNestedInput
 }
 
 export type PaymentUncheckedUpdateWithoutBookingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  baseAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  uniqueCode?: Prisma.IntFieldUpdateOperationsInput | number
+  totalAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  method?: Prisma.EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+  status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
+  qrisPayload?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proofImageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAccount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acknowledgedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refund?: Prisma.BookingRefundUncheckedUpdateOneWithoutPaymentNestedInput
+}
+
+export type PaymentCreateWithoutRefundInput = {
+  id?: string
+  baseAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  uniqueCode?: number
+  totalAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  method?: $Enums.PaymentMethod
+  status?: $Enums.PaymentStatus
+  qrisPayload?: string | null
+  proofImageUrl?: string | null
+  bankName?: string | null
+  senderAccount?: string | null
+  verifiedAt?: Date | string | null
+  verifiedBy?: string | null
+  acknowledgedAt?: Date | string | null
+  acknowledgedBy?: string | null
+  notes?: string | null
+  expiresAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  booking: Prisma.BookingCreateNestedOneWithoutPaymentInput
+}
+
+export type PaymentUncheckedCreateWithoutRefundInput = {
+  id?: string
+  bookingId: string
+  baseAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  uniqueCode?: number
+  totalAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  method?: $Enums.PaymentMethod
+  status?: $Enums.PaymentStatus
+  qrisPayload?: string | null
+  proofImageUrl?: string | null
+  bankName?: string | null
+  senderAccount?: string | null
+  verifiedAt?: Date | string | null
+  verifiedBy?: string | null
+  acknowledgedAt?: Date | string | null
+  acknowledgedBy?: string | null
+  notes?: string | null
+  expiresAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type PaymentCreateOrConnectWithoutRefundInput = {
+  where: Prisma.PaymentWhereUniqueInput
+  create: Prisma.XOR<Prisma.PaymentCreateWithoutRefundInput, Prisma.PaymentUncheckedCreateWithoutRefundInput>
+}
+
+export type PaymentUpsertWithoutRefundInput = {
+  update: Prisma.XOR<Prisma.PaymentUpdateWithoutRefundInput, Prisma.PaymentUncheckedUpdateWithoutRefundInput>
+  create: Prisma.XOR<Prisma.PaymentCreateWithoutRefundInput, Prisma.PaymentUncheckedCreateWithoutRefundInput>
+  where?: Prisma.PaymentWhereInput
+}
+
+export type PaymentUpdateToOneWithWhereWithoutRefundInput = {
+  where?: Prisma.PaymentWhereInput
+  data: Prisma.XOR<Prisma.PaymentUpdateWithoutRefundInput, Prisma.PaymentUncheckedUpdateWithoutRefundInput>
+}
+
+export type PaymentUpdateWithoutRefundInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  baseAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  uniqueCode?: Prisma.IntFieldUpdateOperationsInput | number
+  totalAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  method?: Prisma.EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+  status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
+  qrisPayload?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proofImageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAccount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  verifiedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acknowledgedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  booking?: Prisma.BookingUpdateOneRequiredWithoutPaymentNestedInput
+}
+
+export type PaymentUncheckedUpdateWithoutRefundInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  bookingId?: Prisma.StringFieldUpdateOperationsInput | string
   baseAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   uniqueCode?: Prisma.IntFieldUpdateOperationsInput | number
   totalAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -846,6 +977,7 @@ export type PaymentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   createdAt?: boolean
   updatedAt?: boolean
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
+  refund?: boolean | Prisma.Payment$refundArgs<ExtArgs>
 }, ExtArgs["result"]["payment"]>
 
 
@@ -875,12 +1007,14 @@ export type PaymentSelectScalar = {
 export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "baseAmount" | "uniqueCode" | "totalAmount" | "method" | "status" | "qrisPayload" | "proofImageUrl" | "bankName" | "senderAccount" | "verifiedAt" | "verifiedBy" | "acknowledgedAt" | "acknowledgedBy" | "notes" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["payment"]>
 export type PaymentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
+  refund?: boolean | Prisma.Payment$refundArgs<ExtArgs>
 }
 
 export type $PaymentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Payment"
   objects: {
     booking: Prisma.$BookingPayload<ExtArgs>
+    refund: Prisma.$BookingRefundPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1253,6 +1387,7 @@ readonly fields: PaymentFieldRefs;
 export interface Prisma__PaymentClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   booking<T extends Prisma.BookingDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookingDefaultArgs<ExtArgs>>): Prisma.Prisma__BookingClient<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  refund<T extends Prisma.Payment$refundArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Payment$refundArgs<ExtArgs>>): Prisma.Prisma__BookingRefundClient<runtime.Types.Result.GetResult<Prisma.$BookingRefundPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1646,6 +1781,25 @@ export type PaymentDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Limit how many Payments to delete.
    */
   limit?: number
+}
+
+/**
+ * Payment.refund
+ */
+export type Payment$refundArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BookingRefund
+   */
+  select?: Prisma.BookingRefundSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BookingRefund
+   */
+  omit?: Prisma.BookingRefundOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BookingRefundInclude<ExtArgs> | null
+  where?: Prisma.BookingRefundWhereInput
 }
 
 /**

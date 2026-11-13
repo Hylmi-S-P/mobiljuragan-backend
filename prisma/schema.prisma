@@ -354,6 +354,7 @@ model Booking {
   payment  Payment?
   document BookingDocument?
   lineItems BookingLineItem[]
+  refund   BookingRefund?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -719,11 +720,59 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  refund BookingRefund?
+
   @@index([bookingId])
   @@index([status])
   @@index([totalAmount])
   @@index([method])
   @@map("payments")
+}
+
+/// Keadaan pengembalian dana untuk pesanan yang dibatalkan setelah dibayar.
+///
+/// Sebelumnya nominal refund hanya dihitung di aplikasi mobile lalu disimpan di
+/// cache perangkat, sehingga kantor tidak punya catatan apa pun tentang uang
+/// yang harus dikembalikan. Tabel ini menjadikan refund sebagai catatan resmi
+/// yang bisa dilihat, diubah nominalnya, dan ditutup dengan bukti transfer.
+enum RefundStatus {
+  MENUNGGU
+  DIPROSES
+  SELESAI
+}
+
+model BookingRefund {
+  id        String  @id @default(uuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  /// Uang yang benar-benar masuk menurut catatan pembayaran.
+  totalDibayar Decimal @db.Decimal(12, 2)
+  /// Bagian yang tidak dikembalikan (potongan pembatalan).
+  potongan     Decimal @default(0) @db.Decimal(12, 2)
+  /// Nominal yang harus ditransfer balik ke pelanggan.
+  nominal      Decimal @db.Decimal(12, 2)
+
+  /// SIAPA yang membatalkan: `PELANGGAN`, `ADMIN`, `SISTEM`. Menentukan
+  /// potongan bawaan, dan disimpan supaya nominal bisa diaudit di kemudian hari.
+  dibatalkanOleh String
+  alasan          String? @db.Text
+
+  namaBank      String?
+  nomorRekening String?
+  namaPemilik   String?
+  /// Bukti transfer pengembalian (hasil unggah, bukan tautan sembarang).
+  buktiMediaId  String?
+
+  status       RefundStatus @default(MENUNGGU)
+  dicatatOleh  String?
+  dicatatPada  DateTime     @default(now())
+  diselesaikanPada DateTime?
+
+  @@index([status])
+  @@map("booking_refunds")
 }
 
 /// Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)

@@ -69,6 +69,7 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
+  BookingRefund: 'BookingRefund',
   BookingDocument: 'BookingDocument',
   MediaObject: 'MediaObject',
   DocumentTemplate: 'DocumentTemplate'
@@ -399,6 +400,28 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const BookingRefundScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  paymentId: 'paymentId',
+  totalDibayar: 'totalDibayar',
+  potongan: 'potongan',
+  nominal: 'nominal',
+  dibatalkanOleh: 'dibatalkanOleh',
+  alasan: 'alasan',
+  namaBank: 'namaBank',
+  nomorRekening: 'nomorRekening',
+  namaPemilik: 'namaPemilik',
+  buktiMediaId: 'buktiMediaId',
+  status: 'status',
+  dicatatOleh: 'dicatatOleh',
+  dicatatPada: 'dicatatPada',
+  diselesaikanPada: 'diselesaikanPada'
+} as const
+
+export type BookingRefundScalarFieldEnum = (typeof BookingRefundScalarFieldEnum)[keyof typeof BookingRefundScalarFieldEnum]
+
+
 export const BookingDocumentScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
@@ -703,6 +726,22 @@ export const PaymentOrderByRelevanceFieldEnum = {
 } as const
 
 export type PaymentOrderByRelevanceFieldEnum = (typeof PaymentOrderByRelevanceFieldEnum)[keyof typeof PaymentOrderByRelevanceFieldEnum]
+
+
+export const BookingRefundOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  paymentId: 'paymentId',
+  dibatalkanOleh: 'dibatalkanOleh',
+  alasan: 'alasan',
+  namaBank: 'namaBank',
+  nomorRekening: 'nomorRekening',
+  namaPemilik: 'namaPemilik',
+  buktiMediaId: 'buktiMediaId',
+  dicatatOleh: 'dicatatOleh'
+} as const
+
+export type BookingRefundOrderByRelevanceFieldEnum = (typeof BookingRefundOrderByRelevanceFieldEnum)[keyof typeof BookingRefundOrderByRelevanceFieldEnum]
 
 
 export const BookingDocumentOrderByRelevanceFieldEnum = {

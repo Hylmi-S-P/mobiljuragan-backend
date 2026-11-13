@@ -21,6 +21,7 @@ import { faqRouter } from './faqs.js';
 import { adminFaqRouter } from './adminFaqs.js';
 import { paymentRouter } from './paymentRoutes.js';
 import { adminPaymentRouter } from './adminPaymentRoutes.js';
+import { adminRefundRouter } from './adminRefunds.js';
 import { ticketRouter } from './tickets.js';
 import { customerAiRouter } from './customerAiRoutes.js';
 import { mediaRouter } from './mediaRoutes.js';
@@ -34,6 +35,9 @@ v1Router.use('/pickup-points', pickupPointRouter);
 
 // Manajemen pembayaran admin portal: /api/v1/admin/payments/*
 v1Router.use('/admin/payments', adminPaymentRouter);
+
+// Antrean pengembalian dana: /api/v1/admin/refunds/*
+v1Router.use('/admin/refunds', adminRefundRouter);
 
 // Pemrosesan pembayaran & mutasi: /api/v1/payments/*
 v1Router.use('/payments', paymentRouter);

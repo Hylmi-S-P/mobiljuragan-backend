@@ -415,6 +415,7 @@ export const ModelName = {
   KnowledgeDocument: 'KnowledgeDocument',
   Faq: 'Faq',
   Payment: 'Payment',
+  BookingRefund: 'BookingRefund',
   BookingDocument: 'BookingDocument',
   MediaObject: 'MediaObject',
   DocumentTemplate: 'DocumentTemplate'
@@ -433,7 +434,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "tariffSetting" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "tariffSetting" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingRefund" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1625,6 +1626,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BookingRefund: {
+      payload: Prisma.$BookingRefundPayload<ExtArgs>
+      fields: Prisma.BookingRefundFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookingRefundFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookingRefundFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        findFirst: {
+          args: Prisma.BookingRefundFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookingRefundFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        findMany: {
+          args: Prisma.BookingRefundFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>[]
+        }
+        create: {
+          args: Prisma.BookingRefundCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        createMany: {
+          args: Prisma.BookingRefundCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.BookingRefundDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        update: {
+          args: Prisma.BookingRefundUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookingRefundDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookingRefundUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.BookingRefundUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRefundPayload>
+        }
+        aggregate: {
+          args: Prisma.BookingRefundAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingRefund>
+        }
+        groupBy: {
+          args: Prisma.BookingRefundGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingRefundGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookingRefundCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingRefundCountAggregateOutputType> | number
+        }
+      }
+    }
     BookingDocument: {
       payload: Prisma.$BookingDocumentPayload<ExtArgs>
       fields: Prisma.BookingDocumentFieldRefs
@@ -2171,6 +2238,28 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const BookingRefundScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  paymentId: 'paymentId',
+  totalDibayar: 'totalDibayar',
+  potongan: 'potongan',
+  nominal: 'nominal',
+  dibatalkanOleh: 'dibatalkanOleh',
+  alasan: 'alasan',
+  namaBank: 'namaBank',
+  nomorRekening: 'nomorRekening',
+  namaPemilik: 'namaPemilik',
+  buktiMediaId: 'buktiMediaId',
+  status: 'status',
+  dicatatOleh: 'dicatatOleh',
+  dicatatPada: 'dicatatPada',
+  diselesaikanPada: 'diselesaikanPada'
+} as const
+
+export type BookingRefundScalarFieldEnum = (typeof BookingRefundScalarFieldEnum)[keyof typeof BookingRefundScalarFieldEnum]
+
+
 export const BookingDocumentScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
@@ -2477,6 +2566,22 @@ export const PaymentOrderByRelevanceFieldEnum = {
 export type PaymentOrderByRelevanceFieldEnum = (typeof PaymentOrderByRelevanceFieldEnum)[keyof typeof PaymentOrderByRelevanceFieldEnum]
 
 
+export const BookingRefundOrderByRelevanceFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  paymentId: 'paymentId',
+  dibatalkanOleh: 'dibatalkanOleh',
+  alasan: 'alasan',
+  namaBank: 'namaBank',
+  nomorRekening: 'nomorRekening',
+  namaPemilik: 'namaPemilik',
+  buktiMediaId: 'buktiMediaId',
+  dicatatOleh: 'dicatatOleh'
+} as const
+
+export type BookingRefundOrderByRelevanceFieldEnum = (typeof BookingRefundOrderByRelevanceFieldEnum)[keyof typeof BookingRefundOrderByRelevanceFieldEnum]
+
+
 export const BookingDocumentOrderByRelevanceFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
@@ -2695,6 +2800,13 @@ export type EnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 
 
 /**
+ * Reference to a field of type 'RefundStatus'
+ */
+export type EnumRefundStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RefundStatus'>
+    
+
+
+/**
  * Reference to a field of type 'DocumentStatus'
  */
 export type EnumDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentStatus'>
@@ -2869,6 +2981,7 @@ export type GlobalOmitConfig = {
   knowledgeDocument?: Prisma.KnowledgeDocumentOmit
   faq?: Prisma.FaqOmit
   payment?: Prisma.PaymentOmit
+  bookingRefund?: Prisma.BookingRefundOmit
   bookingDocument?: Prisma.BookingDocumentOmit
   mediaObject?: Prisma.MediaObjectOmit
   documentTemplate?: Prisma.DocumentTemplateOmit

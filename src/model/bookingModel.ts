@@ -8,12 +8,19 @@ import {
   DriverRoute,
   OperationalStatus,
   PaymentStatus,
+  RefundStatus,
   RentalType,
   TariffStatus,
-  type Prisma,
+  Prisma,
 } from '../generated/prisma/client.js';
 import { assertBookingTransition, BOOKING_BLOCKING_STATUSES, JAM_TENGGAT_KONFIRMASI_ADMIN } from '../lib/bookingStage.js';
 import { tenggatAwal } from '../lib/documentDeadline.js';
+import {
+  hitungNominalRefund,
+  pembatalDari,
+  perluRefund,
+  statusMembukaRefund,
+} from '../lib/refund.js';
 import { getDriverDailyRate, hitungKomponenTarif, type KomponenTarif } from '../lib/tariff.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
 
@@ -101,6 +108,9 @@ const adminBookingDetailInclude = {
   lineItems: {
     orderBy: { createdAt: 'asc' as const },
   },
+  /* Kewajiban pengembalian dana ikut dibaca supaya dashboard dan mobile
+     menampilkan angka yang sama, bukan hitungan masing-masing. */
+  refund: true,
 } as const;
 
 /**
@@ -235,6 +245,7 @@ export const bookingModel = {
         driver: bookingDriverSummary,
         document: true,
         payment: true,
+        refund: true,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -293,6 +304,7 @@ export const bookingModel = {
         },
         payment: true,
         document: true,
+        refund: true,
       },
     });
   },
@@ -466,10 +478,63 @@ export const bookingModel = {
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }
 
+      /* Pesanan yang dibatalkan atau ditolak SETELAH dibayar menimbulkan kewajiban
+         mengembalikan uang. Catatan ini dulu tidak pernah dibuat: nominal refund
+         hanya dihitung di aplikasi mobile lalu disimpan di cache perangkat, jadi
+         kantor tidak punya daftar siapa yang harus ditransfer balik.
+
+         Dicatat sebelum pembacaan akhir di bawah supaya respons status langsung
+         membawa angka pengembaliannya, bukan menunggu satu permintaan lagi. */
+      if (
+        statusMembukaRefund(input.nextStatus) &&
+        perluRefund(booking.payment?.status) &&
+        booking.payment
+      ) {
+        const dibatalkanOleh = pembatalDari(input.actor);
+        const totalDibayar = Number(booking.payment.totalAmount);
+        const hitungan = hitungNominalRefund(totalDibayar, dibatalkanOleh);
+
+        /* Pembatalan oleh admin/sistem tidak memotong apa pun, tetapi admin tetap
+           boleh menimpa nominalnya saat memproses pengembalian. */
+        await tx.bookingRefund.upsert({
+          where: { bookingId: booking.id },
+          create: {
+            bookingId: booking.id,
+            paymentId: booking.payment.id,
+            totalDibayar: new Prisma.Decimal(hitungan.totalDibayar),
+            potongan: new Prisma.Decimal(hitungan.potongan),
+            nominal: new Prisma.Decimal(hitungan.nominal),
+            dibatalkanOleh,
+            alasan: input.note,
+            status: RefundStatus.MENUNGGU,
+            dicatatOleh: input.actorUserId,
+          },
+          update: {
+            totalDibayar: new Prisma.Decimal(hitungan.totalDibayar),
+            potongan: new Prisma.Decimal(hitungan.potongan),
+            nominal: new Prisma.Decimal(hitungan.nominal),
+            dibatalkanOleh,
+            alasan: input.note,
+          },
+        });
+
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: PaymentStatus.REFUNDED },
+        });
+      }
+
       const updatedBooking = await tx.booking.update({
         where: { id: booking.id },
         data: updateData,
-        include: { vehicle: true, customer: true, driver: bookingDriverSummary },
+        include: {
+          vehicle: true,
+          customer: true,
+          driver: bookingDriverSummary,
+          /* Pengembalian dana ikut dikirim supaya aplikasi langsung tahu nominal
+             yang harus ditransfer balik, tanpa menebak dari status pembayaran. */
+          refund: true,
+        },
       });
 
       await tx.bookingStatusHistory.create({
@@ -563,6 +628,10 @@ export const bookingModel = {
         });
       }
 
+      /* Pesanan yang dibatalkan atau ditolak SETELAH dibayar menimbulkan kewajiban
+         mengembalikan uang. Catatan ini dulu tidak pernah dibuat: nominal refund
+         hanya dihitung di aplikasi mobile lalu disimpan di cache perangkat, jadi
+         kantor tidak punya daftar siapa yang harus ditransfer balik. */
       if (
         (input.nextStatus === BookingStatus.CANCELLED ||
           input.nextStatus === BookingStatus.REJECTED) &&

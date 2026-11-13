@@ -171,3 +171,12 @@ export const TicketHandler = {
 } as const
 
 export type TicketHandler = (typeof TicketHandler)[keyof typeof TicketHandler]
+
+
+export const RefundStatus = {
+  MENUNGGU: 'MENUNGGU',
+  DIPROSES: 'DIPROSES',
+  SELESAI: 'SELESAI'
+} as const
+
+export type RefundStatus = (typeof RefundStatus)[keyof typeof RefundStatus]

@@ -146,6 +146,11 @@ export type Faq = Prisma.FaqModel
  */
 export type Payment = Prisma.PaymentModel
 /**
+ * Model BookingRefund
+ * 
+ */
+export type BookingRefund = Prisma.BookingRefundModel
+/**
  * Model BookingDocument
  * Dokumen Persyaratan Sewa Lepas Kunci (Surat Pernyataan TTD Basah, e-KTP, dan SIM A)
  */
