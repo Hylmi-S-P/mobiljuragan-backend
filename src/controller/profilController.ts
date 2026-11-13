@@ -89,6 +89,12 @@ export const profilController = {
       if (namaBaru.length < 3) {
         throw new AppError('INVALID_INPUT', 'Nama lengkap minimal 3 karakter.', 400);
       }
+      /* Batas atas juga diperiksa di sini, bukan hanya di rute: nama dipakai pada
+         dokumen sewa dan daftar admin, dan nama sepanjang paragraf merusak
+         keduanya. */
+      if (namaBaru.length > 100) {
+        throw new AppError('INVALID_INPUT', 'Nama lengkap maksimal 100 karakter.', 400);
+      }
 
       let updatedAtDiharapkan: Date | null = null;
       if (expectedUpdatedAt) {

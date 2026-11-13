@@ -21,7 +21,10 @@ export const createPaymentSchema = z.object({
         'Pembayaran tunai tidak bisa dipilih dari aplikasi. Silakan bayar langsung di kantor.',
     })
     .default(PaymentMethod.QRIS),
-  notes: z.string().optional(),
+  /* Batas panjang bukan soal penyimpanan — MySQL sanggup menampungnya. Ini soal
+     layar: catatan sepanjang ribuan karakter tidak terbaca di kartu verifikasi
+     dan membuat tabel riwayat melar. */
+  notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 
 /**
@@ -36,10 +39,14 @@ export const createPaymentSchema = z.object({
  */
 export const uploadPaymentProofSchema = z
   .object({
-    proofImageUrl: z.string().optional(),
+    proofImageUrl: z.string().max(8_000_000, 'Ukuran bukti transfer terlalu besar.').optional(),
     proofMediaId: z.string().uuid('ID media tidak valid').optional(),
-    senderAccount: z.string().optional(),
-    bankName: z.string().optional(),
+    senderAccount: z
+      .string()
+      .trim()
+      .max(120, 'Nama pengirim maksimal 120 karakter.')
+      .optional(),
+    bankName: z.string().trim().max(60, 'Nama bank maksimal 60 karakter.').optional(),
   })
   .refine((data) => Boolean(data.proofImageUrl || data.proofMediaId), {
     message: 'Bukti transfer wajib diunggah.',
@@ -49,7 +56,7 @@ export const uploadPaymentProofSchema = z
 export const adminVerifyPaymentSchema = z
   .object({
     action: z.enum(['APPROVE', 'REJECT']),
-    notes: z.string().optional(),
+    notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
     /* Hanya berlaku untuk REJECT. `false` (bawaan) menolak bukti bayar tetapi
        membiarkan pesanan hidup supaya pelanggan bisa mengunggah ulang; `true`
        membatalkan pesanan sekaligus, dipakai saat ada indikasi penipuan. */
@@ -63,7 +70,7 @@ export const adminVerifyPaymentSchema = z
 export const listPaymentQuerySchema = z.object({
   status: z.nativeEnum(PaymentStatus).optional(),
   method: z.nativeEnum(PaymentMethod).optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

@@ -66,6 +66,34 @@ export const bookingCreateRateLimiter = rateLimit({
 });
 
 /**
+ * Pembatas unggahan berkas (dokumen sewa dan media umum).
+ *
+ * Setiap unggahan memaksa sharp mendekode gambar dan menulis hasilnya ke
+ * penyimpanan, jadi biayanya jauh lebih besar daripada satu permintaan JSON
+ * biasa. Dihitung per akun: satu akun yang mengunggah puluhan berkas beruntun
+ * pasti bukan pemakaian wajar, sementara beberapa teman di satu jaringan kantor
+ * tetap boleh mengunggah masing-masing.
+ *
+ * Batasnya longgar karena alur normal memang mengunggah beberapa berkas: tiga
+ * dokumen sewa sekaligus, lalu bukti transfer, lalu foto armada oleh staf.
+ */
+export const uploadRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 menit
+  max: process.env.NODE_ENV === 'test' ? 1000 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.userId || req.ip || 'tanpa-identitas',
+  handler: (_req, res) => {
+    sendError(
+      res,
+      'UPLOAD_RATE_LIMITED',
+      'Terlalu banyak unggahan berkas dalam waktu singkat. Coba lagi beberapa menit lagi.',
+      429,
+    );
+  },
+});
+
+/**
  * Pembatas percobaan login panel staf dan admin.
  *
  * Dua lapis, karena masing-masing menutup celah yang berbeda:

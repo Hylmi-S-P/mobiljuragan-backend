@@ -4,6 +4,7 @@ import { documentController } from '../../controller/documentController.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
 import { MAX_UPLOAD_BYTES } from '../../services/upload/image-processing.js';
+import { uploadRateLimiter } from '../../middleware/rateLimiter.js';
 
 export const documentRouter = Router();
 
@@ -41,6 +42,7 @@ documentRouter.get('/bookings/:id/documents', requireAuth, documentController.ge
 documentRouter.post(
   '/bookings/:id/documents',
   requireAuth,
+  uploadRateLimiter,
   upload.fields([
     { name: 'statementLetter', maxCount: 1 },
     { name: 'ktp', maxCount: 1 },

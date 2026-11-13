@@ -48,27 +48,31 @@ const imageUrlSchema = z
   .optional();
 
 const createVehicleSchema = z.object({
-  name: z.string().min(1, 'Nama armada wajib diisi.'),
-  licensePlate: z.string().min(1, 'Plat nomor wajib diisi.'),
-  category: z.string().optional(),
-  transmission: z.string().optional(),
+  name: z.string().trim().min(1, 'Nama armada wajib diisi.').max(120, 'Nama armada maksimal 120 karakter.'),
+  licensePlate: z
+    .string()
+    .trim()
+    .min(1, 'Plat nomor wajib diisi.')
+    .max(20, 'Plat nomor maksimal 20 karakter.'),
+  category: z.string().trim().max(60, 'Kategori maksimal 60 karakter.').optional(),
+  transmission: z.string().trim().max(40, 'Transmisi maksimal 40 karakter.').optional(),
   seatingCapacity: z.number().int().positive().optional(),
   pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.'),
-  brand: z.string().optional(),
-  model: z.string().optional(),
+  brand: z.string().trim().max(60, 'Merek maksimal 60 karakter.').optional(),
+  model: z.string().trim().max(60, 'Model maksimal 60 karakter.').optional(),
   imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });
 
 const updateVehicleSchema = z.object({
-  name: z.string().min(1).optional(),
-  licensePlate: z.string().min(1).optional(),
-  category: z.string().optional(),
-  transmission: z.string().optional(),
+  name: z.string().trim().min(1).max(120, 'Nama armada maksimal 120 karakter.').optional(),
+  licensePlate: z.string().trim().min(1).max(20, 'Plat nomor maksimal 20 karakter.').optional(),
+  category: z.string().trim().max(60, 'Kategori maksimal 60 karakter.').optional(),
+  transmission: z.string().trim().max(40, 'Transmisi maksimal 40 karakter.').optional(),
   seatingCapacity: z.number().int().positive().optional(),
   pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.').optional(),
-  brand: z.string().optional(),
-  model: z.string().optional(),
+  brand: z.string().trim().max(60, 'Merek maksimal 60 karakter.').optional(),
+  model: z.string().trim().max(60, 'Model maksimal 60 karakter.').optional(),
   imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });

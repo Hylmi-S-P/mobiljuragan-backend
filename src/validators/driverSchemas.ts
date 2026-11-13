@@ -12,7 +12,7 @@ import { DriverLicenseType, DriverReadiness, DriverRoute } from '../generated/pr
 export const listQuerySchema = z.object({
   readiness: z.nativeEnum(DriverReadiness).optional(),
   routeScope: z.nativeEnum(DriverRoute).optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
   includeInactive: z.enum(['true', 'false']).optional(),
 });
 

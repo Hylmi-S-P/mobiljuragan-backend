@@ -26,11 +26,17 @@ adminCustomerRouter.get('/:id', adminCustomerController.detail);
 /**
  * Koreksi nama.
  *
+ * Hanya ADMIN. Nama pelanggan adalah data identitas yang juga dipakai pada
+ * dokumen sewa; mengubahnya butuh alasan tertulis dan kewenangan yang lebih
+ * tinggi daripada sekadar membuka akun yang terkunci. Staf tetap dapat membuka
+ * kunci, mencabut sesi, dan menonaktifkan akun lewat rute di bawah.
+ *
  * Alasan wajib minimal 10 karakter — bukan formalitas, melainkan satu-satunya
  * keterangan mengapa identitas seseorang diubah oleh orang lain.
  */
 adminCustomerRouter.patch(
   '/:id/name',
+  requireRole(UserRole.ADMIN),
   validateBody(
     z.object({
       fullName: z

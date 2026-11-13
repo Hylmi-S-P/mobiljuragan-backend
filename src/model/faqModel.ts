@@ -101,4 +101,41 @@ export const faqModel = {
       where: { id },
     });
   },
+
+  /* --------------------------------------------------------------------------
+   * Kategori FAQ.
+   *
+   * Kategori bukan tabel sendiri: ia hanya kolom teks pada FAQ. Karena itu
+   * "menghapus kategori" berarti memastikan tidak ada lagi FAQ yang memakainya —
+   * bukan menghapus baris. Mengganti nama kategori berarti mengganti kolom pada
+   * semua FAQ sekaligus, supaya tidak lahir dua kategori yang beda ejaan.
+   * ------------------------------------------------------------------------ */
+
+  /** Daftar kategori beserta jumlah FAQ-nya, diurutkan dari yang paling banyak. */
+  async listCategories() {
+    const groups = await db.faq.groupBy({
+      by: ['category'],
+      _count: { _all: true },
+      orderBy: { _count: { category: 'desc' } },
+    });
+
+    return groups
+      .filter((g) => Boolean(g.category))
+      .map((g) => ({
+        category: g.category,
+        jumlah: g._count._all,
+      }));
+  },
+
+  countByCategory(category: string) {
+    return db.faq.count({ where: { category } });
+  },
+
+  async renameCategory(lama: string, baru: string) {
+    const hasil = await db.faq.updateMany({
+      where: { category: lama },
+      data: { category: baru },
+    });
+    return hasil.count;
+  },
 };

@@ -5,8 +5,8 @@ import { z } from 'zod';
  */
 
 export const listFaqQuerySchema = z.object({
-  category: z.string().trim().optional(),
-  search: z.string().trim().optional(),
+  category: z.string().trim().max(100, 'Kategori maksimal 100 karakter.').optional(),
+  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
   isActive: z.enum(['true', 'false']).optional(),
 });
 

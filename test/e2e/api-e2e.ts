@@ -13,8 +13,8 @@ import {
   createTicket,
   createVehicle,
   handoverTiket,
-  harapan,
   handover,
+  harapan,
   loginAdmin,
   loginCustomer,
   requestDocumentRevision,
@@ -1422,6 +1422,204 @@ const kasus: Kasus[] = [
         body: { status: 'WAITING_CUSTOMER' },
       });
       harapan(boleh, 200, 'staf tetap boleh mengubah status bukan akhir');
+    },
+  },
+  {
+    id: 'T5.6',
+    nama: 'Kategori FAQ bisa diganti namanya dan dihapus hanya setelah FAQ dipindahkan',
+    async fn({ adminToken }) {
+      const buat = async (kategori: string, pertanyaan: string) => {
+        const respons = await api('/admin/faqs', {
+          method: 'POST',
+          token: adminToken,
+          body: {
+            question: pertanyaan,
+            answer: 'Jawaban pengujian kategori.',
+            category: kategori,
+            orderIndex: 0,
+            isActive: true,
+          },
+        });
+        harapan(respons, 201, `buat FAQ kategori ${kategori}`);
+        return respons.body.data?.id as string;
+      };
+
+      const idA = await buat('Kategori Uji Lama', 'Pertanyaan pertama kategori uji.');
+      await buat('Kategori Uji Lama', 'Pertanyaan kedua kategori uji.');
+      const idTujuan = await buat('Kategori Uji Tujuan', 'Pertanyaan kategori tujuan.');
+
+      const daftar = await api('/admin/faqs/categories', { token: adminToken });
+      harapan(daftar, 200, 'daftar kategori');
+      const kategori = (daftar.body.data as Array<{ category: string; jumlah: number }>).find(
+        (k) => k.category === 'Kategori Uji Lama',
+      );
+      if (!kategori || kategori.jumlah !== 2) {
+        throw new Error(`kategori harus terhitung 2 FAQ, menerima ${kategori?.jumlah}`);
+      }
+
+      /* Menghapus tanpa kategori tujuan ditolak: FAQ tidak boleh ikut hilang. */
+      const hapusTanpaTujuan = await api(
+        `/admin/faqs/categories/${encodeURIComponent('Kategori Uji Lama')}`,
+        { method: 'DELETE', token: adminToken },
+      );
+      if (hapusTanpaTujuan.status !== 409) {
+        throw new Error(`hapus kategori terpakai harus 409, menerima ${hapusTanpaTujuan.status}`);
+      }
+
+      const pindah = await api(
+        `/admin/faqs/categories/${encodeURIComponent('Kategori Uji Lama')}?pindahkanKe=${encodeURIComponent('Kategori Uji Tujuan')}`,
+        { method: 'DELETE', token: adminToken },
+      );
+      harapan(pindah, 200, 'hapus kategori dengan memindahkan FAQ');
+
+      const detailA = await api(`/admin/faqs/${idA}`, { token: adminToken });
+      harapan(detailA, 200, 'baca FAQ yang dipindahkan');
+      if (detailA.body.data.category !== 'Kategori Uji Tujuan') {
+        throw new Error(`FAQ harus pindah kategori, menerima ${detailA.body.data.category}`);
+      }
+
+      const hapusTujuan = await api(
+        `/admin/faqs/categories/${encodeURIComponent('Kategori Uji Tujuan')}?pindahkanKe=${encodeURIComponent('Kategori Uji Akhir')}`,
+        { method: 'DELETE', token: adminToken },
+      );
+      harapan(hapusTujuan, 200, 'hapus kategori tujuan dengan memindahkan FAQ-nya');
+
+      const detailTujuan = await api(`/admin/faqs/${idTujuan}`, { token: adminToken });
+      harapan(detailTujuan, 200, 'baca FAQ kategori akhir');
+      if (detailTujuan.body.data.category !== 'Kategori Uji Akhir') {
+        throw new Error(`FAQ harus pindah ke Kategori Uji Akhir, menerima ${detailTujuan.body.data.category}`);
+      }
+    },
+  },
+  {
+    id: 'T5.8',
+    nama: 'Staf tidak bisa menyentuh jalur khusus admin',
+    async fn({ adminToken }) {
+      const staf = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Peran');
+      const pelanggan = await loginCustomer();
+
+      const daftarPelanggan = await api(
+        `/admin/customers?search=${encodeURIComponent(pelanggan.phone)}`,
+        { token: adminToken },
+      );
+      harapan(daftarPelanggan, 200, 'cari pelanggan uji');
+      const barisPelanggan = (daftarPelanggan.body.data?.items ??
+        daftarPelanggan.body.data) as Array<{ id: string; phoneNumber: string }>;
+      const pelangganId = barisPelanggan.find((p) => p.phoneNumber === pelanggan.phone)?.id;
+      if (!pelangganId) throw new Error('pelanggan uji tidak ditemukan di daftar admin');
+
+      /* Daftar akun pengelola: staf tidak perlu melihat daftar admin lain,
+         apalagi mengganti sandinya. */
+      const daftarStaf = await api('/admin/users', { token: staf.token });
+      if (daftarStaf.status !== 403) {
+        throw new Error(`staf membuka daftar admin harus 403, menerima ${daftarStaf.status}`);
+      }
+
+      /* Koreksi nama pelanggan menyentuh data identitas yang dipakai dokumen
+         sewa, jadi hanya ADMIN. */
+      const koreksiNama = await api(`/admin/customers/${pelangganId}/name`, {
+        method: 'PATCH',
+        token: staf.token,
+        body: { fullName: 'Nama Diubah Staf', reason: 'Pengujian kewenangan staf.' },
+      });
+      if (koreksiNama.status !== 403) {
+        throw new Error(`staf mengoreksi nama pelanggan harus 403, menerima ${koreksiNama.status}`);
+      }
+
+      /* Yang memang menjadi tugas staf harus tetap jalan. */
+      const bukaKunci = await api(`/admin/customers/${pelangganId}/unlock`, {
+        method: 'POST',
+        token: staf.token,
+        body: { reason: 'Pengujian kewenangan staf.' },
+      });
+      harapan(bukaKunci, 200, 'staf tetap boleh membuka kunci akun pelanggan');
+
+      const ubahTarif = await api('/admin/fleet/tariff-settings', {
+        method: 'PATCH',
+        token: staf.token,
+        body: { driverDailyRate: 150000 },
+      });
+      if (ubahTarif.status !== 403) {
+        throw new Error(`staf mengubah tarif global harus 403, menerima ${ubahTarif.status}`);
+      }
+
+      const bacaTarif = await api('/admin/fleet/tariff-settings', { token: staf.token });
+      harapan(bacaTarif, 200, 'staf tetap boleh membaca tarif global');
+    },
+  },
+  {
+    id: 'T5.9',
+    nama: 'Isian yang kepanjangan ditolak sebelum disimpan',
+    async fn({ adminToken }) {
+      const namaPanjang = 'N'.repeat(101);
+      const gantiNama = await api('/me', {
+        method: 'PATCH',
+        token: (await loginCustomer()).token,
+        body: { fullName: namaPanjang },
+      });
+      if (gantiNama.status !== 400) {
+        throw new Error(`nama 101 karakter harus 400, menerima ${gantiNama.status}`);
+      }
+
+      const catatanPanjang = 'C'.repeat(501);
+      const pelanggan = await loginCustomer();
+      const kendaraan = await createVehicle(adminToken);
+      const pesanan = await createBooking(pelanggan.token, kendaraan.id);
+      const tagihan = await createPayment(pelanggan.token, pesanan.id, {
+        notes: catatanPanjang,
+      });
+      if (tagihan.status !== 400) {
+        throw new Error(`catatan tagihan 501 karakter harus 400, menerima ${tagihan.status}`);
+      }
+
+      const satuanPanjang = await api('/admin/vehicles', {
+        method: 'POST',
+        token: adminToken,
+        body: {
+          name: 'X'.repeat(121),
+          licensePlate: 'ZZ 9999 QQ',
+          pricePerDay: 300000,
+        },
+      });
+      if (satuanPanjang.status !== 400) {
+        throw new Error(`nama armada 121 karakter harus 400, menerima ${satuanPanjang.status}`);
+      }
+    },
+  },
+  {
+    id: 'T5.10',
+    nama: 'Teks bertanda HTML disimpan apa adanya dan tidak dijalankan server',
+    async fn({ adminToken }) {
+      const muatan = '<img src=x onerror="alert(1)">';
+      const pelanggan = await loginCustomer();
+      const tiket = await createTicket(pelanggan.token, {
+        title: `Coba ${muatan}`,
+        description: `Deskripsi ${muatan} selesai.`,
+      });
+
+      const pesan = await api(`/tickets/${tiket.id}/messages`, {
+        method: 'POST',
+        token: pelanggan.token,
+        body: { body: muatan },
+      });
+      harapan(pesan, 201, 'kirim pesan bertanda HTML');
+
+      const detail = await api(`/tickets/${tiket.id}`, { token: adminToken });
+      harapan(detail, 200, 'baca detail tiket');
+
+      /* Server menyimpan teks apa adanya dan mengirimkannya di dalam JSON.
+         Tidak ada satu pun jalur yang menafsirkannya sebagai HTML: dashboard
+         memakai React (yang meng-escape teks di dalam elemen) dan aplikasi
+         pelanggan memakai widget Text. Kalau suatu saat ada yang menempelkan
+         isi ini ke innerHTML, test ini tetap lulus — karena itu berkas ini
+         bukan pengganti pemeriksaan kode, melainkan penjaga bentuk data. */
+      const teks = JSON.stringify(detail.body);
+      if (!teks.includes('onerror')) {
+        throw new Error('isi pesan hilang saat disimpan atau dibaca');
+      }
+      if (teks.includes('<script')) {
+        throw new Error('server tidak boleh menambahkan markup sendiri');
+      }
     },
   },
 ];

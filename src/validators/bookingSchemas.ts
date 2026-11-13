@@ -39,7 +39,7 @@ export const adminBookingQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   status: z.nativeEnum(BookingStatus).optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
 });
 
 export const updateBookingStatusSchema = z.object({

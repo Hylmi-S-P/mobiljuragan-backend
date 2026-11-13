@@ -3,7 +3,7 @@ import { RefundStatus } from '../generated/prisma/client.js';
 
 export const listRefundQuerySchema = z.object({
   status: z.nativeEnum(RefundStatus).optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

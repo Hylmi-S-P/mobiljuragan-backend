@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { mediaController } from '../../controller/mediaController.js';
 import { optionalAuth, requireAuth } from '../../middleware/auth.js';
 import { unggahSatuGambar } from '../../lib/imagePipeline.js';
+import { uploadRateLimiter } from '../../middleware/rateLimiter.js';
 
 /**
  * Rute media: /api/v1/media/*
@@ -12,7 +13,7 @@ import { unggahSatuGambar } from '../../lib/imagePipeline.js';
  */
 export const mediaRouter: Router = Router();
 
-mediaRouter.post('/', requireAuth, unggahSatuGambar('file'), mediaController.unggah);
+mediaRouter.post('/', requireAuth, uploadRateLimiter, unggahSatuGambar('file'), mediaController.unggah);
 
 /*
  * Penyajian memakai `optionalAuth`, bukan `requireAuth`, supaya tautan bertanda

@@ -20,6 +20,13 @@ adminFaqRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
 
 adminFaqRouter.get('/', validateQuery(listFaqQuerySchema), faqController.listAdmin);
 adminFaqRouter.post('/', validateBody(createFaqSchema), faqController.create);
+
+/* Rute kategori harus dipasang SEBELUM '/:id', kalau tidak "categories" akan
+   tertangkap sebagai id FAQ. */
+adminFaqRouter.get('/categories', faqController.listCategories);
+adminFaqRouter.patch('/categories/:nama', faqController.renameCategory);
+adminFaqRouter.delete('/categories/:nama', faqController.deleteCategory);
+
 adminFaqRouter.get('/:id', faqController.detail);
 adminFaqRouter.put('/:id', validateBody(updateFaqSchema), faqController.update);
 adminFaqRouter.patch('/:id', validateBody(updateFaqSchema), faqController.update);
