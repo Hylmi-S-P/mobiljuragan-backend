@@ -1,8 +1,34 @@
 # Percakapan Pesanan — catatan diskusi
 
-Status: **belum diputuskan tim.** Dokumen ini mencatat keadaan, pilihan, dan usulan
-supaya diskusi tidak perlu mengulang dari awal. Tidak ada kode yang mengikuti
-dokumen ini sampai keputusan di bagian akhir diambil.
+Status: **diputuskan 14 November 2026** — memakai model tiket otomatis (lihat §0).
+Bagian 1–9 di bawah adalah catatan diskusi yang mendahului keputusan itu; isinya
+tetap disimpan sebagai alasan, bukan sebagai rencana yang berlaku.
+
+---
+
+## 0. Keputusan
+
+Tombol "Koordinasi Penjemputan via Chat CS" diganti menjadi **"Chat dengan CS"**
+dan berperilaku seperti tiket bantuan biasa:
+
+- **Tiket dibuat otomatis** saat tombol ditekan, dengan `bookingId` terisi. Tidak
+  ada formulir. Satu pesanan hanya punya satu tiket terbuka; menekan tombol lagi
+  membuka tiket yang sama.
+- **Bot menjawab lebih dulu** dengan pesan default berisi data sewa (unit, plat,
+  jadwal, titik jemput), data supir bila mode dengan supir, dan nomor WhatsApp
+  kantor yang bisa dihubungi.
+- **Alur tiket biasa berlaku**: bisa dialihkan ke CS manusia, memakai RAG,
+  punya riwayat pesan, dan muncul di Customer Care.
+- **Umur tiket 24 jam**, dan hitungannya ter-reset setiap ada pesan baru.
+
+Model "tiket sebagai tugas tanpa ruang chat" (§3 pilihan C) **tidak dipakai**.
+Model "tautan WhatsApp saja" (§3 pilihan A) juga tidak dipakai. WhatsApp tetap
+ada, tetapi sebagai nomor yang disebutkan di dalam pesan bot — bukan sebagai
+kanal utama.
+
+Konsekuensi yang diterima: thread pesan, penanda belum dibaca, dan aturan
+penutupan otomatis tetap perlu dibangun. Pekerjaannya lebih besar daripada model
+tugas, tetapi pelanggan mendapat satu tempat menulis yang tercatat.
 
 ---
 
@@ -175,30 +201,41 @@ Dua prinsip:
 - **Penutupan harus bisa dibatalkan.** Pesan baru dari pelanggan seharusnya
   membuka kembali tiket yang diarsipkan, bukan ditolak.
 
-## 8. Yang belum diputuskan
+## 8. Keputusan yang sudah diambil
 
-1. Cakupan: hanya koordinasi penjemputan, atau seluruh masa sewa termasuk
-   kendala (ban bocor, mogok, pengaduan)?
-2. Masa tenggang pasca-sewa: 3 hari atau 7 hari sebelum percakapan dikunci?
-3. Jalur darurat: cukup nomor kantor, atau perlu nomor petugas jaga di luar jam
-   kerja?
-4. Penandaan kendala: siapa yang menentukan sebuah percakapan menjadi "Kendala
-   Armada" — staf, atau otomatis?
-5. Siapa yang boleh membuka tugas: hanya pelanggan, atau staf juga bisa membuka
-   lebih dulu saat menyerahkan unit?
-6. Nomor WhatsApp: satu nomor kantor atau nomor petugas jaga?
-7. Catatan hasil: wajib diisi sebelum tugas ditutup, atau sukarela?
-8. Aturan penutupan: berapa lama sesi AI dibiarkan terbuka, berapa hari tiket
-   selesai disimpan, dan apakah tiket yang menunggu staf perlu peringatan
-   otomatis?
+1. **Satu tiket terbuka per pesanan.** Setelah tiket ditutup, masalah baru membuat
+   tiket baru. Tidak ada dua thread berjalan untuk satu pesanan.
+2. **Cakupan: seluruh masa sewa** — koordinasi penjemputan, kendala armada
+   (ban bocor, mogok, kecelakaan), pengaduan, dan pertanyaan lain. Kategori diisi
+   bot dari isi pesan pertama, bukan dipilih pelanggan.
+3. **Masa tenggang pasca-sewa: 7 hari** setelah `endDateTime`. Tombol tetap
+   muncul di pesanan `COMPLETED` selama masa itu.
+4. **Nomor WhatsApp: `0812-3456-7890`** — nomor dummy yang sudah dipakai di RAG
+   (kategori darurat dan handoff staf). Diganti satu tempat saat nomor asli ada.
+5. **Pelanggan boleh menutup tiketnya sendiri**; sistem menutup setelah 24 jam
+   tanpa pesan.
+6. **Staf tidak boleh menutup tiket** (sudah berlaku, `TICKET_CLOSE_BY_SYSTEM`).
+   Karena pelanggan juga sering tidak menutup, **sistem yang menutup semuanya**:
+   tiket AI maupun tiket yang sudah dialihkan ke manusia ditutup setelah 24 jam
+   tanpa pesan. Bila pesan terakhir datang dari pelanggan dan belum dijawab,
+   catatan penutupan menyebutkannya ("ditutup otomatis tanpa balasan petugas")
+   dan tiket itu ditandai di arsip supaya bisa ditinjau.
+7. **Tiket yang ditutup sistem bisa dibuka lagi oleh pesan pelanggan dalam 7
+   hari.** Statusnya kembali `OPEN` pada thread yang sama, dan riwayatnya mencatat
+   pembukaan ulang. Setelah 7 hari, pelanggan membuat tiket baru.
 
-## 9. Urutan pengerjaan bila disetujui
+Keputusan 6 dan 7 saling menutup celah: pelanggan tidak perlu rajin menutup
+tiket, dan tidak perlu membuat tiket baru hanya karena balasannya terlambat
+sehari.
 
-1. **Backend** — kolom penaut pesanan, status tugas, endpoint buat-atau-ambil
-   yang idempoten, aturan kedaluwarsa tugas.
-2. **Dashboard** — baris tugas di Customer Care, filter dan badge kode pesanan.
-3. **Mobile** — tombol WhatsApp berkonteks, status tugas di kartu pesanan,
-   penghapusan pesan E-Ticket palsu.
+## 9. Urutan pengerjaan
 
-Tiap tahap harus lulus pemeriksaan sebelum lanjut. Kalau tim memutuskan hal
-berbeda setelah tahap 1, yang berubah hanya tampilan — bukan data.
+1. **Backend** — kolom `bookingId`, endpoint buat-atau-ambil yang idempoten,
+   pesan pembuka dari bot, aturan penutupan 24 jam untuk semua tiket, dan
+   pembukaan ulang oleh pesan pelanggan.
+2. **Dashboard** — badge kode pesanan, filter chip, konteks pesanan di panel
+   detail tiket.
+3. **Mobile** — tombol "Chat dengan CS", penghapusan pesan E-Ticket palsu,
+   tiket pesanan di Pusat Bantuan.
+
+Tiap tahap harus lulus pemeriksaan sebelum lanjut.
