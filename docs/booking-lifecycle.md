@@ -192,6 +192,9 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 7 | Pesanan `CANCELLED` masih bisa ditagih | `f8776ae` — `BOOKING_NOT_PAYABLE` 409 |
 | 10 | Pembayaran tunai (COD) melewati gerbang pembayaran | `3115ac8` (backend) dan `b80e44b` (mobile) |
 | 12 | Tidak ada tenggat dokumen | `ee73746` |
+| 13 | Mengunggah ulang sebagian berkas menghapus berkas lain yang sudah benar | `0d67eae` — kolom yang tidak dikirim memakai berkas lama |
+| 14 | Tarif bisa diketik staf dan tidak berasal dari katalog | `8d9d4ec` — `quotedAmount` dihitung server dari `pricePerDay` + `driverDailyRate` |
+| 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400 |
 
 ### 9.2 Masih ada
 
@@ -200,15 +203,16 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
    ditandai selesai tanpa pernah berstatus `IN_PROGRESS`. Akibatnya armada tidak
    pernah tercatat `BOOKED` dan tidak ada jejak serah terima.
 
-2. **Penolakan pembayaran tidak membatalkan pesanan.** `src/services/payment.service.ts:661-707`
-   hanya mengubah `Payment.status` menjadi `FAILED`; pesanan tetap `CONFIRMED` dan
-   pelanggan masih bisa mengunggah ulang. Riwayat status juga mencatat transisi palsu
-   karena `fromStatus` dan `toStatus` sama.
+2. **Penolakan pembayaran tidak membatalkan pesanan.** `src/services/payment.service.ts`
+   kini punya dua bentuk penolakan: `REJECT` biasa (pesanan tetap `CONFIRMED`, pelanggan
+   boleh unggah ulang) dan `REJECT` dengan `cancelBooking: true` (pesanan `CANCELLED`,
+   supir dan armada dilepas). Transisi palsu `fromStatus == toStatus` sudah tidak ditulis
+   lagi. Sisa celah: tidak ada tenggat unggah ulang setelah penolakan biasa.
 
-3. **Refund tidak tercatat di server.** Pembatalan oleh pelanggan menghitung potongan
-   di aplikasi mobile dan menyimpannya di cache lokal. `PATCH /bookings/:id/cancel`
-   hanya menerima `bookingId` dan `reason`, sehingga nominal refund tidak pernah
-   sampai ke server. `PaymentStatus.REFUNDED` belum pernah dipakai.
+3. **Refund tidak tercatat di server.** Sudah ditutup: `booking_refunds` dibuat di dalam
+   transaksi perubahan status, `Payment.status` menjadi `REFUNDED`, dan dashboard punya
+   antrean `/refunds`. Nominal dihitung server (potongan Rp 50.000 untuk pembatalan
+   pelanggan, penuh untuk admin/sistem).
 
 4. **Tidak ada stempel serah terima.** `startDateTime` dan `endDateTime` diisi
    pelanggan saat membuat pesanan dan tidak pernah diubah saat armada diserahkan.
