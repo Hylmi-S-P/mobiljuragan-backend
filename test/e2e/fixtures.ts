@@ -403,11 +403,12 @@ export async function verifyPayment(
   adminToken: string,
   paymentId: string,
   action: 'APPROVE' | 'REJECT',
+  opsi: { notes?: string; cancelBooking?: boolean } = {},
 ): Promise<ResponsApi> {
   return api(`/admin/payments/${paymentId}/verify`, {
     method: 'PATCH',
     token: adminToken,
-    body: { action },
+    body: { action, ...opsi },
   });
 }
 

@@ -138,6 +138,7 @@ export const paymentController = {
       const updated = await paymentService.adminVerifyPayment(id, {
         action: body.action,
         notes: body.notes,
+        cancelBooking: body.cancelBooking,
         verifierUserId,
         verifierName,
         acknowledgedBy,

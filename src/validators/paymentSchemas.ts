@@ -46,10 +46,19 @@ export const uploadPaymentProofSchema = z
     path: ['proofImageUrl'],
   });
 
-export const adminVerifyPaymentSchema = z.object({
-  action: z.enum(['APPROVE', 'REJECT']),
-  notes: z.string().optional(),
-});
+export const adminVerifyPaymentSchema = z
+  .object({
+    action: z.enum(['APPROVE', 'REJECT']),
+    notes: z.string().optional(),
+    /* Hanya berlaku untuk REJECT. `false` (bawaan) menolak bukti bayar tetapi
+       membiarkan pesanan hidup supaya pelanggan bisa mengunggah ulang; `true`
+       membatalkan pesanan sekaligus, dipakai saat ada indikasi penipuan. */
+    cancelBooking: z.boolean().optional(),
+  })
+  .refine((nilai) => !(nilai.action === 'APPROVE' && nilai.cancelBooking), {
+    message: 'Pembatalan pesanan hanya bisa menyertai penolakan pembayaran.',
+    path: ['cancelBooking'],
+  });
 
 export const listPaymentQuerySchema = z.object({
   status: z.nativeEnum(PaymentStatus).optional(),

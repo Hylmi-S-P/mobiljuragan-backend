@@ -611,6 +611,103 @@ const kasus: Kasus[] = [
       harapan(pulihkan, 200, 'pulihkan tarif supir global');
     },
   },
+  {
+    id: 'T2.3',
+    nama: 'Tolak pembayaran membiarkan pesanan hidup, tolak & batalkan mematikan pesanan',
+    async fn({ adminToken }) {
+      /* Penolakan biasa: bukti bayar ditolak, pesanan tetap CONFIRMED supaya
+         pelanggan bisa mengunggah ulang. */
+      const pertama = await siapkanPesanan(adminToken);
+      const unggahDokumen = await uploadSemuaDokumen(pertama.customerToken, pertama.booking.id);
+      harapan(unggahDokumen, 200, 'unggah dokumen');
+      const verifikasiDokumen = await verifyDocuments(adminToken, pertama.booking.id, 'APPROVE');
+      harapan(verifikasiDokumen, 200, 'verifikasi dokumen');
+
+      /* `confirmTariff` sudah memindahkan pesanan ke PENDING_CONFIRMATION lalu
+         mengonfirmasinya, jadi tidak perlu langkah terima permintaan terpisah. */
+      const konfirmasi = await confirmTariff(adminToken, pertama.booking.id);
+      if (konfirmasi.status !== 'CONFIRMED') {
+        throw new Error(`tarif pesanan pertama harus CONFIRMED, menerima ${konfirmasi.status}`);
+      }
+      const tagihan = await createPayment(pertama.customerToken, pertama.booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      const paymentId = tagihan.body.data.id;
+
+      const bukti = await uploadPaymentProof(pertama.customerToken, paymentId);
+      harapan(bukti, 200, 'unggah bukti transfer');
+
+      const tolak = await verifyPayment(adminToken, paymentId, 'REJECT', {
+        notes: 'Nominal tidak sesuai.',
+      });
+      harapan(tolak, 200, 'tolak pembayaran');
+      if (tolak.body.data.status !== 'FAILED') {
+        throw new Error(`pembayaran ditolak harus FAILED, menerima ${tolak.body.data.status}`);
+      }
+
+      const setelahTolak = await api(`/bookings/${pertama.booking.id}`, {
+        token: pertama.customerToken,
+      });
+      harapan(setelahTolak, 200, 'baca pesanan setelah ditolak');
+      if (setelahTolak.body.data.status !== 'CONFIRMED') {
+        throw new Error(
+          `penolakan biasa tidak boleh membatalkan pesanan, menerima ${setelahTolak.body.data.status}`,
+        );
+      }
+
+      /* Pelanggan masih boleh mengunggah ulang setelah ditolak. */
+      const unggahUlang = await uploadPaymentProof(pertama.customerToken, paymentId);
+      harapan(unggahUlang, 200, 'unggah ulang bukti transfer');
+
+      /* Penolakan dengan pembatalan: pesanan mati, armada kembali tersedia. */
+      const kedua = await siapkanPesanan(adminToken);
+      const unggahDokumen2 = await uploadSemuaDokumen(kedua.customerToken, kedua.booking.id);
+      harapan(unggahDokumen2, 200, 'unggah dokumen pesanan kedua');
+      const verifikasiDokumen2 = await verifyDocuments(adminToken, kedua.booking.id, 'APPROVE');
+      harapan(verifikasiDokumen2, 200, 'verifikasi dokumen pesanan kedua');
+
+      const konfirmasi2 = await confirmTariff(adminToken, kedua.booking.id);
+      if (konfirmasi2.status !== 'CONFIRMED') {
+        throw new Error(`tarif pesanan kedua harus CONFIRMED, menerima ${konfirmasi2.status}`);
+      }
+
+      const tagihan2 = await createPayment(kedua.customerToken, kedua.booking.id);
+      harapan(tagihan2, 201, 'buat tagihan pesanan kedua');
+      const paymentId2 = tagihan2.body.data.id;
+
+      const bukti2 = await uploadPaymentProof(kedua.customerToken, paymentId2);
+      harapan(bukti2, 200, 'unggah bukti transfer pesanan kedua');
+
+      const tolakBatal = await verifyPayment(adminToken, paymentId2, 'REJECT', {
+        notes: 'Indikasi penipuan.',
+        cancelBooking: true,
+      });
+      harapan(tolakBatal, 200, 'tolak dan batalkan');
+
+      const setelahBatal = await api(`/bookings/${kedua.booking.id}`, {
+        token: kedua.customerToken,
+      });
+      harapan(setelahBatal, 200, 'baca pesanan setelah dibatalkan');
+      if (setelahBatal.body.data.status !== 'CANCELLED') {
+        throw new Error(
+          `tolak & batalkan harus CANCELLED, menerima ${setelahBatal.body.data.status}`,
+        );
+      }
+
+      const armada = await api(`/vehicles/${kedua.vehicle.id}`, { token: adminToken });
+      harapan(armada, 200, 'baca armada setelah dibatalkan');
+      if (armada.body.data.operationalStatus !== 'AVAILABLE') {
+        throw new Error(
+          `armada harus kembali AVAILABLE, menerima ${armada.body.data.operationalStatus}`,
+        );
+      }
+
+      /* Pembatalan tidak boleh menyertai persetujuan. */
+      const salahPakai = await verifyPayment(adminToken, paymentId2, 'APPROVE', {
+        cancelBooking: true,
+      });
+      harapan(salahPakai, 400, 'tolak cancelBooking pada persetujuan');
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

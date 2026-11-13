@@ -3,6 +3,8 @@ import {
   BookingStatus,
   BookingStatusActor,
   DocumentStatus,
+  DriverReadiness,
+  OperationalStatus,
   PaymentMethod,
   PaymentStatus,
   RentalType,
@@ -69,6 +71,10 @@ export interface AdminVerifyParams {
   verifierName?: string;
   acknowledgedBy?: string;
   acknowledgedAt?: Date;
+  /* Hanya untuk REJECT: batalkan pesanan sekaligus, bukan sekadar menolak bukti
+     bayar. Dipakai saat ada indikasi penipuan sehingga pesanan tidak boleh
+     dibiarkan hidup menunggu unggahan ulang. */
+  cancelBooking?: boolean;
 }
 
 export type PaymentWithRelations = Prisma.PaymentGetPayload<{
@@ -712,27 +718,80 @@ export const paymentService = {
           },
         });
 
-        await tx.bookingStatusHistory.create({
-          data: {
-            bookingId: payment.bookingId,
-            fromStatus: payment.booking.status,
-            toStatus: payment.booking.status,
-            actor: BookingStatusActor.ADMIN,
-            actorUserId: params.verifierUserId,
-            note: `Bukti transfer pembayaran ditolak oleh ${params.verifierName || 'Admin'}: ${params.notes || 'Bukti transfer tidak valid'}.`,
-          },
-        });
+        /* Dua bentuk penolakan yang sengaja dipisah:
+           - `cancelBooking` kosong/false: hanya bukti bayarnya yang ditolak.
+             Pesanan tetap CONFIRMED supaya pelanggan bisa mengunggah ulang.
+             Tidak ada riwayat status yang ditulis karena status pesanan memang
+             tidak berubah; mencatat fromStatus == toStatus akan membuat garis
+             waktu pelanggan menampilkan transisi palsu.
+           - `cancelBooking` true: pesanan dibatalkan sekaligus, dipakai saat ada
+             indikasi penipuan sehingga tidak boleh menunggu unggahan ulang. */
+        if (params.cancelBooking && !isFinalBookingStatus(payment.booking.status)) {
+          await tx.booking.update({
+            where: { id: payment.bookingId },
+            data: { status: BookingStatus.CANCELLED },
+          });
+
+          await tx.bookingStatusHistory.create({
+            data: {
+              bookingId: payment.bookingId,
+              fromStatus: payment.booking.status,
+              toStatus: BookingStatus.CANCELLED,
+              actor: BookingStatusActor.ADMIN,
+              actorUserId: params.verifierUserId,
+              note: `Pesanan dibatalkan oleh ${params.verifierName || 'Admin'} setelah bukti transfer ditolak: ${params.notes || 'Bukti transfer tidak valid'}.`,
+            },
+          });
+
+          if (payment.booking.driverId) {
+            const supirMasihDipakai = await tx.booking.count({
+              where: {
+                driverId: payment.booking.driverId,
+                id: { not: payment.bookingId },
+                status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
+              },
+            });
+
+            if (supirMasihDipakai === 0) {
+              await tx.driver.update({
+                where: { id: payment.booking.driverId },
+                data: { readiness: DriverReadiness.SIAGA },
+              });
+            }
+          }
+
+          const armadaMasihDipakai = await tx.booking.count({
+            where: {
+              vehicleId: payment.booking.vehicleId,
+              id: { not: payment.bookingId },
+              status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
+            },
+          });
+
+          if (armadaMasihDipakai === 0) {
+            await tx.vehicle.updateMany({
+              where: {
+                id: payment.booking.vehicleId,
+                operationalStatus: OperationalStatus.BOOKED,
+              },
+              data: { operationalStatus: OperationalStatus.AVAILABLE },
+            });
+          }
+        }
 
         await tx.auditLog.create({
           data: {
             actorId: params.verifierUserId,
-            action: 'VERIFY_PAYMENT_REJECTED',
+            action: params.cancelBooking
+              ? 'VERIFY_PAYMENT_REJECTED_AND_CANCELLED'
+              : 'VERIFY_PAYMENT_REJECTED',
             entityType: 'Payment',
             entityId: payment.id,
             metadata: {
               bookingCode: payment.booking.bookingCode,
               totalAmount: payment.totalAmount,
               notes: params.notes,
+              cancelBooking: Boolean(params.cancelBooking),
             },
           },
         });
