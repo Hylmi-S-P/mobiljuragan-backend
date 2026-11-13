@@ -201,6 +201,9 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 19 | Mengambil alih tiket milik admin lain tidak mengubah apa pun tetapi dijawab 200 | `d2386d1` — `takeOver` memakai CAS pada pemegang yang dibaca, 409 bila sudah berpindah |
 | 20 | Permintaan lepas kunci bisa diterima (dan menahan unit 24 jam) sebelum dokumennya disetujui | `c30a218` — `CREATED -> PENDING_CONFIRMATION` menolak 409 `DOCUMENTS_UNVERIFIED` selama dokumen belum `VERIFIED` |
 | 21 | Target penolakan dokumen dikirim sebagai teks JSON, sehingga klien menandai berkas yang salah | `c30a218` — respons detail memakai `toClientDocument` (array); klien juga menormalkan bentuk apa pun |
+| 22 | Tombol "Koordinasi Penjemputan" mengarang "E-Ticket resmi" dan klaim "LUNAS" di perangkat, tanpa tersimpan di mana pun | `0ed2831` · `92ae874` — tiket pesanan dibuat server, berisi ringkasan sewa dan nomor kantor; pesan karangan dihapus |
+| 23 | Staf tidak bisa menutup tiket, pelanggan sering tidak menutup: tiket menggantung selamanya | `0ed2831` — sistem menutup semua tiket setelah 24 jam tanpa pesan; pesan pelanggan dalam 7 hari membuka ulang, setelah itu 409 |
+| 24 | Tombol bantuan pesanan tetap bisa dipakai untuk sewa yang sudah lama selesai | `3b6d31f` — lewat 7 hari sejak `endDateTime`, `POST /tickets/booking/:id` menolak 409 `BOOKING_HELP_EXPIRED` |
 
 ### 9.2 Masih ada
 

@@ -239,3 +239,18 @@ sehari.
    tiket pesanan di Pusat Bantuan.
 
 Tiap tahap harus lulus pemeriksaan sebelum lanjut.
+
+## 10. Sudah dikerjakan
+
+| Tahap | Commit | Isi |
+| --- | --- | --- |
+| Backend | `0ed2831` | `bookingId` + `closedAt`/`closedBySystem`, `POST /tickets/booking/:id` idempoten, pesan pembuka berisi unit/plat/jadwal/titik jemput/supir/nomor kantor, penutupan 24 jam untuk semua tiket, buka ulang 7 hari |
+| Backend | `c316899` | Kode pesanan ikut di daftar tiket; e2e buka-ulang |
+| Backend | `3b6d31f` | Tombol bantuan pesanan ditutup 7 hari setelah `endDateTime` |
+| Dashboard | `be6a0c7` | Badge "Pesanan MJ-…" di kartu dan kepala detail, saringan "Semua tiket / Dari pesanan" |
+| Mobile | `92ae874` | Tombol "Chat dengan CS" membuka tiket pesanan; `sendPickupCoordinationMessage` dan `sendPaymentInstructionMessage` dihapus |
+| Mobile | `62ea804` | Kode pesanan tampil di "Tiket Bantuan Saya" |
+
+Yang **belum** dikerjakan dari dokumen ini: penanda belum dibaca, indikator
+mengetik, dan notifikasi push saat balasan masuk (menunggu Firebase).
+
