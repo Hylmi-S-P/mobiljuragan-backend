@@ -3,6 +3,7 @@ import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startTicketCleanupJob } from './jobs/ticketCleanupJob.js';
 import { startBookingLifecycleJob } from './jobs/bookingLifecycleJob.js';
 import { documentTemplateService } from './lib/documentTemplateService.js';
+import { startTicketSocket } from './ws/ticketSocket.js';
 import { logger } from './logger.js';
 
 const port = Number(process.env.PORT ?? 4000);
@@ -17,9 +18,16 @@ const port = Number(process.env.PORT ?? 4000);
 const production = process.env.NODE_ENV === 'production';
 const host = process.env.HOST ?? (production ? '127.0.0.1' : '0.0.0.0');
 
+/** Diisi setelah server menyala; dipakai saat proses diminta berhenti. */
+let saluranTiket: { stop: () => void } | null = null;
+
 const server = app.listen(port, host, () => {
   // eslint-disable-next-line no-console
   console.log(`mobiljuragan-api listening on http://${host}:${port}`);
+
+  /* Saluran peristiwa tiket memakai port yang sama dengan API. Satu port lebih
+     mudah dibuka di firewall dan di proxy daripada port terpisah. */
+  saluranTiket = startTicketSocket(server);
 
   /* Penutupan otomatis tiket dijalankan di proses yang sama dengan API. */
   mulaiPenjadwalTiket();
@@ -47,6 +55,7 @@ const server = app.listen(port, host, () => {
 function berhenti(sinyal: string): void {
   // eslint-disable-next-line no-console
   console.log(`Menerima ${sinyal}, menutup server...`);
+  saluranTiket?.stop();
   server.close(() => process.exit(0));
   const paksa = setTimeout(() => process.exit(1), 10_000);
   paksa.unref();

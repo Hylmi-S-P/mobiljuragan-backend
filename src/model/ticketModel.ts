@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
+import { publishTicketEvent } from '../lib/ticketEvents.js';
 
 /** Status tiket yang sudah final dan tidak boleh menerima pesan baru. */
 const STATUS_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
@@ -196,11 +197,28 @@ export const ticketModel = {
       where: { id: ticketId, status: TicketStatus.CLOSED, closedBySystem: true },
       data: { status: TicketStatus.OPEN, closedBySystem: false, closedAt: null },
     });
+
+    if (hasil.count > 0) {
+      publishTicketEvent({
+        jenis: 'status',
+        ticketId,
+        status: TicketStatus.OPEN,
+        versi: new Date().toISOString(),
+      });
+    }
+
     return hasil.count > 0;
   },
 
-  updateStatus(id: string, status: TicketStatus) {
-    return db.supportTicket.update({ where: { id }, data: { status } });
+  async updateStatus(id: string, status: TicketStatus) {
+    const tiket = await db.supportTicket.update({ where: { id }, data: { status } });
+    publishTicketEvent({
+      jenis: 'status',
+      ticketId: id,
+      status: tiket.status,
+      versi: tiket.updatedAt.toISOString(),
+    });
+    return tiket;
   },
 
   /**
@@ -275,6 +293,18 @@ export const ticketModel = {
         data: { lastActivityAt: new Date() },
       });
 
+      return pesan;
+    }).then((pesan) => {
+      /* Disiarkan setelah transaksi selesai, bukan di dalamnya: penerima
+         peristiwa akan membaca ulang tiket, dan pesannya harus sudah terlihat
+         saat pembacaan itu terjadi. */
+      publishTicketEvent({
+        jenis: 'pesan',
+        ticketId,
+        sequence: pesan.sequence,
+        jumlahPesan: pesan.sequence,
+        versi: pesan.sentAt.toISOString(),
+      });
       return pesan;
     });
   },
@@ -434,6 +464,16 @@ export const ticketModel = {
         where: { id: input.ticketId },
         data: { status: TicketStatus.CLOSED },
       });
+    }).then((tiket) => {
+      if (tiket) {
+        publishTicketEvent({
+          jenis: 'status',
+          ticketId: input.ticketId,
+          status: tiket.status,
+          versi: tiket.updatedAt.toISOString(),
+        });
+      }
+      return tiket;
     });
   },
 
@@ -442,6 +482,16 @@ export const ticketModel = {
       where: { id: ticketId, handledBy: TicketHandler.AI },
       data: { handledBy: TicketHandler.HUMAN, handoverAt: at },
     });
+
+    if (hasil.count > 0) {
+      publishTicketEvent({
+        jenis: 'handover',
+        ticketId,
+        handoverAt: at.toISOString(),
+        versi: at.toISOString(),
+      });
+    }
+
     return hasil.count > 0;
   },
 
@@ -451,10 +501,24 @@ export const ticketModel = {
    */
   async autoCloseResolvedTickets(olderThanHours = 24) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
-    const result = await db.supportTicket.updateMany({
+
+    /* Id dibaca lebih dulu supaya peristiwa penutupan bisa disiarkan per tiket.
+       `updateMany` hanya mengembalikan jumlah, dan klien yang sedang membuka
+       tiket itu perlu tahu bahwa tiketnya sudah ditutup. */
+    const kandidat = await db.supportTicket.findMany({
       where: {
         status: TicketStatus.RESOLVED,
         updatedAt: { lte: cutoff },
+      },
+      select: { id: true },
+    });
+
+    if (kandidat.length === 0) return 0;
+
+    const result = await db.supportTicket.updateMany({
+      where: {
+        id: { in: kandidat.map((tiket) => tiket.id) },
+        status: TicketStatus.RESOLVED,
       },
       data: {
         status: TicketStatus.CLOSED,
@@ -462,6 +526,16 @@ export const ticketModel = {
         closedBySystem: true,
       },
     });
+
+    for (const tiket of kandidat) {
+      publishTicketEvent({
+        jenis: 'status',
+        ticketId: tiket.id,
+        status: TicketStatus.CLOSED,
+        versi: new Date().toISOString(),
+      });
+    }
+
     return result.count;
   },
 
@@ -532,6 +606,15 @@ export const ticketModel = {
       });
 
       ditutup += hasil.count;
+
+      if (hasil.count > 0) {
+        publishTicketEvent({
+          jenis: 'status',
+          ticketId: tiket.id,
+          status: TicketStatus.CLOSED,
+          versi: new Date().toISOString(),
+        });
+      }
     }
 
     return ditutup;
@@ -562,6 +645,16 @@ export const ticketModel = {
         closedBySystem: false,
       },
     });
+
+    if (result.count > 0) {
+      publishTicketEvent({
+        jenis: 'status',
+        ticketId,
+        status: TicketStatus.CLOSED,
+        versi: new Date().toISOString(),
+      });
+    }
+
     return result.count > 0;
   },
 };
