@@ -2247,6 +2247,7 @@ export const BookingRefundScalarFieldEnum = {
   nominal: 'nominal',
   dibatalkanOleh: 'dibatalkanOleh',
   alasan: 'alasan',
+  danaTerverifikasi: 'danaTerverifikasi',
   namaBank: 'namaBank',
   nomorRekening: 'nomorRekening',
   namaPemilik: 'namaPemilik',

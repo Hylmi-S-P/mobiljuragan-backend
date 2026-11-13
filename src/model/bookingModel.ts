@@ -17,8 +17,8 @@ import { assertBookingTransition, BOOKING_BLOCKING_STATUSES, JAM_TENGGAT_KONFIRM
 import { tenggatAwal } from '../lib/documentDeadline.js';
 import {
   hitungNominalRefund,
+  jenisRefund,
   pembatalDari,
-  perluRefund,
   statusMembukaRefund,
 } from '../lib/refund.js';
 import { getDriverDailyRate, hitungKomponenTarif, type KomponenTarif } from '../lib/tariff.js';
@@ -484,16 +484,36 @@ export const bookingModel = {
          hanya dihitung di aplikasi mobile lalu disimpan di cache perangkat, jadi
          kantor tidak punya daftar siapa yang harus ditransfer balik.
 
+         Pesanan juga bisa ditutup saat bukti transfer masih menunggu pemeriksaan.
+         Dulu kasus itu tidak menghasilkan catatan apa pun: pembayarannya
+         menggantung selamanya di PENDING_VERIFICATION dan uang pelanggan hilang
+         dari pandangan kantor. Sekarang catatannya tetap dibuat, hanya ditandai
+         `danaTerverifikasi: false` supaya nominalnya dicocokkan dengan mutasi bank
+         lebih dulu.
+
          Dicatat sebelum pembacaan akhir di bawah supaya respons status langsung
          membawa angka pengembaliannya, bukan menunggu satu permintaan lagi. */
-      if (
-        statusMembukaRefund(input.nextStatus) &&
-        perluRefund(booking.payment?.status) &&
-        booking.payment
-      ) {
+      const jenis = booking.payment && statusMembukaRefund(input.nextStatus)
+        ? jenisRefund(booking.payment.status)
+        : null;
+
+      if (jenis && booking.payment) {
         const dibatalkanOleh = pembatalDari(input.actor);
         const totalDibayar = Number(booking.payment.totalAmount);
-        const hitungan = hitungNominalRefund(totalDibayar, dibatalkanOleh);
+        const terverifikasi = jenis === 'TERVERIFIKASI';
+
+        /* Potongan pembatalan hanya berlaku untuk uang yang benar-benar sudah
+           masuk. Kalau bukti transfernya belum diperiksa, nominal penuh dicatat
+           dulu dan kantor yang memutuskan setelah melihat mutasi. */
+        const hitungan = terverifikasi
+          ? hitungNominalRefund(totalDibayar, dibatalkanOleh)
+          : { totalDibayar, potongan: 0, nominal: totalDibayar };
+
+        const alasan = terverifikasi
+          ? input.note
+          : [input.note, 'Bukti transfer belum diverifikasi; cocokkan mutasi bank sebelum mentransfer balik.']
+              .filter(Boolean)
+              .join(' ');
 
         /* Pembatalan oleh admin/sistem tidak memotong apa pun, tetapi admin tetap
            boleh menimpa nominalnya saat memproses pengembalian. */
@@ -506,7 +526,8 @@ export const bookingModel = {
             potongan: new Prisma.Decimal(hitungan.potongan),
             nominal: new Prisma.Decimal(hitungan.nominal),
             dibatalkanOleh,
-            alasan: input.note,
+            alasan,
+            danaTerverifikasi: terverifikasi,
             status: RefundStatus.MENUNGGU,
             dicatatOleh: input.actorUserId,
           },
@@ -515,13 +536,19 @@ export const bookingModel = {
             potongan: new Prisma.Decimal(hitungan.potongan),
             nominal: new Prisma.Decimal(hitungan.nominal),
             dibatalkanOleh,
-            alasan: input.note,
+            alasan,
+            danaTerverifikasi: terverifikasi,
           },
         });
 
         await tx.payment.update({
           where: { id: booking.payment.id },
-          data: { status: PaymentStatus.REFUNDED },
+          data: {
+            status: terverifikasi ? PaymentStatus.REFUNDED : PaymentStatus.FAILED,
+            notes: terverifikasi
+              ? booking.payment.notes
+              : 'Pesanan dibatalkan sebelum bukti transfer diverifikasi.',
+          },
         });
       }
 

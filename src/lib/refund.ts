@@ -49,6 +49,26 @@ export function perluRefund(statusPembayaran: PaymentStatus | null | undefined):
 }
 
 /**
+ * Menentukan bentuk catatan pengembalian saat pesanan ditutup.
+ *
+ * - `TERVERIFIKASI`: uang sudah dinyatakan masuk, nominal langsung bisa ditransfer.
+ * - `BELUM_DIVERIFIKASI`: bukti transfer sudah diunggah tetapi belum diperiksa.
+ *   Pesanan tetap harus ditutup, dan catatan refund tetap dibuat supaya uang
+ *   pelanggan tidak hilang dari pandangan kantor — hanya saja nominalnya wajib
+ *   dicocokkan dengan mutasi bank lebih dulu.
+ * - `null`: tidak ada uang yang perlu dikembalikan.
+ */
+export type JenisRefund = 'TERVERIFIKASI' | 'BELUM_DIVERIFIKASI';
+
+export function jenisRefund(
+  statusPembayaran: PaymentStatus | null | undefined,
+): JenisRefund | null {
+  if (statusPembayaran === PaymentStatus.PAID) return 'TERVERIFIKASI';
+  if (statusPembayaran === PaymentStatus.PENDING_VERIFICATION) return 'BELUM_DIVERIFIKASI';
+  return null;
+}
+
+/**
  * Status pesanan yang membuka hak refund. Pesanan yang masih hidup belum
  * kehilangan uang apa pun, jadi tidak perlu catatan pengembalian.
  */

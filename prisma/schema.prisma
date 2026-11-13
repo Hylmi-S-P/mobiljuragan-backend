@@ -760,6 +760,11 @@ model BookingRefund {
   dibatalkanOleh String
   alasan          String? @db.Text
 
+  /// `false` bila pesanan dibatalkan saat bukti transfer masih menunggu
+  /// pemeriksaan. Uangnya belum tentu masuk, jadi kantor wajib mencocokkan
+  /// mutasi bank dulu sebelum mentransfer balik.
+  danaTerverifikasi Boolean @default(true)
+
   namaBank      String?
   nomorRekening String?
   namaPemilik   String?

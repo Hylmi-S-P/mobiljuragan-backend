@@ -934,6 +934,90 @@ const kasus: Kasus[] = [
     },
   },
   {
+    id: 'T2.7',
+    nama: 'Pesanan yang dibatalkan saat bukti transfer belum diperiksa tetap masuk antrean refund',
+    async fn({ adminToken }) {
+      const pesanan = await siapkanPesanan(adminToken);
+      harapan(
+        await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id),
+        200,
+        'unggah tiga dokumen',
+      );
+      harapan(
+        await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE'),
+        200,
+        'verifikasi dokumen',
+      );
+
+      const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
+      if (konfirmasi.status !== 'CONFIRMED') {
+        throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
+      }
+
+      const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      const paymentId = tagihan.body.data.id;
+      const totalAmount = Number(tagihan.body.data.totalAmount);
+
+      /* Bukti diunggah tetapi sengaja TIDAK diverifikasi: inilah kasus lapangan
+         ketika staf mencurigai penipuan dan langsung menutup pesanan. */
+      harapan(
+        await uploadPaymentProof(pesanan.customerToken, paymentId),
+        200,
+        'unggah bukti transfer',
+      );
+
+      const batal = await api(`/admin/bookings/${pesanan.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CANCELLED', note: 'Indikasi penipuan saat pemeriksaan bukti transfer.' },
+      });
+      harapan(batal, 200, 'admin membatalkan sebelum verifikasi pembayaran');
+
+      const refund = batal.body.data.refund;
+      if (!refund) {
+        throw new Error('pembatalan sebelum verifikasi pembayaran tidak membuat catatan refund');
+      }
+      if (refund.danaTerverifikasi !== false) {
+        throw new Error(
+          `refund harus ditandai belum terverifikasi, menerima ${refund.danaTerverifikasi}`,
+        );
+      }
+      if (Number(refund.potongan) !== 0) {
+        throw new Error(`potongan harus 0 saat dana belum terverifikasi, menerima ${refund.potongan}`);
+      }
+      if (Number(refund.nominal) !== totalAmount) {
+        throw new Error(
+          `nominal harus penuh ${totalAmount}, menerima ${refund.nominal}`,
+        );
+      }
+
+      /* Pembayaran tidak boleh menggantung di PENDING_VERIFICATION: kalau tetap
+         begitu, staf bisa menyetujuinya belakangan dan pesanan yang sudah batal
+         berubah jadi lunas. */
+      const pembayaran = await api(`/payments/${paymentId}`, {
+        token: pesanan.customerToken,
+      });
+      harapan(pembayaran, 200, 'baca pembayaran setelah pembatalan');
+      if (pembayaran.body.data.status !== 'FAILED') {
+        throw new Error(
+          `pembayaran harus FAILED, menerima ${pembayaran.body.data.status}`,
+        );
+      }
+
+      /* Armada harus kembali ke katalog. */
+      const armada = await api(`/vehicles/${pesanan.booking.vehicleId}`, {
+        token: pesanan.customerToken,
+      });
+      harapan(armada, 200, 'baca armada setelah pembatalan');
+      if (armada.body.data.operationalStatus !== 'AVAILABLE') {
+        throw new Error(
+          `armada harus AVAILABLE, menerima ${armada.body.data.operationalStatus}`,
+        );
+      }
+    },
+  },
+  {
     id: 'T3.1',
     nama: 'Permintaan unggah ulang hanya menyentuh berkas yang dipilih',
     async fn({ adminToken }) {

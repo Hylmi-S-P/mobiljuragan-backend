@@ -47,6 +47,7 @@ export type BookingRefundMinAggregateOutputType = {
   nominal: runtime.Decimal | null
   dibatalkanOleh: string | null
   alasan: string | null
+  danaTerverifikasi: boolean | null
   namaBank: string | null
   nomorRekening: string | null
   namaPemilik: string | null
@@ -66,6 +67,7 @@ export type BookingRefundMaxAggregateOutputType = {
   nominal: runtime.Decimal | null
   dibatalkanOleh: string | null
   alasan: string | null
+  danaTerverifikasi: boolean | null
   namaBank: string | null
   nomorRekening: string | null
   namaPemilik: string | null
@@ -85,6 +87,7 @@ export type BookingRefundCountAggregateOutputType = {
   nominal: number
   dibatalkanOleh: number
   alasan: number
+  danaTerverifikasi: number
   namaBank: number
   nomorRekening: number
   namaPemilik: number
@@ -118,6 +121,7 @@ export type BookingRefundMinAggregateInputType = {
   nominal?: true
   dibatalkanOleh?: true
   alasan?: true
+  danaTerverifikasi?: true
   namaBank?: true
   nomorRekening?: true
   namaPemilik?: true
@@ -137,6 +141,7 @@ export type BookingRefundMaxAggregateInputType = {
   nominal?: true
   dibatalkanOleh?: true
   alasan?: true
+  danaTerverifikasi?: true
   namaBank?: true
   nomorRekening?: true
   namaPemilik?: true
@@ -156,6 +161,7 @@ export type BookingRefundCountAggregateInputType = {
   nominal?: true
   dibatalkanOleh?: true
   alasan?: true
+  danaTerverifikasi?: true
   namaBank?: true
   nomorRekening?: true
   namaPemilik?: true
@@ -262,6 +268,7 @@ export type BookingRefundGroupByOutputType = {
   nominal: runtime.Decimal
   dibatalkanOleh: string
   alasan: string | null
+  danaTerverifikasi: boolean
   namaBank: string | null
   nomorRekening: string | null
   namaPemilik: string | null
@@ -304,6 +311,7 @@ export type BookingRefundWhereInput = {
   nominal?: Prisma.DecimalFilter<"BookingRefund"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFilter<"BookingRefund"> | string
   alasan?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
+  danaTerverifikasi?: Prisma.BoolFilter<"BookingRefund"> | boolean
   namaBank?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
   nomorRekening?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
   namaPemilik?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
@@ -325,6 +333,7 @@ export type BookingRefundOrderByWithRelationInput = {
   nominal?: Prisma.SortOrder
   dibatalkanOleh?: Prisma.SortOrder
   alasan?: Prisma.SortOrderInput | Prisma.SortOrder
+  danaTerverifikasi?: Prisma.SortOrder
   namaBank?: Prisma.SortOrderInput | Prisma.SortOrder
   nomorRekening?: Prisma.SortOrderInput | Prisma.SortOrder
   namaPemilik?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -350,6 +359,7 @@ export type BookingRefundWhereUniqueInput = Prisma.AtLeast<{
   nominal?: Prisma.DecimalFilter<"BookingRefund"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFilter<"BookingRefund"> | string
   alasan?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
+  danaTerverifikasi?: Prisma.BoolFilter<"BookingRefund"> | boolean
   namaBank?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
   nomorRekening?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
   namaPemilik?: Prisma.StringNullableFilter<"BookingRefund"> | string | null
@@ -371,6 +381,7 @@ export type BookingRefundOrderByWithAggregationInput = {
   nominal?: Prisma.SortOrder
   dibatalkanOleh?: Prisma.SortOrder
   alasan?: Prisma.SortOrderInput | Prisma.SortOrder
+  danaTerverifikasi?: Prisma.SortOrder
   namaBank?: Prisma.SortOrderInput | Prisma.SortOrder
   nomorRekening?: Prisma.SortOrderInput | Prisma.SortOrder
   namaPemilik?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -398,6 +409,7 @@ export type BookingRefundScalarWhereWithAggregatesInput = {
   nominal?: Prisma.DecimalWithAggregatesFilter<"BookingRefund"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringWithAggregatesFilter<"BookingRefund"> | string
   alasan?: Prisma.StringNullableWithAggregatesFilter<"BookingRefund"> | string | null
+  danaTerverifikasi?: Prisma.BoolWithAggregatesFilter<"BookingRefund"> | boolean
   namaBank?: Prisma.StringNullableWithAggregatesFilter<"BookingRefund"> | string | null
   nomorRekening?: Prisma.StringNullableWithAggregatesFilter<"BookingRefund"> | string | null
   namaPemilik?: Prisma.StringNullableWithAggregatesFilter<"BookingRefund"> | string | null
@@ -415,6 +427,7 @@ export type BookingRefundCreateInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -436,6 +449,7 @@ export type BookingRefundUncheckedCreateInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -453,6 +467,7 @@ export type BookingRefundUpdateInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -474,6 +489,7 @@ export type BookingRefundUncheckedUpdateInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -493,6 +509,7 @@ export type BookingRefundCreateManyInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -510,6 +527,7 @@ export type BookingRefundUpdateManyMutationInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -529,6 +547,7 @@ export type BookingRefundUncheckedUpdateManyInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -559,6 +578,7 @@ export type BookingRefundCountOrderByAggregateInput = {
   nominal?: Prisma.SortOrder
   dibatalkanOleh?: Prisma.SortOrder
   alasan?: Prisma.SortOrder
+  danaTerverifikasi?: Prisma.SortOrder
   namaBank?: Prisma.SortOrder
   nomorRekening?: Prisma.SortOrder
   namaPemilik?: Prisma.SortOrder
@@ -584,6 +604,7 @@ export type BookingRefundMaxOrderByAggregateInput = {
   nominal?: Prisma.SortOrder
   dibatalkanOleh?: Prisma.SortOrder
   alasan?: Prisma.SortOrder
+  danaTerverifikasi?: Prisma.SortOrder
   namaBank?: Prisma.SortOrder
   nomorRekening?: Prisma.SortOrder
   namaPemilik?: Prisma.SortOrder
@@ -603,6 +624,7 @@ export type BookingRefundMinOrderByAggregateInput = {
   nominal?: Prisma.SortOrder
   dibatalkanOleh?: Prisma.SortOrder
   alasan?: Prisma.SortOrder
+  danaTerverifikasi?: Prisma.SortOrder
   namaBank?: Prisma.SortOrder
   nomorRekening?: Prisma.SortOrder
   namaPemilik?: Prisma.SortOrder
@@ -694,6 +716,7 @@ export type BookingRefundCreateWithoutBookingInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -713,6 +736,7 @@ export type BookingRefundUncheckedCreateWithoutBookingInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -746,6 +770,7 @@ export type BookingRefundUpdateWithoutBookingInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -765,6 +790,7 @@ export type BookingRefundUncheckedUpdateWithoutBookingInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -782,6 +808,7 @@ export type BookingRefundCreateWithoutPaymentInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -801,6 +828,7 @@ export type BookingRefundUncheckedCreateWithoutPaymentInput = {
   nominal: runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh: string
   alasan?: string | null
+  danaTerverifikasi?: boolean
   namaBank?: string | null
   nomorRekening?: string | null
   namaPemilik?: string | null
@@ -834,6 +862,7 @@ export type BookingRefundUpdateWithoutPaymentInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -853,6 +882,7 @@ export type BookingRefundUncheckedUpdateWithoutPaymentInput = {
   nominal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   dibatalkanOleh?: Prisma.StringFieldUpdateOperationsInput | string
   alasan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  danaTerverifikasi?: Prisma.BoolFieldUpdateOperationsInput | boolean
   namaBank?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nomorRekening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaPemilik?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -874,6 +904,7 @@ export type BookingRefundSelect<ExtArgs extends runtime.Types.Extensions.Interna
   nominal?: boolean
   dibatalkanOleh?: boolean
   alasan?: boolean
+  danaTerverifikasi?: boolean
   namaBank?: boolean
   nomorRekening?: boolean
   namaPemilik?: boolean
@@ -897,6 +928,7 @@ export type BookingRefundSelectScalar = {
   nominal?: boolean
   dibatalkanOleh?: boolean
   alasan?: boolean
+  danaTerverifikasi?: boolean
   namaBank?: boolean
   nomorRekening?: boolean
   namaPemilik?: boolean
@@ -907,7 +939,7 @@ export type BookingRefundSelectScalar = {
   diselesaikanPada?: boolean
 }
 
-export type BookingRefundOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "paymentId" | "totalDibayar" | "potongan" | "nominal" | "dibatalkanOleh" | "alasan" | "namaBank" | "nomorRekening" | "namaPemilik" | "buktiMediaId" | "status" | "dicatatOleh" | "dicatatPada" | "diselesaikanPada", ExtArgs["result"]["bookingRefund"]>
+export type BookingRefundOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "paymentId" | "totalDibayar" | "potongan" | "nominal" | "dibatalkanOleh" | "alasan" | "danaTerverifikasi" | "namaBank" | "nomorRekening" | "namaPemilik" | "buktiMediaId" | "status" | "dicatatOleh" | "dicatatPada" | "diselesaikanPada", ExtArgs["result"]["bookingRefund"]>
 export type BookingRefundInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
   payment?: boolean | Prisma.BookingRefund$paymentArgs<ExtArgs>
@@ -941,6 +973,12 @@ export type $BookingRefundPayload<ExtArgs extends runtime.Types.Extensions.Inter
      */
     dibatalkanOleh: string
     alasan: string | null
+    /**
+     * `false` bila pesanan dibatalkan saat bukti transfer masih menunggu
+     * pemeriksaan. Uangnya belum tentu masuk, jadi kantor wajib mencocokkan
+     * mutasi bank dulu sebelum mentransfer balik.
+     */
+    danaTerverifikasi: boolean
     namaBank: string | null
     nomorRekening: string | null
     namaPemilik: string | null
@@ -1331,6 +1369,7 @@ export interface BookingRefundFieldRefs {
   readonly nominal: Prisma.FieldRef<"BookingRefund", 'Decimal'>
   readonly dibatalkanOleh: Prisma.FieldRef<"BookingRefund", 'String'>
   readonly alasan: Prisma.FieldRef<"BookingRefund", 'String'>
+  readonly danaTerverifikasi: Prisma.FieldRef<"BookingRefund", 'Boolean'>
   readonly namaBank: Prisma.FieldRef<"BookingRefund", 'String'>
   readonly nomorRekening: Prisma.FieldRef<"BookingRefund", 'String'>
   readonly namaPemilik: Prisma.FieldRef<"BookingRefund", 'String'>
