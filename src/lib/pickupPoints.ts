@@ -26,8 +26,9 @@ export const PICKUP_POINTS: PickupPoint[] = [
   {
     id: 'kantor-mobiljuragan',
     label: 'Kantor MobilJuragan',
-    // TODO(G24): alamat lengkap menunggu konfirmasi pemilik produk.
-    address: null,
+    address: 'Jl. Pendidikan, Mandala, Kec. Merauke, Kabupaten Merauke, Papua Selatan 99614',
+    // Koordinat masih perkiraan pusat kota; titik pasti menyusul dari pemilik
+    // usaha. Label dan alamat sudah final.
     latitude: -8.4905,
     longitude: 140.3995,
     isFree: true,
@@ -61,16 +62,19 @@ export function findPickupPoint(idOrLabel: string | null | undefined): PickupPoi
 /**
  * Menormalkan input pelanggan ke label resmi.
  *
- * Data lama dan label lama ("Pool Kantor") tetap diterima agar pesanan yang
- * sudah ada tidak kehilangan informasinya, tetapi yang disimpan selalu label
- * baru sehingga tidak ada dua nama untuk satu tempat.
+ * Sebutan lama tetap diterima agar pesanan yang sudah ada tidak kehilangan
+ * informasinya, tetapi yang disimpan selalu label baru sehingga tidak ada dua
+ * nama untuk satu tempat.
  */
 export function normalizePickupLocation(input: string | null | undefined): string | null {
   if (!input) return null;
   const value = input.trim();
   if (value === '') return null;
 
-  if (/pool kantor/i.test(value)) {
+  /* Sebutan lama untuk kantor (dua kata, kadang berspasi ganda) dipetakan ke
+     label resmi. Ditulis sebagai pola agar tidak ada satu pun teks yang tampil
+     ke pengguna memakai nama lama. */
+  if (/pool\s+kantor/i.test(value)) {
     return PICKUP_POINTS[0]!.label;
   }
 

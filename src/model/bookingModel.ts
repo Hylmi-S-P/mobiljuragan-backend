@@ -158,7 +158,8 @@ export const bookingModel = {
           startDateTime: input.start,
           endDateTime: input.end,
           rentalType: input.rentalType,
-          // Label titik jemput selalu memakai nama resmi; data lama "Pool Kantor" ikut dinormalkan.
+          // Label titik jemput selalu memakai nama resmi; sebutan lama ikut
+          // dinormalkan supaya tidak ada dua nama untuk satu tempat.
           pickupLocation: normalizePickupLocation(input.pickupLocation),
           customerRequest: input.customerRequest,
           numberGuests: input.numberGuests,
