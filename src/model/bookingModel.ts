@@ -14,8 +14,8 @@ import {
 } from '../generated/prisma/client.js';
 import { assertBookingTransition, BOOKING_BLOCKING_STATUSES, JAM_TENGGAT_KONFIRMASI_ADMIN } from '../lib/bookingStage.js';
 import { tenggatAwal } from '../lib/documentDeadline.js';
+import { getDriverDailyRate, hitungKomponenTarif, type KomponenTarif } from '../lib/tariff.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
-import { AppError } from '../lib/response.js';
 
 /**
  * Lapisan model untuk tabel `bookings` beserta riwayat statusnya.
@@ -334,7 +334,6 @@ export const bookingModel = {
   updateStatusWithHistoryAndAudit(input: {
     id: string;
     nextStatus: BookingStatus;
-    quotedAmount: number | undefined;
     routeScope?: DriverRoute;
     note: string | null;
     /** Null untuk perubahan yang dipicu sistem, bukan orang. */
@@ -355,22 +354,24 @@ export const bookingModel = {
          meloncat dari permintaan masuk langsung ke pembayaran. */
       assertBookingTransition(booking.status, input.nextStatus);
 
-      /* Nominal tarif hanya bermakna bersama konfirmasi tarif. Mengirimkannya pada
-         transisi lain akan menyimpan tarif tanpa tahap konfirmasi yang jelas. */
-      if (input.quotedAmount !== undefined && input.nextStatus !== BookingStatus.CONFIRMED) {
-        throw new AppError(
-          'TARIFF_REQUIRES_CONFIRMATION',
-          'Nominal tarif hanya boleh dikirim bersama konfirmasi tarif (status CONFIRMED).',
-          409,
-        );
-      }
+      /* Nominal tarif tidak lagi diketik staf. Komponen dasarnya dihitung dari
+         harga katalog unit dan tarif supir global, sehingga dua pesanan untuk unit
+         dan durasi yang sama selalu berharga sama. Penyesuaian (diskon, tambahan
+         medan) masuk lewat baris penyesuaian biaya yang punya justifikasi. */
+      let komponenTarif: KomponenTarif | null = null;
 
-      const quotedAmount =
-        input.quotedAmount ??
-        (booking.quotedAmount !== null ? Number(booking.quotedAmount) : undefined);
+      if (input.nextStatus === BookingStatus.CONFIRMED) {
+        komponenTarif = hitungKomponenTarif({
+          pricePerDay: booking.vehicle.pricePerDay,
+          start: booking.startDateTime,
+          end: booking.endDateTime,
+          rentalType: booking.rentalType,
+          driverDailyRate: await getDriverDailyRate(),
+        });
 
-      if (input.nextStatus === BookingStatus.CONFIRMED && !(quotedAmount && quotedAmount > 0)) {
-        return { kind: 'tariff_required' as const, booking };
+        if (komponenTarif.subtotal <= 0) {
+          return { kind: 'tariff_required' as const, booking };
+        }
       }
 
       /* Armada hanya boleh diserahkan setelah pembayaran diverifikasi staff. */
@@ -442,10 +443,8 @@ export const bookingModel = {
       }
 
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
-      if (isConfirming) {
-        if (input.quotedAmount !== undefined) {
-          updateData.quotedAmount = input.quotedAmount;
-        }
+      if (isConfirming && komponenTarif) {
+        updateData.quotedAmount = komponenTarif.subtotal;
         if (input.routeScope !== undefined) {
           updateData.routeScope = input.routeScope;
         }
@@ -481,7 +480,8 @@ export const bookingModel = {
             bookingCode: booking.bookingCode,
             fromStatus: booking.status,
             toStatus: input.nextStatus,
-            quotedAmount: input.quotedAmount ?? booking.quotedAmount,
+            quotedAmount: komponenTarif?.subtotal ?? booking.quotedAmount,
+            komponenTarif: komponenTarif ? { ...komponenTarif } : null,
             note: input.note || null,
           },
         },
@@ -569,7 +569,7 @@ export const bookingModel = {
         }
       }
 
-      return { kind: 'ok' as const, booking: updatedBooking };
+      return { kind: 'ok' as const, booking: updatedBooking, komponenTarif };
     });
   },
 
@@ -875,7 +875,6 @@ export const bookingModel = {
         const hasil = await bookingModel.updateStatusWithHistoryAndAudit({
           id: booking.id,
           nextStatus: BookingStatus.CANCELLED,
-          quotedAmount: undefined,
           note: 'Dibatalkan otomatis: admin tidak menetapkan tarif dalam 24 jam.',
           actorUserId: null,
           actor: BookingStatusActor.SYSTEM,
@@ -920,7 +919,6 @@ export const bookingModel = {
         const hasil = await bookingModel.updateStatusWithHistoryAndAudit({
           id: booking.id,
           nextStatus: BookingStatus.COMPLETED,
-          quotedAmount: undefined,
           note: 'Diselesaikan otomatis: jadwal sewa sudah berakhir.',
           actorUserId: null,
           actor: BookingStatusActor.SYSTEM,

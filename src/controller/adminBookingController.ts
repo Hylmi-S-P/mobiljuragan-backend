@@ -184,18 +184,14 @@ export const adminBookingController = {
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const {
-        status: nextStatus,
-        quotedAmount,
-        routeScope,
-        note,
-      } = req.body as z.infer<typeof updateBookingStatusSchema>;
+      const { status: nextStatus, routeScope, note } = req.body as z.infer<
+        typeof updateBookingStatusSchema
+      >;
       const staffUser = req.user!;
 
       const result = await bookingModel.updateStatusWithHistoryAndAudit({
         id,
         nextStatus,
-        quotedAmount,
         routeScope,
         note: note ?? null,
         actorUserId: staffUser.userId,
@@ -235,7 +231,7 @@ export const adminBookingController = {
       if (result.kind === 'tariff_required') {
         throw new AppError(
           'TARIFF_REQUIRED',
-          'Konfirmasi tarif wajib menyertakan nominal sewa. Tahap ini tidak boleh dilewati.',
+          'Tarif pesanan ini tidak bisa dihitung dari katalog. Periksa harga sewa unit dan tarif supir global.',
           409,
         );
       }
@@ -253,6 +249,9 @@ export const adminBookingController = {
 
       sendSuccess(res, {
         ...result.booking,
+        /* Rincian tarif ikut dikirim supaya dashboard bisa menampilkan asal angka
+           (harga sewa, jasa supir) tanpa menghitung ulang di klien. */
+        tariffBreakdown: result.kind === 'ok' ? result.komponenTarif : null,
         whatsappIntent: buildWhatsAppIntent(result.booking),
       });
     } catch (error) {

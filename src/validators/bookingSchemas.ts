@@ -46,7 +46,6 @@ export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus, {
     error: 'Status sewa tidak valid.',
   }),
-  quotedAmount: z.number().nonnegative('Tarif sewa tidak boleh bernilai negatif.').optional(),
   routeScope: z
     .nativeEnum(DriverRoute, {
       error: 'Rute perjalanan tidak valid (pilih DALAM_KOTA atau LUAR_KOTA).',

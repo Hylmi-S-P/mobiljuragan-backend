@@ -63,6 +63,7 @@ export const ModelName = {
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
+  TariffSetting: 'TariffSetting',
   AiSetting: 'AiSetting',
   KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
@@ -300,6 +301,15 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const TariffSettingScalarFieldEnum = {
+  id: 'id',
+  driverDailyRate: 'driverDailyRate',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TariffSettingScalarFieldEnum = (typeof TariffSettingScalarFieldEnum)[keyof typeof TariffSettingScalarFieldEnum]
 
 
 export const AiSettingScalarFieldEnum = {
@@ -626,6 +636,13 @@ export const AuditLogOrderByRelevanceFieldEnum = {
 } as const
 
 export type AuditLogOrderByRelevanceFieldEnum = (typeof AuditLogOrderByRelevanceFieldEnum)[keyof typeof AuditLogOrderByRelevanceFieldEnum]
+
+
+export const TariffSettingOrderByRelevanceFieldEnum = {
+  id: 'id'
+} as const
+
+export type TariffSettingOrderByRelevanceFieldEnum = (typeof TariffSettingOrderByRelevanceFieldEnum)[keyof typeof TariffSettingOrderByRelevanceFieldEnum]
 
 
 export const AiSettingOrderByRelevanceFieldEnum = {

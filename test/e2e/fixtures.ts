@@ -148,8 +148,44 @@ export async function createVehicle(
   return respons.body.data;
 }
 
-/** Jendela sewa yang selalu di masa depan dan tidak bertabrakan antar-kasus. */
-export function jendelaSewa(): { startDateTime: string; endDateTime: string } {
+/** Supir baru selalu berstatus SIAGA sehingga bisa langsung ditugaskan. */
+export async function createDriver(
+  adminToken: string,
+  overrides: Record<string, unknown> = {},
+): Promise<any> {
+  const akhiran = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const payload = {
+    fullName: `Supir Uji ${akhiran}`,
+    phoneNumber: nomorHpUnik(),
+    routeScope: 'DALAM_KOTA',
+    ...overrides,
+  };
+
+  const respons = await api('/admin/drivers', {
+    method: 'POST',
+    token: adminToken,
+    body: payload,
+  });
+  harapan(respons, 201, 'buat supir');
+  return respons.body.data;
+}
+
+/** Menugaskan supir ke pesanan; dipakai kasus yang menguji tarif bersupir. */
+export async function assignDriver(
+  adminToken: string,
+  bookingId: string,
+  driverId: string,
+): Promise<any> {
+  const respons = await api(`/admin/bookings/${bookingId}/driver`, {
+    method: 'PATCH',
+    token: adminToken,
+    body: { driverId },
+  });
+  harapan(respons, 200, 'tugaskan supir');
+  return respons.body.data;
+}
+
+/** Jendela sewa yang selalu di masa depan dan tidak bertabrakan antar-kasus. */export function jendelaSewa(): { startDateTime: string; endDateTime: string } {
   const mulai = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const selesai = new Date(mulai.getTime() + 2 * 24 * 60 * 60 * 1000);
   return { startDateTime: mulai.toISOString(), endDateTime: selesai.toISOString() };
@@ -293,14 +329,15 @@ export async function verifyDocuments(
  * Status CREATED tidak boleh langsung ke CONFIRMED; alurnya harus melewati
  * PENDING_CONFIRMATION. Helper ini menempuh dua langkah itu supaya pemanggil
  * tidak perlu mengulang detail transisi di setiap kasus.
+ *
+ * Nominal tarif tidak lagi dikirim dari klien: server menghitungnya dari harga
+ * katalog unit ditambah tarif supir global.
  */
 export async function confirmTariff(
   adminToken: string,
   bookingId: string,
-  payload: { quotedAmount?: number; routeScope?: string; note?: string } = {},
+  payload: { routeScope?: string; note?: string } = {},
 ): Promise<any> {
-  const quotedAmount = payload.quotedAmount ?? 350_000;
-
   const pending = await api(`/admin/bookings/${bookingId}/status`, {
     method: 'PATCH',
     token: adminToken,
@@ -313,7 +350,6 @@ export async function confirmTariff(
     token: adminToken,
     body: {
       status: 'CONFIRMED',
-      quotedAmount,
       ...(payload.routeScope ? { routeScope: payload.routeScope } : {}),
       ...(payload.note ? { note: payload.note } : {}),
     },

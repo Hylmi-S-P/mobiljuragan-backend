@@ -253,7 +253,6 @@ export const bookingController = {
       const result = await bookingModel.updateStatusWithHistoryAndAudit({
         id: booking.id,
         nextStatus: BookingStatus.CANCELLED,
-        quotedAmount: undefined,
         note: noteText,
         actorUserId: customer.userId,
         actor: BookingStatusActor.CUSTOMER,

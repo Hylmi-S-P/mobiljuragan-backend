@@ -1,11 +1,13 @@
 import { BASE_ORIGIN, sqlUji, startHarness, stopServer } from './harness.js';
 import {
   api,
+  assignDriver,
   berkasJpeg,
   berkasKebesaran,
   berkasPdf,
   confirmTariff,
   createBooking,
+  createDriver,
   createPayment,
   createTicket,
   createVehicle,
@@ -517,6 +519,86 @@ const kasus: Kasus[] = [
       if (!idLepas.includes(vehicle.id)) {
         throw new Error('armada tidak kembali muncul di katalog setelah pesanan dibatalkan');
       }
+    },
+  },
+  {
+    id: 'T2.1',
+    nama: 'Tarif dihitung dari katalog dan tidak bisa ditimpa staf',
+    async fn({ adminToken }) {
+      /* Lepas kunci: 2 hari × Rp 350.000 = Rp 700.000, tanpa jasa supir.
+         Nominal yang dikirim staf sengaja diisi angka asal untuk memastikan
+         server mengabaikannya, bukan memakainya. */
+      const lepasKunci = await siapkanPesanan(adminToken);
+
+      /* Lepas kunci wajib punya dokumen terverifikasi sebelum tarif dikonfirmasi. */
+      const unggah = await uploadSemuaDokumen(lepasKunci.customerToken, lepasKunci.booking.id);
+      harapan(unggah, 200, 'unggah dokumen lepas kunci');
+      const verifikasi = await verifyDocuments(adminToken, lepasKunci.booking.id, 'APPROVE');
+      harapan(verifikasi, 200, 'verifikasi dokumen lepas kunci');
+
+      const kePending = await api(`/admin/bookings/${lepasKunci.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'PENDING_CONFIRMATION' },
+      });
+      harapan(kePending, 200, 'terima permintaan lepas kunci');
+
+      const konfirmasi = await api(`/admin/bookings/${lepasKunci.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'CONFIRMED', quotedAmount: 1 },
+      });
+      harapan(konfirmasi, 200, 'konfirmasi tarif lepas kunci');
+
+      const data = konfirmasi.body.data;
+      const rincian = data.tariffBreakdown;
+
+      if (Number(data.quotedAmount) !== 700_000) {
+        throw new Error(
+          `tarif lepas kunci: diharapkan 700000 dari katalog, menerima ${data.quotedAmount}`,
+        );
+      }
+      if (!rincian || rincian.hariSewa !== 2 || rincian.hargaPerHari !== 350_000) {
+        throw new Error(`rincian tarif lepas kunci tidak sesuai: ${JSON.stringify(rincian)}`);
+      }
+      if (rincian.jasaSupir !== 0) {
+        throw new Error(`lepas kunci tidak boleh menagih jasa supir, menerima ${rincian.jasaSupir}`);
+      }
+
+      /* Bersupir: harga sewa tetap dari katalog, ditambah tarif supir global
+         Rp 150.000/hari × 2 hari = Rp 300.000. */
+      const supir = await createDriver(adminToken);
+      const bersupir = await siapkanPesanan(adminToken, 'WITH_DRIVER');
+      await assignDriver(adminToken, bersupir.booking.id, supir.id);
+
+      const konfirmasiSupir = await confirmTariff(adminToken, bersupir.booking.id);
+      if (Number(konfirmasiSupir.quotedAmount) !== 1_000_000) {
+        throw new Error(
+          `tarif bersupir: diharapkan 1000000, menerima ${konfirmasiSupir.quotedAmount}`,
+        );
+      }
+      if (konfirmasiSupir.tariffBreakdown?.jasaSupir !== 300_000) {
+        throw new Error(
+          `jasa supir: diharapkan 300000, menerima ${konfirmasiSupir.tariffBreakdown?.jasaSupir}`,
+        );
+      }
+
+      /* Tarif supir global bisa diubah admin; perubahan itu harus langsung
+         terpakai pada konfirmasi berikutnya. */
+      await sqlUji("UPDATE tariff_settings SET driverDailyRate = 200000 WHERE id = 'default'");
+
+      const supirKedua = await createDriver(adminToken);
+      const bersupirKedua = await siapkanPesanan(adminToken, 'WITH_DRIVER');
+      await assignDriver(adminToken, bersupirKedua.booking.id, supirKedua.id);
+
+      const konfirmasiKedua = await confirmTariff(adminToken, bersupirKedua.booking.id);
+      if (Number(konfirmasiKedua.quotedAmount) !== 1_100_000) {
+        throw new Error(
+          `tarif supir global baru: diharapkan 1100000, menerima ${konfirmasiKedua.quotedAmount}`,
+        );
+      }
+
+      await sqlUji("UPDATE tariff_settings SET driverDailyRate = 150000 WHERE id = 'default'");
     },
   },
 ];

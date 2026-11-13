@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model AiSetting
- * Konfigurasi AI Gateway (9Router / LiteLLM / OpenRouter) & Parameter Model
+ * 
  */
 export type AiSettingModel = runtime.Types.Result.DefaultSelection<Prisma.$AiSettingPayload>
 

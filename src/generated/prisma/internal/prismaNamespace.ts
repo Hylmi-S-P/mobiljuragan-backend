@@ -409,6 +409,7 @@ export const ModelName = {
   SupportTicket: 'SupportTicket',
   TicketMessage: 'TicketMessage',
   AuditLog: 'AuditLog',
+  TariffSetting: 'TariffSetting',
   AiSetting: 'AiSetting',
   KnowledgeCategory: 'KnowledgeCategory',
   KnowledgeDocument: 'KnowledgeDocument',
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "tariffSetting" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingDocument" | "mediaObject" | "documentTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1228,6 +1229,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TariffSetting: {
+      payload: Prisma.$TariffSettingPayload<ExtArgs>
+      fields: Prisma.TariffSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TariffSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TariffSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.TariffSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TariffSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        findMany: {
+          args: Prisma.TariffSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>[]
+        }
+        create: {
+          args: Prisma.TariffSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        createMany: {
+          args: Prisma.TariffSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.TariffSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        update: {
+          args: Prisma.TariffSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.TariffSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TariffSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.TariffSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TariffSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.TariffSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTariffSetting>
+        }
+        groupBy: {
+          args: Prisma.TariffSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TariffSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TariffSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TariffSettingCountAggregateOutputType> | number
+        }
+      }
+    }
     AiSetting: {
       payload: Prisma.$AiSettingPayload<ExtArgs>
       fields: Prisma.AiSettingFieldRefs
@@ -2008,6 +2075,15 @@ export const AuditLogScalarFieldEnum = {
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
+export const TariffSettingScalarFieldEnum = {
+  id: 'id',
+  driverDailyRate: 'driverDailyRate',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TariffSettingScalarFieldEnum = (typeof TariffSettingScalarFieldEnum)[keyof typeof TariffSettingScalarFieldEnum]
+
+
 export const AiSettingScalarFieldEnum = {
   id: 'id',
   gatewayUrl: 'gatewayUrl',
@@ -2332,6 +2408,13 @@ export const AuditLogOrderByRelevanceFieldEnum = {
 } as const
 
 export type AuditLogOrderByRelevanceFieldEnum = (typeof AuditLogOrderByRelevanceFieldEnum)[keyof typeof AuditLogOrderByRelevanceFieldEnum]
+
+
+export const TariffSettingOrderByRelevanceFieldEnum = {
+  id: 'id'
+} as const
+
+export type TariffSettingOrderByRelevanceFieldEnum = (typeof TariffSettingOrderByRelevanceFieldEnum)[keyof typeof TariffSettingOrderByRelevanceFieldEnum]
 
 
 export const AiSettingOrderByRelevanceFieldEnum = {
@@ -2780,6 +2863,7 @@ export type GlobalOmitConfig = {
   supportTicket?: Prisma.SupportTicketOmit
   ticketMessage?: Prisma.TicketMessageOmit
   auditLog?: Prisma.AuditLogOmit
+  tariffSetting?: Prisma.TariffSettingOmit
   aiSetting?: Prisma.AiSettingOmit
   knowledgeCategory?: Prisma.KnowledgeCategoryOmit
   knowledgeDocument?: Prisma.KnowledgeDocumentOmit

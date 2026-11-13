@@ -100,8 +100,18 @@ export type TicketMessage = Prisma.TicketMessageModel
  */
 export type AuditLog = Prisma.AuditLogModel
 /**
- * Model AiSetting
+ * Model TariffSetting
  * Konfigurasi AI Gateway (9Router / LiteLLM / OpenRouter) & Parameter Model
+ * Tarif global yang dipakai saat menghitung komponen biaya pesanan.
+ * 
+ * Hanya ada satu baris (`id = "default"`). Harga sewa per unit tetap berada di
+ * `Vehicle.pricePerDay`; yang global hanya jasa supir, karena satu supir dibayar
+ * dengan tarif harian yang sama untuk armada apa pun.
+ */
+export type TariffSetting = Prisma.TariffSettingModel
+/**
+ * Model AiSetting
+ * 
  */
 export type AiSetting = Prisma.AiSettingModel
 /**
