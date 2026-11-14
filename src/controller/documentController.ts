@@ -114,11 +114,25 @@ export const documentController = {
          yang sama. */
       const bookingRef = await documentService.resolveBookingRef(id);
       const prefix = bookingRef.id;
-      const [statementLetterUrl, ktpUrl, simUrl] = await Promise.all([
-        statementLetter ? processAndStoreImage(statementLetter, { prefix }) : Promise.resolve(undefined),
-        ktp ? processAndStoreImage(ktp, { prefix }) : Promise.resolve(undefined),
-        sim ? processAndStoreImage(sim, { prefix }) : Promise.resolve(undefined),
-      ]);
+
+      /*
+       * Diproses satu per satu, bukan Promise.all. Tiga gambar berukuran besar
+       * yang di-decode bersamaan bisa memakan ratusan megabita RAM sekaligus;
+       * berurutan membuat puncak memori hanya sebesar satu gambar.
+       */
+      let statementLetterUrl: string | undefined;
+      let ktpUrl: string | undefined;
+      let simUrl: string | undefined;
+
+      if (statementLetter) {
+        statementLetterUrl = await processAndStoreImage(statementLetter, { prefix });
+      }
+      if (ktp) {
+        ktpUrl = await processAndStoreImage(ktp, { prefix });
+      }
+      if (sim) {
+        simUrl = await processAndStoreImage(sim, { prefix });
+      }
 
       const result = await documentService.uploadBookingDocuments(
         id,
@@ -163,10 +177,30 @@ export const documentController = {
         }
       }
 
-      const buffer = await fileStorage.get(key);
+      /*
+       * Disajikan sebagai aliran, bukan `get()` lalu `res.send(buffer)`.
+       * Dokumen bisa berukuran beberapa megabita dan dibuka berulang oleh staf;
+       * menyalin seluruh isi ke RAM untuk setiap permintaan tidak perlu.
+       */
+      const aliran = await fileStorage.getStream(key);
       res.setHeader('Content-Type', 'image/webp');
-      res.setHeader('Cache-Control', 'private, max-age=300');
-      res.send(buffer);
+      /* Berkas selalu WebP hasil normalisasi server, jadi tidak ada HTML/SVG
+         yang bisa dieksekusi. `nosniff` memastikan browser tidak menebak lain. */
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      /* `no-store`, bukan `max-age`. Dokumen ini KTP/SIM: kalau di-cache, orang
+         berikutnya yang memakai komputer kantor yang sama bisa membukanya dari
+         cache peramban tanpa melewati pemeriksaan sesi di server. */
+      res.setHeader('Cache-Control', 'private, no-store');
+
+      aliran.on('error', () => {
+        if (!res.headersSent) {
+          next(new AppError('FILE_NOT_FOUND', 'Berkas dokumen tidak ditemukan.', 404));
+        } else {
+          res.end();
+        }
+      });
+
+      aliran.pipe(res);
     } catch (error) {
       next(error);
     }

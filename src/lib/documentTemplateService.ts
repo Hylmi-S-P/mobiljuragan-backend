@@ -4,6 +4,7 @@ import { db } from '../db.js';
 import { AppError } from './response.js';
 import {
   BERKAS_BAWAAN,
+  aliranDokumen,
   bacaDokumen,
   simpanDokumen,
   type DokumenSiapSimpan,
@@ -216,6 +217,29 @@ export async function bacaBerkasAktif() {
 }
 
 /**
+ * Aliran berkas versi tertentu, untuk disajikan tanpa menyalin ke memori.
+ *
+ * Dipakai controller pratinjau admin.
+ */
+export async function aliranBerkas(id: string) {
+  const template = await ambilSatu(id);
+  const aliran = await aliranDokumen(template.berkasObjectKey);
+  return { template, aliran };
+}
+
+/**
+ * Aliran berkas versi aktif, untuk unduhan publik pelanggan.
+ *
+ * Endpoint ini tanpa sesi, jadi penting agar berkas tidak disalin ke RAM tiap
+ * permintaan.
+ */
+export async function aliranBerkasAktif() {
+  const template = await ambilAktif();
+  const aliran = await aliranDokumen(template.berkasObjectKey);
+  return { template, aliran };
+}
+
+/**
  * Keterangan ringkas dokumen aktif untuk ditampilkan di aplikasi mobile.
  *
  * Aplikasi tidak lagi menampilkan isi klausul sebagai teks, karena dokumennya
@@ -252,5 +276,7 @@ export const documentTemplateService = {
   aktifkanVersi,
   bacaBerkas,
   bacaBerkasAktif,
+  aliranBerkas,
+  aliranBerkasAktif,
   keteranganDokumenAktif,
 };

@@ -1,7 +1,9 @@
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import type { Readable } from 'node:stream';
 import { AppError } from './response.js';
+import { adaS3, aliranS3, bacaS3, hapusS3, simpanS3 } from './mediaStorageS3.js';
 
 /**
  * Penyimpanan berkas media.
@@ -120,37 +122,56 @@ async function adaLokal(objectKey: string): Promise<boolean> {
 function belumDidukung(): never {
   throw new AppError(
     'MEDIA_DRIVER_UNSUPPORTED',
-    `MEDIA_DRIVER '${DRIVER}' belum didukung. Driver yang tersedia: lokal.`,
+    `MEDIA_DRIVER '${DRIVER}' belum didukung. Driver yang tersedia: lokal, s3.`,
     500,
   );
 }
+
+/**
+ * Driver aktif.
+ *
+ * `lokal` menyimpan di disk mesin ini. `s3` berbicara protokol S3, sehingga
+ * satu pengaturan yang sama berlaku untuk MinIO (pengembangan) maupun
+ * Cloudflare R2 (produksi) — lihat `mediaStorageS3.ts`.
+ */
+const PAKAI_S3 = DRIVER === 's3';
 
 export const mediaStorage = {
   driver: DRIVER,
   akar: AKAR,
 
-  simpan(objectKey: string, isi: Buffer): Promise<BerkasTersimpan> {
+  async simpan(objectKey: string, isi: Buffer, contentType = 'image/webp'): Promise<BerkasTersimpan> {
+    if (PAKAI_S3) return simpanS3(objectKey, isi, contentType);
     if (DRIVER === 'lokal') return simpanLokal(objectKey, isi);
     return belumDidukung();
   },
 
-  baca(objectKey: string): Promise<Buffer> {
+  async baca(objectKey: string): Promise<Buffer> {
+    if (PAKAI_S3) return bacaS3(objectKey);
     if (DRIVER === 'lokal') return bacaLokal(objectKey);
     return belumDidukung();
   },
 
-  hapus(objectKey: string): Promise<boolean> {
+  async hapus(objectKey: string): Promise<boolean> {
+    if (PAKAI_S3) return hapusS3(objectKey);
     if (DRIVER === 'lokal') return hapusLokal(objectKey);
     return belumDidukung();
   },
 
-  ada(objectKey: string): Promise<boolean> {
+  async ada(objectKey: string): Promise<boolean> {
+    if (PAKAI_S3) return adaS3(objectKey);
     if (DRIVER === 'lokal') return adaLokal(objectKey);
     return belumDidukung();
   },
 
-  /** Aliran baca untuk menyajikan berkas tanpa menyalin seluruhnya ke memori. */
-  aliran(objectKey: string) {
+  /**
+   * Aliran baca untuk menyajikan berkas tanpa menyalin seluruhnya ke memori.
+   *
+   * Asinkron karena S3 baru memberi aliran setelah permintaan GetObject
+   * dijawab; driver lokal tetap langsung membuka berkas.
+   */
+  async aliran(objectKey: string): Promise<Readable> {
+    if (PAKAI_S3) return aliranS3(objectKey);
     if (DRIVER === 'lokal') return createReadStream(pastikanJalurAman(objectKey));
     return belumDidukung();
   },

@@ -1,7 +1,27 @@
 import type { NextFunction, Request, Response } from 'express';
+import type { Readable } from 'node:stream';
 
 import { AppError, sendSuccess } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
+
+/**
+ * Menyalurkan berkas ke klien sebagai aliran.
+ *
+ * Galat baca hanya bisa dijawab sebagai 404 selama header belum terkirim.
+ * Setelah itu satu-satunya jalan adalah menutup respons dengan rapi, supaya
+ * klien tidak menggantung menunggu sisa berkas yang tidak akan datang.
+ */
+function salurkanBerkas(aliran: Readable, res: Response, next: NextFunction): void {
+  aliran.on('error', () => {
+    if (!res.headersSent) {
+      next(new AppError('DOCUMENT_NOT_FOUND', 'Berkas dokumen tidak ditemukan.', 404));
+    } else {
+      res.end();
+    }
+  });
+
+  aliran.pipe(res);
+}
 
 /**
  * Controller template dokumen.
@@ -19,10 +39,10 @@ export const documentTemplateController = {
    */
   async unduhFormulirKosong(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { template, isi } = await documentTemplateService.bacaBerkasAktif();
+      const { template, aliran } = await documentTemplateService.aliranBerkasAktif();
 
       res.setHeader('Content-Type', template.berkasMime);
-      res.setHeader('Content-Length', String(isi.length));
+      res.setHeader('Content-Length', String(template.berkasByte));
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
@@ -32,7 +52,7 @@ export const documentTemplateController = {
       /* Versi dokumen ikut dikirim supaya bisa ditelusuri dari sisi klien. */
       res.setHeader('X-Document-Version', String(template.versi));
 
-      res.end(isi);
+      salurkanBerkas(aliran, res, next);
     } catch (error) {
       next(error);
     }
@@ -46,10 +66,10 @@ export const documentTemplateController = {
    */
   async berkasVersi(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { template, isi } = await documentTemplateService.bacaBerkas(req.params.id);
+      const { template, aliran } = await documentTemplateService.aliranBerkas(req.params.id);
 
       res.setHeader('Content-Type', template.berkasMime);
-      res.setHeader('Content-Length', String(isi.length));
+      res.setHeader('Content-Length', String(template.berkasByte));
       res.setHeader(
         'Content-Disposition',
         `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
@@ -57,7 +77,7 @@ export const documentTemplateController = {
       res.setHeader('Cache-Control', 'private, no-store');
       res.setHeader('X-Content-Type-Options', 'nosniff');
 
-      res.end(isi);
+      salurkanBerkas(aliran, res, next);
     } catch (error) {
       next(error);
     }

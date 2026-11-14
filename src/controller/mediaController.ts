@@ -107,7 +107,7 @@ export const mediaController = {
         }
       }
 
-      const aliran = mediaStorage.aliran(media.objectKey);
+      const aliran = await mediaStorage.aliran(media.objectKey);
 
       res.setHeader('Content-Type', media.mimeType);
       res.setHeader('Content-Length', media.byteSize);

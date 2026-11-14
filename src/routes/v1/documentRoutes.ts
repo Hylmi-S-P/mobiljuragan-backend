@@ -27,7 +27,15 @@ documentRouter.get(
  */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_UPLOAD_BYTES, files: 3 },
+  limits: {
+    fileSize: MAX_UPLOAD_BYTES,
+    files: 3,
+    // Batas jumlah dan ukuran field teks. Tanpa ini multer menerima field
+    // sebanyak apa pun, dan satu permintaan bisa menghabiskan memori walau
+    // berkasnya kecil.
+    fields: 10,
+    fieldSize: 64 * 1024,
+  },
 });
 
 /*

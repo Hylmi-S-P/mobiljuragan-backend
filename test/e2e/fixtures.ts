@@ -270,12 +270,36 @@ export function berkasKebesaran(nama = 'kebesaran.jpg'): BerkasUji {
   return { buffer, filename: nama, mime: 'image/jpeg' };
 }
 
+/**
+ * PNG valid yang ukuran berkasnya kecil tetapi jumlah pikselnya raksasa.
+ *
+ * Ini bentuk decompression bomb: 8000 x 6000 = 48 juta piksel. Berkasnya
+ * sendiri hanya puluhan kilobita karena isinya satu warna, tetapi saat di-decode
+ * libvips harus menyiapkan memori untuk seluruh piksel. Jalur dokumen dulu
+ * memanggil sharp tanpa batas piksel, sehingga berkas seperti ini bisa
+ * menghabiskan RAM server.
+ */
+export async function berkasPikselRaksasa(nama = 'bomb.png'): Promise<BerkasUji> {
+  const { default: sharp } = await import('sharp');
+  const buffer = await sharp({
+    create: {
+      width: 8000,
+      height: 6000,
+      channels: 3,
+      background: { r: 255, g: 255, b: 255 },
+    },
+  })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  return { buffer, filename: nama, mime: 'image/png' };
+}
+
 export async function uploadDocuments(
   customerToken: string,
   bookingId: string,
   files: Partial<Record<FieldDokumen, BerkasUji>>,
-): Promise<ResponsApi> {
-  const formData = new FormData();
+): Promise<ResponsApi> {  const formData = new FormData();
   for (const [field, berkas] of Object.entries(files)) {
     if (!berkas) continue;
     formData.append(

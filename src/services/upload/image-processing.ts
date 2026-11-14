@@ -1,63 +1,32 @@
 import { randomUUID } from 'node:crypto';
-import sharp from 'sharp';
 import { AppError } from '../../lib/response.js';
+import {
+  PRESET_GAMBAR,
+  normalisasiGambar,
+} from '../../lib/imageNormalisasi.js';
 import { fileStorage } from '../storage/local-storage.js';
 
 /**
- * Pemrosesan gambar unggahan pelanggan.
+ * Pemrosesan gambar unggahan dokumen sewa (KTP, SIM, surat pernyataan).
  *
- * Alur: periksa isi berkas (bukan ekstensi) -> batasi ukuran/dimensi ->
- * normalisasi orientasi -> buang metadata (EXIF/GPS) -> simpan sebagai WebP.
+ * Aturan pemeriksaan dan normalisasi sekarang dipakai bersama dengan jalur
+ * media lewat `imageNormalisasi.ts`. Yang tersisa di sini hanya dua hal yang
+ * khas dokumen: kode galat lama yang sudah dijanjikan ke klien, dan penamaan
+ * berkas `<id booking>/<uuid>.webp`.
  *
- * Server tidak boleh mempercayai nama berkas atau `Content-Type` dari klien:
- * keduanya mudah dipalsukan. Yang diperiksa adalah magic bytes-nya.
+ * Sebelumnya fungsi ini memanggil sharp tanpa `limitInputPixels`, sehingga
+ * berkas kecil yang mengaku beresolusi raksasa bisa menghabiskan RAM server.
  */
 
+const ATURAN_DOKUMEN = PRESET_GAMBAR.dokumen;
+
 /** Batas ukuran berkas sebelum diproses. */
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_UPLOAD_BYTES = ATURAN_DOKUMEN.batasByte; // 5 MB
 /** Batas dimensi setelah resize (sisi terpanjang). */
-export const MAX_IMAGE_DIMENSION = 2000;
-
-/** Hanya format gambar ini yang diterima. PDF sengaja ditolak. */
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-
-/** Signature minimum yang dikenali, dipakai saat file-type tidak tersedia. */
-const MAGIC_SIGNATURES: { mime: string; bytes: number[]; offset?: number }[] = [
-  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
-  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
-  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 },
-];
-
-function detectByMagic(buffer: Buffer): string | null {
-  for (const signature of MAGIC_SIGNATURES) {
-    const offset = signature.offset ?? 0;
-    const slice = buffer.subarray(offset, offset + signature.bytes.length);
-    if (slice.length === signature.bytes.length && signature.bytes.every((b, i) => slice[i] === b)) {
-      if (signature.mime === 'image/webp') {
-        // "RIFF....WEBP"
-        const marker = buffer.subarray(8, 12).toString('ascii');
-        if (marker !== 'WEBP') continue;
-      }
-      return signature.mime;
-    }
-  }
-  return null;
-}
-
-function assertImageType(buffer: Buffer): string {
-  const detected = detectByMagic(buffer);
-  if (!detected || !ALLOWED_MIME.has(detected)) {
-    throw new AppError(
-      'UNSUPPORTED_FILE_TYPE',
-      'Berkas harus berupa gambar JPG, PNG, atau WebP. PDF dan format lain tidak diterima.',
-      400,
-    );
-  }
-  return detected;
-}
+export const MAX_IMAGE_DIMENSION = ATURAN_DOKUMEN.sisiMaksimal;
 
 /**
- * Memvalidasi, mengonversi, dan menyimpan satu gambar.
+ * Memvalidasi, mengonversi, dan menyimpan satu gambar dokumen.
  *
  * @returns URL relatif yang disimpan ke database.
  */
@@ -65,32 +34,28 @@ export async function processAndStoreImage(
   buffer: Buffer,
   options: { prefix: string; originalName?: string },
 ): Promise<string> {
+  // Pemeriksaan awal mempertahankan kode galat yang sudah dipakai klien.
   if (!buffer || buffer.byteLength === 0) {
     throw new AppError('EMPTY_FILE', 'Berkas kosong tidak dapat diproses.', 400);
   }
   if (buffer.byteLength > MAX_UPLOAD_BYTES) {
-    throw new AppError(
-      'FILE_TOO_LARGE',
-      'Ukuran berkas maksimal 5 MB.',
-      400,
-    );
+    throw new AppError('FILE_TOO_LARGE', 'Ukuran berkas maksimal 5 MB.', 400);
   }
 
-  assertImageType(buffer);
-
-  let output: Buffer;
+  let hasil;
   try {
-    output = await sharp(buffer, { failOn: 'error' })
-      .rotate() // menghormati orientasi kamera
-      .resize({
-        width: MAX_IMAGE_DIMENSION,
-        height: MAX_IMAGE_DIMENSION,
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 80 })
-      .toBuffer();
-  } catch {
+    hasil = await normalisasiGambar(buffer, 'dokumen');
+  } catch (error) {
+    if (error instanceof AppError) {
+      if (error.code === 'FILE_TOO_MANY_PIXELS') throw error;
+      if (error.code === 'FILE_TYPE_NOT_ALLOWED') {
+        throw new AppError(
+          'UNSUPPORTED_FILE_TYPE',
+          'Berkas harus berupa gambar JPG, PNG, atau WebP. PDF dan format lain tidak diterima.',
+          400,
+        );
+      }
+    }
     throw new AppError(
       'CORRUPT_IMAGE',
       'Berkas gambar tidak dapat dibaca. Coba unggah ulang.',
@@ -101,7 +66,7 @@ export async function processAndStoreImage(
   /* Nama berkas selalu dibuat server: nama asli dari klien tidak dipakai,
      sehingga tidak ada `../`, spasi aneh, atau ekstensi ganda. */
   const key = `${options.prefix}/${randomUUID()}.webp`;
-  await fileStorage.put(key, output, 'image/webp');
+  await fileStorage.put(key, hasil.buffer, 'image/webp');
 
   return fileStorage.urlFor(key);
 }

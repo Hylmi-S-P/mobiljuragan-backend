@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 
@@ -137,7 +138,9 @@ export async function simpanDokumen(buffer: Buffer, namaAsli: string): Promise<D
   const objectKey = bentukObjectKeyDokumen(sha256, jenis.ekstensi);
 
   if (!(await mediaStorage.ada(objectKey))) {
-    await mediaStorage.simpan(objectKey, buffer);
+    // Tipe konten ikut dikirim supaya objek di S3/MinIO punya metadata yang
+    // benar; penyajian tetap lewat backend, bukan URL objek langsung.
+    await mediaStorage.simpan(objectKey, buffer, jenis.mime);
   }
 
   return {
@@ -193,6 +196,17 @@ export function unggahSatuDokumen(namaField = 'berkas') {
 /** Membaca kembali dokumen tersimpan. */
 export async function bacaDokumen(objectKey: string): Promise<Buffer> {
   return mediaStorage.baca(objectKey);
+}
+
+/**
+ * Aliran baca dokumen tersimpan.
+ *
+ * Endpoint unduhan formulir bersifat publik, jadi berkas 15 MB tidak boleh
+ * disalin ke RAM untuk setiap permintaan. Dengan aliran, memori yang terpakai
+ * tetap kecil walau banyak pelanggan mengunduh bersamaan.
+ */
+export async function aliranDokumen(objectKey: string): Promise<Readable> {
+  return mediaStorage.aliran(objectKey);
 }
 
 /** Folder sementara untuk keperluan pengujian dan pemeliharaan. */

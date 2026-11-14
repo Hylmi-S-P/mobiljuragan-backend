@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import { mediaStorage } from '../../lib/mediaStorage.js';
 import type { FileStorage, StoredFile } from './file-storage.js';
 
@@ -24,6 +25,10 @@ export class LocalFileStorage implements FileStorage {
 
   async get(key: string): Promise<Buffer> {
     return mediaStorage.baca(`${PREFIX_DOKUMEN}/${key}`);
+  }
+
+  async getStream(key: string): Promise<Readable> {
+    return mediaStorage.aliran(`${PREFIX_DOKUMEN}/${key}`);
   }
 
   async delete(key: string): Promise<void> {

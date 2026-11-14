@@ -7,6 +7,7 @@ import {
   berkasJpeg,
   berkasKebesaran,
   berkasPdf,
+  berkasPikselRaksasa,
   buatAdminBaru,
   confirmTariff,
   createBooking,
@@ -2379,6 +2380,64 @@ const kasus: Kasus[] = [
         if (!POLA.test(kode)) {
           throw new Error(`bentuk kode tidak sesuai: ${kode}`);
         }
+      }
+    },
+  },
+  {
+    id: 'T7.14',
+    nama: 'Gambar berpiksel raksasa ditolak di jalur dokumen, dan berkas dokumen tidak boleh di-cache',
+    async fn({ adminToken }) {
+      const kendaraan = await createVehicle(adminToken);
+      const pelanggan = await loginCustomer();
+      const pesanan = await createBooking(pelanggan.token, kendaraan.id);
+
+      /*
+       * Decompression bomb: berkasnya puluhan kilobita, tetapi mengaku 48 juta
+       * piksel. Sebelum diperbaiki, jalur dokumen tidak memasang limitInputPixels
+       * sehingga libvips mencoba menyiapkan memori untuk seluruh piksel.
+       */
+      const bom = await uploadDocuments(pelanggan.token, pesanan.id, {
+        ktp: await berkasPikselRaksasa(),
+      });
+      harapan(bom, 400, 'unggah gambar 48 juta piksel sebagai KTP');
+      if (bom.body?.error?.code !== 'FILE_TOO_MANY_PIXELS') {
+        throw new Error(
+          `bomb harus ditolak sebagai FILE_TOO_MANY_PIXELS, menerima ${bom.body?.error?.code ?? 'tanpa-kode'}`,
+        );
+      }
+
+      /* Penolakan tidak boleh merusak jalur normal: KTP biasa tetap diterima. */
+      const normal = await uploadDocuments(pelanggan.token, pesanan.id, {
+        ktp: await berkasJpeg('ktp.jpg'),
+      });
+      harapan(normal, 200, 'unggah KTP normal setelah percobaan bomb');
+
+      const dokumen = await ambilDokumen(pelanggan.token, pesanan.id);
+      const urlKtp = String(dokumen.ktpUrl ?? '');
+      if (!urlKtp.startsWith('/api/v1/documents/file/')) {
+        throw new Error(`alamat berkas KTP tidak dikenal: ${urlKtp}`);
+      }
+
+      /* Berkas KTP adalah data pribadi: tidak boleh tersimpan di cache peramban,
+         dan tidak boleh ditebak tipenya oleh peramban. */
+      const berkas = await fetch(`${BASE_ORIGIN}${urlKtp}`, {
+        headers: { Authorization: `Bearer ${pelanggan.token}` },
+      });
+      if (berkas.status !== 200) {
+        throw new Error(`berkas KTP harus 200, menerima ${berkas.status}`);
+      }
+      if (berkas.headers.get('cache-control') !== 'private, no-store') {
+        throw new Error(
+          `berkas KTP tidak boleh di-cache, menerima Cache-Control: ${berkas.headers.get('cache-control')}`,
+        );
+      }
+      if (berkas.headers.get('x-content-type-options') !== 'nosniff') {
+        throw new Error('berkas KTP harus dikirim dengan X-Content-Type-Options: nosniff');
+      }
+
+      const isi = Buffer.from(await berkas.arrayBuffer());
+      if (isi.subarray(8, 12).toString('ascii') !== 'WEBP') {
+        throw new Error('berkas yang disajikan harus WebP hasil normalisasi');
       }
     },
   },
