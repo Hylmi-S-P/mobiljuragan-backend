@@ -794,6 +794,8 @@ export const bookingModel = {
         return { kind: 'driver_already_assigned' as const, booking, driver, clashingBooking };
       }
 
+      const driverLamaId = booking.driverId;
+
       const updatedBooking = await tx.booking.update({
         where: { id: booking.id },
         data: { driverId: driver.id },
@@ -805,6 +807,25 @@ export const bookingModel = {
         where: { id: driver.id },
         data: { readiness: DriverReadiness.SEDANG_TUGAS },
       });
+
+      /* Supir yang diganti harus dilepas. Tanpa ini, supir itu tetap SEDANG_TUGAS
+         selamanya sehingga hilang dari daftar supir siaga walaupun tidak lagi
+         memegang pesanan apa pun. */
+      if (driverLamaId && driverLamaId !== driver.id) {
+        const sisaPesanan = await tx.booking.count({
+          where: {
+            driverId: driverLamaId,
+            status: { notIn: CLOSED_BOOKING_STATUSES },
+          },
+        });
+
+        if (sisaPesanan === 0) {
+          await tx.driver.update({
+            where: { id: driverLamaId },
+            data: { readiness: DriverReadiness.SIAGA },
+          });
+        }
+      }
 
       await tx.bookingStatusHistory.create({
         data: {

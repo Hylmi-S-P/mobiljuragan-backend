@@ -2266,6 +2266,42 @@ const kasus: Kasus[] = [
       );
     },
   },
+  {
+    id: 'T7.9',
+    nama: 'Supir yang diganti dilepas kembali ke siaga, bukan tertahan sedang tugas',
+    async fn({ adminToken }) {
+      const pesanan = await siapkanPesanan(adminToken, 'WITH_DRIVER');
+      const supirA = await createDriver(adminToken, { fullName: `Supir A ${Date.now()}` });
+      const supirB = await createDriver(adminToken, { fullName: `Supir B ${Date.now()}` });
+
+      await assignDriver(adminToken, pesanan.booking.id, supirA.id);
+
+      const setelahA = await api('/admin/drivers?includeInactive=true', { token: adminToken });
+      harapan(setelahA, 200, 'baca daftar supir');
+      const barisA = (setelahA.body.data as any[]).find((d) => d.id === supirA.id);
+      if (barisA?.readiness !== 'SEDANG_TUGAS') {
+        throw new Error(`supir A harus SEDANG_TUGAS, menerima ${barisA?.readiness}`);
+      }
+
+      /* Mengganti supir harus melepas yang lama. Sebelumnya supir lama tetap
+         SEDANG_TUGAS selamanya sehingga hilang dari daftar supir siaga. */
+      await assignDriver(adminToken, pesanan.booking.id, supirB.id);
+
+      const setelahB = await api('/admin/drivers?includeInactive=true', { token: adminToken });
+      harapan(setelahB, 200, 'baca daftar supir setelah diganti');
+      const barisALagi = (setelahB.body.data as any[]).find((d) => d.id === supirA.id);
+      const barisB = (setelahB.body.data as any[]).find((d) => d.id === supirB.id);
+
+      if (barisALagi?.readiness !== 'SIAGA') {
+        throw new Error(
+          `supir yang diganti harus kembali SIAGA, menerima ${barisALagi?.readiness}`,
+        );
+      }
+      if (barisB?.readiness !== 'SEDANG_TUGAS') {
+        throw new Error(`supir pengganti harus SEDANG_TUGAS, menerima ${barisB?.readiness}`);
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {
