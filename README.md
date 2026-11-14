@@ -201,7 +201,7 @@ Kode OTP dikirim lewat salah satu penyedia, dipilih dengan `WA_PROVIDER`:
 
 | Nilai | Penyedia | Endpoint |
 |---|---|---|
-| `wapi` | WaPi.io (template OTP) | `POST {WAPI_BASE_URL}/otp/send` |
+| `wapi` | WaPi.io (template OTP) | `POST {WAPI_BASE_URL}/otp/outbound/send` |
 | `gowa` | Gateway WhatsApp Web | `POST {WA_GATEWAY_URL}/send/message` |
 | `off` | Tidak mengirim (uji otomatis) | — |
 
@@ -213,9 +213,14 @@ Untuk WaPi.io, cukup isi kunci dari konsol mereka:
 WA_PROVIDER=wapi
 WAPI_BASE_URL=https://wapi.sixsevensixseven.my.id/api/v1
 WAPI_API_KEY=sk_live_...
-WAPI_TEMPLATE_ID=otp_standard
-WAPI_OTP_TTL_MINUTES=5
+WAPI_OTP_PATH=/otp/outbound/send
 ```
+
+> **Jangan ikuti contoh di dokumentasi WaPi.io.** Mereka menulis
+> `POST /api/v1/otp/send` dengan `{ phone, template_id, code, ttl_minutes }`.
+> Jalur itu menjawab 404, dan `code` di akar body tidak masuk ke pesan — yang
+> terkirim berbunyi "kode verifikasi Anda adalah *code*". Jalur yang benar
+> adalah `/otp/outbound/send` dengan `{ phone, variables: { code } }`.
 
 Uji tanpa membuka aplikasi:
 ```bash

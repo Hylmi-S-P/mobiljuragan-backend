@@ -131,11 +131,24 @@ ulang server — `.env` hanya dibaca saat proses mulai. MinIO bawaan memakai
 ## Pengiriman OTP WhatsApp
 
 **Penyedia OTP dipilih lewat `WA_PROVIDER`, bukan dengan mengubah kode.**
-`wapi` memakai `POST {WAPI_BASE_URL}/otp/send` dengan
-`{ phone, template_id, code, ttl_minutes }` dan `Authorization: Bearer <kunci>`;
+`wapi` memakai `POST {WAPI_BASE_URL}/otp/outbound/send` dengan
+`{ phone, variables: { code } }` dan `Authorization: Bearer <kunci>`;
 `gowa` memakai gateway WhatsApp Web dengan teks yang kita susun sendiri. Bila
 variabelnya kosong, penyedia ditebak dari kunci yang terisi supaya `.env` lama
 tetap jalan.
+
+**Dokumentasi WaPi.io tidak sesuai dengan server mereka.** Mereka menulis
+`POST /api/v1/otp/send` dengan `{ phone, template_id, code, ttl_minutes }`.
+Jalur itu menjawab 404 `ROUTE_NOT_FOUND`. Jalur yang benar adalah
+`/api/v1/otp/outbound/send`, dan kode hanya masuk ke pesan bila dikirim di dalam
+`variables` — `code` di akar body diabaikan, sehingga pesan terkirim berbunyi
+"kode verifikasi Anda adalah *code*". Kontrak ini diverifikasi langsung ke
+server, bukan dari dokumentasi.
+
+**Batas pengiriman WaPi.io: 3 pesan per nomor dalam 10 menit.** Batas ini
+terpisah dari cooldown 60 detik di backend kita. Kalau keduanya bertabrakan,
+pelanggan melihat galat 429 dari penyedia, bukan dari kita — karena itu
+`RATE_LIMIT_EXCEEDED` diterjemahkan menjadi kalimat yang menyebut angkanya.
 
 **Pesan teks bebas tidak ikut pindah ke WaPi.io.** Endpoint OTP mereka hanya
 mengirim template, jadi pemberitahuan perubahan identitas tetap lewat `gowa`.

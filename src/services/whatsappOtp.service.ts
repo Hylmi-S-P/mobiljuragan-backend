@@ -154,11 +154,13 @@ function jelaskanGalatWapi(status: number, kode: string | undefined): string {
     case 'INSUFFICIENT_CREDITS':
       return 'Saldo kredit WaPi.io habis. Lakukan top-up di konsol billing.';
     case 'RATE_LIMIT_EXCEEDED':
-      return 'Batas laju WaPi.io terlampaui (atau nomor tujuan sedang dibatasi).';
+      return 'Batas pengiriman WaPi.io terlampaui (maksimal 3 pesan per nomor dalam 10 menit).';
     case 'ENGINE_OFFLINE':
       return 'Mesin WhatsApp WaPi.io sedang offline. Coba lagi beberapa saat.';
+    case 'INVALID_PAYLOAD_SCHEMA':
+      return 'WaPi.io menolak isi permintaan. Periksa nomor tujuan.';
     case 'ROUTE_NOT_FOUND':
-      return 'Endpoint outbound OTP belum aktif di server WaPi.io. Hubungi penyedia.';
+      return 'Jalur outbound OTP tidak ditemukan di server WaPi.io. Periksa WAPI_OTP_PATH.';
     default:
       return `WaPi.io menolak permintaan (HTTP ${status}).`;
   }
@@ -167,9 +169,17 @@ function jelaskanGalatWapi(status: number, kode: string | undefined): string {
 /**
  * Mengirim kode OTP lewat WaPi.io.
  *
- * Kontraknya: `POST {WAPI_BASE_URL}/otp/send` dengan
- * `{ phone, template_id, code, ttl_minutes }` dan `Authorization: Bearer <kunci>`.
- * Nomor harus dalam format internasional tanpa tanda plus (`62812...`).
+ * Kontrak yang benar — diverifikasi langsung ke server mereka, bukan dari
+ * dokumentasi: `POST {WAPI_BASE_URL}/otp/outbound/send` dengan
+ * `{ phone, variables: { code } }` dan `Authorization: Bearer <kunci>`.
+ *
+ * Dokumentasi mereka menyebut `/otp/send` dengan `{ phone, template_id, code,
+ * ttl_minutes }`. Jalur itu tidak ada (404), dan `code` di akar body tidak
+ * pernah masuk ke pesan — yang terkirim berbunyi "kode verifikasi Anda adalah
+ * *code*". Kode hanya terisi bila dikirim di dalam `variables`.
+ *
+ * Pengiriman memakan waktu ~6 detik karena penyedia menunda pesan secara acak
+ * (spintax rotator), jadi batas waktunya lebih longgar daripada panggilan biasa.
  */
 async function kirimOtpLewatWapi({
   phoneNumber,
@@ -190,14 +200,13 @@ async function kirimOtpLewatWapi({
   const dasar = (
     process.env.WAPI_BASE_URL?.trim() || 'https://wapi.sixsevensixseven.my.id/api/v1'
   ).replace(/\/+$/, '');
-  const templateId = process.env.WAPI_TEMPLATE_ID?.trim() || 'otp_standard';
-  const ttlMenit = Number(process.env.WAPI_OTP_TTL_MINUTES ?? 5);
+  const jalur = process.env.WAPI_OTP_PATH?.trim() || '/otp/outbound/send';
   const target = toInternationalPhone(phoneNumber);
 
   try {
-    logger.info({ target, templateId }, '[WA OTP] Mengirim kode lewat WaPi.io...');
+    logger.info({ target, jalur }, '[WA OTP] Mengirim kode lewat WaPi.io...');
 
-    const response = await fetch(`${dasar}/otp/send`, {
+    const response = await fetch(`${dasar}${jalur}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -205,20 +214,19 @@ async function kirimOtpLewatWapi({
       },
       body: JSON.stringify({
         phone: target,
-        template_id: templateId,
-        code: otpCode,
-        ttl_minutes: Number.isFinite(ttlMenit) && ttlMenit > 0 ? ttlMenit : 5,
+        variables: { code: otpCode },
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(20000),
     });
 
     const data = (await response.json().catch(() => null)) as {
+      success?: boolean;
       code?: string;
       detail?: string;
-      status?: string;
+      data?: { message_id?: string; status?: string; cost_credits?: number };
     } | null;
 
-    if (!response.ok) {
+    if (!response.ok || data?.success === false) {
       logger.error(
         {
           status: response.status,
@@ -231,7 +239,15 @@ async function kirimOtpLewatWapi({
       return false;
     }
 
-    logger.info({ target, status: data?.status }, '[WA OTP] Kode terkirim lewat WaPi.io.');
+    logger.info(
+      {
+        target,
+        messageId: data?.data?.message_id,
+        status: data?.data?.status,
+        biayaKredit: data?.data?.cost_credits,
+      },
+      '[WA OTP] Kode terkirim lewat WaPi.io.',
+    );
     return true;
   } catch (err) {
     logger.error(
