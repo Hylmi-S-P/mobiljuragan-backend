@@ -128,6 +128,29 @@ jumlah objek dengan jumlah berkas di disk, baru ganti `MEDIA_DRIVER` dan jalanka
 ulang server — `.env` hanya dibaca saat proses mulai. MinIO bawaan memakai
 `minioadmin:minioadmin`; kredensial itu hanya boleh untuk laptop pengembang.
 
+## Pengiriman OTP WhatsApp
+
+**Penyedia OTP dipilih lewat `WA_PROVIDER`, bukan dengan mengubah kode.**
+`wapi` memakai `POST {WAPI_BASE_URL}/otp/send` dengan
+`{ phone, template_id, code, ttl_minutes }` dan `Authorization: Bearer <kunci>`;
+`gowa` memakai gateway WhatsApp Web dengan teks yang kita susun sendiri. Bila
+variabelnya kosong, penyedia ditebak dari kunci yang terisi supaya `.env` lama
+tetap jalan.
+
+**Pesan teks bebas tidak ikut pindah ke WaPi.io.** Endpoint OTP mereka hanya
+mengirim template, jadi pemberitahuan perubahan identitas tetap lewat `gowa`.
+Kalau `gowa` tidak dikonfigurasi, pesan itu dilewati dan dicatat di log — bukan
+diam-diam gagal.
+
+**Galat penyedia diterjemahkan, bukan diteruskan mentah.** `INVALID_API_KEY`,
+`INSUFFICIENT_CREDITS`, `RATE_LIMIT_EXCEEDED`, `ENGINE_OFFLINE`, dan
+`ROUTE_NOT_FOUND` masing-masing punya kalimat yang menyebut apa yang harus
+dilakukan. Tanpa itu, kegagalan pengiriman hanya tampil sebagai "gagal".
+
+**Uji otomatis tidak boleh mengirim WhatsApp sungguhan.** Harness e2e memaksa
+`WA_PROVIDER=off`; kalau `.env` berisi kunci asli, setiap permintaan OTP di e2e
+akan memotong saldo kredit dan mengirim pesan ke nomor palsu.
+
 ## Alat dan proses
 
 **Jangan pakai `Set-Content`/`Add-Content` PowerShell 5.1 untuk berkas kode.**

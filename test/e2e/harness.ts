@@ -247,6 +247,12 @@ async function spawnServer(): Promise<void> {
        */
       MEDIA_DRIVER: 'lokal',
       MEDIA_DIR: path.join(DIREKTORI_INI, '.media'),
+      /*
+       * Pengujian tidak boleh mengirim WhatsApp sungguhan. Kalau `.env` berisi
+       * kunci WaPi.io, setiap permintaan OTP di e2e akan memotong saldo kredit
+       * dan mengirim pesan ke nomor palsu.
+       */
+      WA_PROVIDER: 'off',
     },
     /*
      * stdout/stderr diarahkan ke berkas, bukan pipe. Di lingkungan ini pipe
@@ -266,10 +272,7 @@ async function spawnServer(): Promise<void> {
  * misalnya memundurkan tenggat dokumen supaya penjadwal ikut terpicu. Tidak
  * boleh dipakai untuk memeriksa hasil: hasil tetap dibaca lewat API.
  */
-export async function sqlUji<T = unknown>(
-  perintah: string,
-  params: unknown[] = [],
-): Promise<T> {
+export async function sqlUji<T = unknown>(perintah: string, params: unknown[] = []): Promise<T> {
   const koneksi = await mariadb.createConnection(opsiKoneksi(NAMA_DATABASE_UJI));
   try {
     return (await koneksi.query(perintah, params)) as T;
@@ -278,7 +281,7 @@ export async function sqlUji<T = unknown>(
   }
 }
 
-/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */export async function startHarness(): Promise<void> {
+/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */ export async function startHarness(): Promise<void> {
   console.log(`Database uji: ${TEST_DATABASE_URL}`);
   await siapkanDatabaseUji();
   await jalankanMigrasi();

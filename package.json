@@ -20,6 +20,7 @@
     "prisma:seed": "prisma db seed",
     "test": "tsx test/e2e/api-e2e.ts",
     "test:e2e": "tsx test/e2e/api-e2e.ts",
+    "uji:wa": "tsx scripts/uji-otp-wa.ts",
     "db:reset-test-data": "tsx scripts/reset-test-data.ts",
     "db:lepas-kode-unik": "tsx scripts/lepas-kode-unik-pembayaran.ts",
     "prisma:deploy": "prisma migrate deploy",

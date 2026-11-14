@@ -195,6 +195,38 @@ variabel `.env` hanya dibaca saat proses mulai, bukan saat berkas berubah.
 > laptop pengembang, set `MINIO_ROOT_USER` dan `MINIO_ROOT_PASSWORD` sebelum
 > menyalakan server, lalu samakan `S3_ACCESS_KEY`/`S3_SECRET_KEY`.
 
+### Langkah 2b: Menyiapkan Pengiriman OTP WhatsApp
+
+Kode OTP dikirim lewat salah satu penyedia, dipilih dengan `WA_PROVIDER`:
+
+| Nilai | Penyedia | Endpoint |
+|---|---|---|
+| `wapi` | WaPi.io (template OTP) | `POST {WAPI_BASE_URL}/otp/send` |
+| `gowa` | Gateway WhatsApp Web | `POST {WA_GATEWAY_URL}/send/message` |
+| `off` | Tidak mengirim (uji otomatis) | — |
+
+Bila `WA_PROVIDER` dikosongkan, penyedia ditebak dari variabel yang terisi:
+`WAPI_API_KEY` lebih dulu, lalu `WA_GATEWAY_URL`.
+
+Untuk WaPi.io, cukup isi kunci dari konsol mereka:
+```env
+WA_PROVIDER=wapi
+WAPI_BASE_URL=https://wapi.sixsevensixseven.my.id/api/v1
+WAPI_API_KEY=sk_live_...
+WAPI_TEMPLATE_ID=otp_standard
+WAPI_OTP_TTL_MINUTES=5
+```
+
+Uji tanpa membuka aplikasi:
+```bash
+npm run uji:wa -- 0812xxxxxxx
+```
+Perintah ini membuat kode acak, mengirimnya, lalu mencetak kode tersebut supaya
+bisa dibandingkan dengan pesan yang masuk. Kode itu tidak disimpan di database.
+
+Pesan teks bebas (pemberitahuan perubahan identitas) tetap lewat `gowa`, karena
+endpoint OTP WaPi.io hanya mengirim template, bukan teks yang kita susun.
+
 ### Langkah 3: Menyiapkan MariaDB Lokal
 Pastikan service database MariaDB telah berjalan:
 - Jika menggunakan **FlyEnv**: pastikan modul MariaDB berstatus *Running* di port `3306`.
