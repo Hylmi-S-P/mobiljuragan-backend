@@ -20,6 +20,12 @@ function salurkanBerkas(aliran: Readable, res: Response, next: NextFunction): vo
     }
   });
 
+  /* Unduhan yang dibatalkan klien tidak boleh meninggalkan aliran sumber
+     terbuka sampai seluruh berkas terkirim ke klien yang sudah pergi. */
+  res.on('close', () => {
+    if (!aliran.destroyed) aliran.destroy();
+  });
+
   aliran.pipe(res);
 }
 

@@ -5,7 +5,6 @@ import { AppError } from './response.js';
 import {
   BERKAS_BAWAAN,
   aliranDokumen,
-  bacaDokumen,
   simpanDokumen,
   type DokumenSiapSimpan,
 } from './documentTemplateBerkas.js';
@@ -202,20 +201,6 @@ export async function aktifkanVersi(id: string, aktor?: string) {
   });
 }
 
-/** Isi berkas dari versi tertentu. */
-export async function bacaBerkas(id: string) {
-  const template = await ambilSatu(id);
-  const isi = await bacaDokumen(template.berkasObjectKey);
-  return { template, isi };
-}
-
-/** Isi berkas dari versi yang sedang aktif. */
-export async function bacaBerkasAktif() {
-  const template = await ambilAktif();
-  const isi = await bacaDokumen(template.berkasObjectKey);
-  return { template, isi };
-}
-
 /**
  * Aliran berkas versi tertentu, untuk disajikan tanpa menyalin ke memori.
  *
@@ -274,8 +259,6 @@ export const documentTemplateService = {
   ambilSatu,
   simpanVersiBaru,
   aktifkanVersi,
-  bacaBerkas,
-  bacaBerkasAktif,
   aliranBerkas,
   aliranBerkasAktif,
   keteranganDokumenAktif,

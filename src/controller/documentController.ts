@@ -31,7 +31,12 @@ export const documentController = {
    */
   async getStatementTemplatePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { template, isi } = await documentTemplateService.bacaBerkasAktif();
+      /*
+       * Dialirkan, bukan dibaca utuh. Endpoint ini tanpa sesi dan berkasnya bisa
+       * belasan megabita; menyalin seluruh isi ke RAM untuk setiap unduhan
+       * membuat satu permintaan bisa menahan memori selama transfer berjalan.
+       */
+      const { template, aliran } = await documentTemplateService.aliranBerkasAktif();
 
       res.setHeader('Content-Type', template.berkasMime);
       res.setHeader(
@@ -40,8 +45,22 @@ export const documentController = {
       );
       res.setHeader('X-Document-Title', encodeURIComponent(template.judul));
       res.setHeader('X-Document-Version', String(template.versi));
-      res.setHeader('Content-Length', String(isi.length));
-      res.end(isi);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Length', String(template.berkasByte));
+
+      aliran.on('error', () => {
+        if (!res.headersSent) {
+          next(new AppError('DOCUMENT_NOT_FOUND', 'Berkas dokumen tidak ditemukan.', 404));
+        } else {
+          res.end();
+        }
+      });
+
+      res.on('close', () => {
+        if (!aliran.destroyed) aliran.destroy();
+      });
+
+      aliran.pipe(res);
     } catch (error) {
       next(error);
     }
@@ -198,6 +217,15 @@ export const documentController = {
         } else {
           res.end();
         }
+      });
+
+      /*
+       * Kalau peramban menutup unduhan di tengah jalan, aliran sumber harus
+       * dihentikan. Tanpa ini koneksi ke penyimpanan tetap terbuka sampai
+       * seluruh berkas terkirim ke klien yang sudah pergi.
+       */
+      res.on('close', () => {
+        if (!aliran.destroyed) aliran.destroy();
       });
 
       aliran.pipe(res);

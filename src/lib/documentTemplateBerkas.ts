@@ -193,11 +193,6 @@ export function unggahSatuDokumen(namaField = 'berkas') {
   }).single(namaField);
 }
 
-/** Membaca kembali dokumen tersimpan. */
-export async function bacaDokumen(objectKey: string): Promise<Buffer> {
-  return mediaStorage.baca(objectKey);
-}
-
 /**
  * Aliran baca dokumen tersimpan.
  *
