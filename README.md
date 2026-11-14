@@ -60,7 +60,7 @@ mobiljuragan-backend/
 
 ├── prisma/
 │   ├── schema.prisma        # Definisi model relasional database MariaDB
-│   ├── seed.ts              # Seeding 9 armada resmi Merauke & akun admin/staf default
+│   ├── seed.ts              # Seeding 9 armada, 4 supir, 6 FAQ resmi Merauke & akun admin
 │   └── migrations/          # Catatan migrasi skema database terkelola
 ├── src/
 │   ├── app.ts               # Inisialisasi Express, middleware global, & CORS
@@ -257,20 +257,22 @@ npm run prisma:migrate
 ```
 *(Perintah ini menjalankan `prisma migrate dev`, yang secara otomatis menerapkan seluruh file migrasi di folder `prisma/migrations/`).*
 
-### Langkah 6: Seeding Data Awal (9 Armada & Akun Default)
-Isi database dengan data operasional awal:
+### Langkah 6: Seeding Data Awal (9 Armada, 4 Supir, 6 FAQ & Akun Admin)
+Isi database dengan data induk resmi:
 ```bash
 npm run prisma:seed
 ```
-Setelah proses seeding selesai, database akan memiliki:
+Seed bersifat idempoten — dijalankan berulang kali tidak menggandakan baris, hanya menyelaraskan isinya. Setelah selesai, database akan memiliki:
 1. **9 Unit Armada Resmi Merauke:**
-   - *MPV*: Toyota Avanza G Putih (`PS1692B`), Toyota Avanza G Hitam (`PS1701B`), Daihatsu Xenia R Silver (`PS1822B`), Toyota Innova Reborn Diesel Abu-abu (`PS1933B`).
-   - *SUV*: Toyota Fortuner 2.8 VRZ Hitam (`PS2044B`), Mitsubishi Pajero Sport Dakar Putih (`PS2155B`).
-   - *PICKUP*: Toyota Hilux Double Cabin 4x4 Putih (`PS2266B`), Mitsubishi Triton Ultimate 4x4 Hitam (`PS2377B`).
-   - *COMMERCIAL*: Daihatsu Gran Max Blind Van Putih (`PS2488B`).
-2. **Akun Staf & Admin Default:**
-   - **Admin Utama:** No. HP `081234567890` (alias `admin`) | Password: `Admin123!`
-   - **Staf Operasional:** No. HP `081234567899` (alias `staf`) | Password: `Staf123!`
+   - *MPV*: Avanza G Putih (`PS1692B`), Innova Reborn G Hitam (`PA1504G`), Veloz Merah (`PS1693B`), Xpander Exceed Hitam (`PS1691B`).
+   - *SUV*: Fortuner VRZ TRD Hitam (`B8833AKU`), Rush G All New Coklat (`PA1696GG`), Terios X Hijau Matic (`B2534KRB`).
+   - *PICKUP*: Hilux G Hitam (`PA8593GZ`).
+   - *COMMERCIAL*: Pickup Suzuki Carry Hitam (`B9762BAY`).
+2. **4 Supir Resmi:** Markus Gebze, Yohanes Mahuze, Agustinus Balagaise, Bartho Kaize — semuanya berstatus `SIAGA` dengan nomor kontak dan SIM kosong sampai diverifikasi.
+3. **6 FAQ Resmi:** penjemputan bandara, verifikasi KTP/SIM, kebijakan BBM, tarif pengemudi, metode pembayaran, dan bantuan darurat.
+4. **Akun Admin Default:** No. HP `081234567890` | Password: `Admin123!` (bisa diganti lewat `SEED_ADMIN_PHONE`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME`).
+
+Data transaksi (pemesanan, pembayaran, tiket) sengaja tidak diisi oleh seed. Untuk pengujian, pakai harness E2E di `test/e2e/` yang menyiapkan dan membersihkan datanya sendiri.
 
 ### Langkah 7: Jalankan Pengujian Otomatis
 Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi booking, antrean operasional admin, sampai modul supir:
