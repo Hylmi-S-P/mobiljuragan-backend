@@ -168,8 +168,19 @@ export const bookingModel = {
           quotedAmount: null,
           status: BookingStatus.CREATED,
           createdAt: sekarang,
-          documentDeadlineAt: tenggatAwal(sekarang, input.start),
-          documentDeadlineState: DocumentDeadlineState.RUNNING,
+          /*
+           * Tenggat unggah dokumen hanya berlaku untuk sewa lepas kunci.
+           * Sewa dengan supir tidak meminta berkas apa pun, jadi tidak boleh
+           * ikut dibatalkan oleh sapuan tenggat dokumen.
+           */
+          documentDeadlineAt:
+            input.rentalType === RentalType.WITHOUT_DRIVER
+              ? tenggatAwal(sekarang, input.start)
+              : null,
+          documentDeadlineState:
+            input.rentalType === RentalType.WITHOUT_DRIVER
+              ? DocumentDeadlineState.RUNNING
+              : DocumentDeadlineState.NONE,
         },
         include: { vehicle: bookingVehicleSummary },
       });
@@ -946,6 +957,8 @@ export const bookingModel = {
         documentDeadlineState: DocumentDeadlineState.RUNNING,
         documentDeadlineAt: { lt: now },
         status: { in: [BookingStatus.CREATED, BookingStatus.PENDING_CONFIRMATION] },
+        /* Hanya sewa lepas kunci yang punya kewajiban unggah dokumen. */
+        rentalType: RentalType.WITHOUT_DRIVER,
       },
       select: { id: true, bookingCode: true, status: true },
     });

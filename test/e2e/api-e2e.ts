@@ -2043,6 +2043,66 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T7.6',
+    nama: 'Tenggat dokumen hanya berlaku untuk sewa lepas kunci, bukan sewa dengan supir',
+    async fn({ adminToken }) {
+      /* Sewa dengan supir tidak meminta berkas apa pun. */
+      const bersupir = await siapkanPesanan(adminToken, 'WITH_DRIVER');
+      const detailBersupir = await api(`/bookings/${bersupir.booking.id}`, {
+        token: bersupir.customerToken,
+      });
+      harapan(detailBersupir, 200, 'buka detail pesanan dengan supir');
+      const tenggatBersupir = detailBersupir.body.data.deadline as { state: string };
+      if (tenggatBersupir.state !== 'NONE') {
+        throw new Error(
+          `pesanan dengan supir tidak boleh punya tenggat dokumen, menerima ${tenggatBersupir.state}`,
+        );
+      }
+
+      /*
+       * Tenggatnya tetap dimundurkan lewat SQL untuk membuktikan sapuan tidak
+       * menyentuh pesanan bersupir, sekalipun kolomnya berisi waktu lampau.
+       */
+      await sqlUji(
+        'UPDATE bookings SET documentDeadlineAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE, documentDeadlineState = ? WHERE id = ?',
+        ['RUNNING', bersupir.booking.id],
+      );
+
+      /* Sewa lepas kunci tetap dikejar tenggatnya. */
+      const lepasKunci = await siapkanPesanan(adminToken, 'WITHOUT_DRIVER');
+      await sqlUji(
+        'UPDATE bookings SET documentDeadlineAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [lepasKunci.booking.id],
+      );
+
+      const batas = Date.now() + 15_000;
+      let statusLepasKunci = '';
+      while (Date.now() < batas) {
+        const cek = await api(`/bookings/${lepasKunci.booking.id}`, {
+          token: lepasKunci.customerToken,
+        });
+        statusLepasKunci = cek.body?.data?.status ?? '';
+        if (statusLepasKunci === 'CANCELLED') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+      if (statusLepasKunci !== 'CANCELLED') {
+        throw new Error(
+          `pesanan lepas kunci yang tenggatnya lewat harus CANCELLED, menerima ${statusLepasKunci || 'tanpa status'}`,
+        );
+      }
+
+      const cekBersupir = await api(`/bookings/${bersupir.booking.id}`, {
+        token: bersupir.customerToken,
+      });
+      harapan(cekBersupir, 200, 'baca ulang pesanan dengan supir');
+      if (cekBersupir.body.data.status !== 'CREATED') {
+        throw new Error(
+          `pesanan dengan supir tidak boleh ikut dibatalkan, menerima ${cekBersupir.body.data.status}`,
+        );
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {
