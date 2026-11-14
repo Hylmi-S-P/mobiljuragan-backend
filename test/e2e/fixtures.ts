@@ -435,6 +435,19 @@ export async function verifyPayment(
   });
 }
 
+/** Mencatat pembayaran tunai yang diterima di kantor. */
+export async function recordCashPayment(
+  adminToken: string,
+  bookingId: string,
+  notes?: string,
+): Promise<ResponsApi> {
+  return api('/admin/payments/cash', {
+    method: 'POST',
+    token: adminToken,
+    body: { bookingId, ...(notes ? { notes } : {}) },
+  });
+}
+
 export async function createTicket(
   customerToken: string,
   overrides: Record<string, unknown> = {},

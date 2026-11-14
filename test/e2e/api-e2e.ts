@@ -18,6 +18,7 @@ import {
   harapan,
   loginAdmin,
   loginCustomer,
+  recordCashPayment,
   requestDocumentRevision,
   uploadDocuments,
   uploadPaymentProof,
@@ -2100,6 +2101,122 @@ const kasus: Kasus[] = [
         throw new Error(
           `pesanan dengan supir tidak boleh ikut dibatalkan, menerima ${cekBersupir.body.data.status}`,
         );
+      }
+    },
+  },
+  {
+    id: 'T7.7',
+    nama: 'Lubang pembayaran ditutup: tenggat, pesanan batal, refund saat tolak, dan tunai kantor',
+    async fn({ adminToken }) {
+      /* Menyiapkan pesanan CONFIRMED yang tagihannya sudah diunggah buktinya. */
+      const siapkanTagihan = async () => {
+        const pesanan = await siapkanPesanan(adminToken);
+        harapan(
+          await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id),
+          200,
+          'unggah dokumen',
+        );
+        harapan(
+          await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE'),
+          200,
+          'verifikasi dokumen',
+        );
+        const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
+        if (konfirmasi.status !== 'CONFIRMED') {
+          throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
+        }
+        const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
+        harapan(tagihan, 201, 'buat tagihan');
+        return { ...pesanan, paymentId: tagihan.body.data.id as string };
+      };
+
+      /* 1. Bukti transfer setelah tenggat ditolak, bukan diterima. */
+      const lewatTenggat = await siapkanTagihan();
+      await sqlUji(
+        'UPDATE payments SET expiresAt = UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE id = ?',
+        [lewatTenggat.paymentId],
+      );
+      const buktiLewat = await uploadPaymentProof(lewatTenggat.customerToken, lewatTenggat.paymentId);
+      harapan(buktiLewat, 409, 'unggah bukti setelah tenggat');
+      if (buktiLewat.body?.error?.code !== 'PAYMENT_EXPIRED') {
+        throw new Error(
+          `kode penolakan harus PAYMENT_EXPIRED, menerima ${buktiLewat.body?.error?.code}`,
+        );
+      }
+
+      /* 2. Pesanan yang sudah dibatalkan tidak boleh menerima uang. */
+      const dibatalkan = await siapkanTagihan();
+      harapan(
+        await uploadPaymentProof(dibatalkan.customerToken, dibatalkan.paymentId),
+        200,
+        'unggah bukti transfer',
+      );
+      harapan(
+        await api(`/admin/bookings/${dibatalkan.booking.id}/status`, {
+          method: 'PATCH',
+          token: adminToken,
+          body: { status: 'CANCELLED', note: 'Dibatalkan untuk pengujian.' },
+        }),
+        200,
+        'batalkan pesanan',
+      );
+      const verifikasiBatal = await verifyPayment(adminToken, dibatalkan.paymentId, 'APPROVE');
+      harapan(verifikasiBatal, 409, 'verifikasi pembayaran pesanan batal');
+      if (verifikasiBatal.body?.error?.code !== 'BOOKING_NOT_PAYABLE') {
+        throw new Error(
+          `kode penolakan harus BOOKING_NOT_PAYABLE, menerima ${verifikasiBatal.body?.error?.code}`,
+        );
+      }
+
+      /* 3. Tolak + batalkan tetap mencatat pengembalian dana. */
+      const ditolak = await siapkanTagihan();
+      harapan(
+        await uploadPaymentProof(ditolak.customerToken, ditolak.paymentId),
+        200,
+        'unggah bukti transfer',
+      );
+      harapan(
+        await verifyPayment(adminToken, ditolak.paymentId, 'REJECT', {
+          notes: 'Bukti tidak terbaca.',
+          cancelBooking: true,
+        }),
+        200,
+        'tolak dan batalkan',
+      );
+      const antrean = await api(
+        `/admin/refunds?search=${encodeURIComponent(ditolak.booking.bookingCode)}`,
+        { token: adminToken },
+      );
+      harapan(antrean, 200, 'baca antrean pengembalian dana');
+      const barisRefund = (antrean.body.data.items as any[]).find(
+        (baris) => baris.booking?.bookingCode === ditolak.booking.bookingCode,
+      );
+      if (!barisRefund) {
+        throw new Error('penolakan dengan pembatalan tidak membuat catatan pengembalian dana');
+      }
+      if (barisRefund.danaTerverifikasi !== false) {
+        throw new Error('refund dari bukti yang belum diperiksa harus ditandai belum terverifikasi');
+      }
+
+      /* 4. Tunai kantor mencatat pembayaran lunas tanpa bukti transfer. */
+      const tunai = await siapkanPesanan(adminToken);
+      harapan(
+        await uploadSemuaDokumen(tunai.customerToken, tunai.booking.id),
+        200,
+        'unggah dokumen',
+      );
+      harapan(await verifyDocuments(adminToken, tunai.booking.id, 'APPROVE'), 200, 'verifikasi dokumen');
+      const konfirmasiTunai = await confirmTariff(adminToken, tunai.booking.id);
+      if (konfirmasiTunai.status !== 'CONFIRMED') {
+        throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasiTunai.status}`);
+      }
+      const catatTunai = await recordCashPayment(adminToken, tunai.booking.id, 'Diterima kasir.');
+      harapan(catatTunai, 201, 'catat pembayaran tunai');
+      if (catatTunai.body.data.status !== 'PAID') {
+        throw new Error(`pembayaran tunai harus PAID, menerima ${catatTunai.body.data.status}`);
+      }
+      if (catatTunai.body.data.method !== 'CASH') {
+        throw new Error(`metode harus CASH, menerima ${catatTunai.body.data.method}`);
       }
     },
   },

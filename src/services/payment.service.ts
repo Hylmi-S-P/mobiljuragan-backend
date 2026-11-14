@@ -7,12 +7,14 @@ import {
   OperationalStatus,
   PaymentMethod,
   PaymentStatus,
+  RefundStatus,
   RentalType,
   UserRole,
-  type Prisma,
+  Prisma,
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
 import { isFinalBookingStatus } from '../lib/bookingStage.js';
+import { hitungNominalRefund, jenisRefund } from '../lib/refund.js';
 import { generateDynamicQris } from '../utils/qris.js';
 import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
 
@@ -256,7 +258,7 @@ export const paymentService = {
         // 1:1 Constraint: Cek apakah pembayaran sudah pernah dibuat
         if (booking.payment) {
           if (booking.payment.status === PaymentStatus.PAID) {
-            throw new AppError('PAYMENT_ALREADY_SETTLED', 'Pesanan ini sudah lunas terbayar.', 400);
+            throw new AppError('PAYMENT_ALREADY_SETTLED', 'Pesanan ini sudah lunas.', 400);
           }
           throw new AppError(
             'PAYMENT_ALREADY_EXISTS',
@@ -341,6 +343,162 @@ export const paymentService = {
               totalAmount,
               uniqueCode,
               method: params.method,
+            },
+          },
+        });
+
+        return denganBuktiSegar(payment);
+      }),
+    );
+  },
+
+  /**
+   * Mencatat pembayaran tunai yang diterima langsung di kantor.
+   *
+   * Pelanggan tidak lagi bisa memilih tunai dari aplikasi (keputusan B13).
+   * Uang tunai hanya dicatat staf/admin setelah uangnya benar-benar diterima,
+   * jadi pembayaran langsung lahir berstatus PAID.
+   */
+  async recordCashPayment(
+    params: { bookingId: string; notes?: string },
+    actor: PaymentActor,
+  ) {
+    return withPaymentLock(() =>
+      db.$transaction(async (tx) => {
+        const booking = await tx.booking.findFirst({
+          where: {
+            OR: [{ id: params.bookingId }, { bookingCode: params.bookingId }],
+          },
+          include: {
+            payment: true,
+            vehicle: true,
+            customer: {
+              select: { id: true, fullName: true, phoneNumber: true },
+            },
+          },
+        });
+
+        if (!booking) {
+          throw new AppError(
+            'BOOKING_NOT_FOUND',
+            `Pesanan sewa '${params.bookingId}' tidak ditemukan.`,
+            404,
+          );
+        }
+
+        if (isFinalBookingStatus(booking.status)) {
+          throw new AppError(
+            'BOOKING_NOT_PAYABLE',
+            `Pesanan ini sudah berstatus ${booking.status} dan tidak bisa menerima pembayaran.`,
+            409,
+          );
+        }
+
+        if (booking.status !== BookingStatus.CONFIRMED) {
+          throw new AppError(
+            'BOOKING_NOT_QUOTED',
+            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dicatat.',
+            409,
+          );
+        }
+
+        if (!booking.quotedAmount || Number(booking.quotedAmount) <= 0) {
+          throw new AppError(
+            'BOOKING_NOT_QUOTED',
+            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dicatat.',
+            409,
+          );
+        }
+
+        if (booking.payment?.status === PaymentStatus.PAID) {
+          throw new AppError(
+            'PAYMENT_ALREADY_SETTLED',
+            'Pesanan ini sudah lunas dan tidak perlu dicatat lagi.',
+            409,
+          );
+        }
+
+        /* Bukti transfer yang sudah diunggah harus diverifikasi apa adanya.
+           Mencatat tunai di atasnya akan membuat dua sumber uang untuk satu
+           tagihan. */
+        if (booking.payment?.status === PaymentStatus.PENDING_VERIFICATION) {
+          throw new AppError(
+            'PAYMENT_PROOF_PENDING',
+            'Bukti transfer pelanggan sudah diunggah. Verifikasi bukti itu, bukan mencatat pembayaran tunai.',
+            409,
+          );
+        }
+
+        const totalAmount = Number(booking.quotedAmount);
+        const sekarang = new Date();
+        const acknowledgedBy = `${actor.userId}`;
+        const catatan = params.notes
+          ? `Tunai diterima di kantor. ${params.notes}`
+          : 'Tunai diterima di kantor.';
+
+        const payment = booking.payment
+          ? await tx.payment.update({
+              where: { id: booking.payment.id },
+              data: {
+                method: PaymentMethod.CASH,
+                status: PaymentStatus.PAID,
+                baseAmount: new Prisma.Decimal(totalAmount),
+                totalAmount: new Prisma.Decimal(totalAmount),
+                verifiedAt: sekarang,
+                verifiedBy: actor.userId,
+                acknowledgedAt: sekarang,
+                acknowledgedBy,
+                notes: booking.payment.notes
+                  ? `${booking.payment.notes} | ${catatan}`
+                  : catatan,
+              },
+              include: {
+                booking: {
+                  include: {
+                    vehicle: true,
+                    customer: {
+                      select: { id: true, fullName: true, phoneNumber: true },
+                    },
+                  },
+                },
+              },
+            })
+          : await tx.payment.create({
+              data: {
+                bookingId: booking.id,
+                baseAmount: new Prisma.Decimal(totalAmount),
+                uniqueCode: 0,
+                totalAmount: new Prisma.Decimal(totalAmount),
+                method: PaymentMethod.CASH,
+                status: PaymentStatus.PAID,
+                verifiedAt: sekarang,
+                verifiedBy: actor.userId,
+                acknowledgedAt: sekarang,
+                acknowledgedBy,
+                notes: catatan,
+              },
+              include: {
+                booking: {
+                  include: {
+                    vehicle: true,
+                    customer: {
+                      select: { id: true, fullName: true, phoneNumber: true },
+                    },
+                  },
+                },
+              },
+            });
+
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.userId,
+            action: 'RECORD_CASH_PAYMENT',
+            entityType: 'Payment',
+            entityId: payment.id,
+            metadata: {
+              bookingCode: booking.bookingCode,
+              totalAmount,
+              notes: params.notes ?? null,
             },
           },
         });
@@ -455,7 +613,30 @@ export const paymentService = {
         );
       }
 
+      /*
+       * Batas waktu ditegakkan di sini, bukan hanya oleh penjadwal. Tanpa
+       * pemeriksaan ini, bukti transfer yang diunggah setelah tenggat tetap
+       * diterima selama sapuan lima menit belum berjalan.
+       */
+      if (payment.expiresAt && payment.expiresAt.getTime() < Date.now()) {
+        throw new AppError(
+          'PAYMENT_EXPIRED',
+          'Batas waktu pembayaran sudah lewat. Pesanan ini dibatalkan otomatis; silakan buat pesanan baru.',
+          409,
+        );
+      }
+
       pastikanBolehAkses(payment.booking.customerId, actor);
+
+      /* Pesanan yang sudah ditutup tidak boleh menerima bukti baru: uangnya
+         sudah masuk antrean pengembalian, bukan tagihan yang masih berjalan. */
+      if (isFinalBookingStatus(payment.booking.status)) {
+        throw new AppError(
+          'BOOKING_NOT_PAYABLE',
+          'Pesanan ini sudah ditutup, jadi bukti transfer tidak bisa diunggah lagi.',
+          409,
+        );
+      }
 
       const updated = await tx.payment.update({
         where: { id: paymentId },
@@ -477,16 +658,12 @@ export const paymentService = {
         },
       });
 
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId: payment.bookingId,
-          fromStatus: payment.booking.status,
-          toStatus: payment.booking.status,
-          actor: BookingStatusActor.CUSTOMER,
-          actorUserId: params.actorUserId || payment.booking.customerId,
-          note: `Bukti transfer pembayaran diunggah oleh pelanggan. Menunggu verifikasi tim.`,
-        },
-      });
+      /*
+       * Tidak ada riwayat status yang ditulis di sini: status pesanan memang
+       * tidak berubah saat bukti diunggah. Mencatat fromStatus == toStatus
+       * membuat garis waktu pelanggan menampilkan transisi palsu. Jejaknya
+       * cukup di audit log di bawah.
+       */
 
       await tx.auditLog.create({
         data: {
@@ -617,6 +794,19 @@ export const paymentService = {
         );
       }
 
+      /*
+       * Pesanan yang sudah ditutup tidak boleh menerima uang. Diperiksa sebelum
+       * status pembayaran supaya pesannya jujur: alasan sebenarnya adalah
+       * pesanannya sudah batal, bukan status tagihannya yang aneh.
+       */
+      if (isFinalBookingStatus(payment.booking.status)) {
+        throw new AppError(
+          'BOOKING_NOT_PAYABLE',
+          `Pesanan ${payment.booking.bookingCode} sudah berstatus ${payment.booking.status} dan tidak bisa menerima pembayaran.`,
+          409,
+        );
+      }
+
       // Hanya tagihan yang masih berjalan yang boleh diverifikasi. FAILED dan
       // REFUNDED sengaja ditolak: menandainya lunas akan menutupi riwayat
       // penolakan atau pengembalian dana yang sudah tercatat.
@@ -630,6 +820,18 @@ export const paymentService = {
         throw new AppError(
           'PAYMENT_NOT_VERIFIABLE',
           `Pembayaran berstatus ${payment.status} tidak dapat diverifikasi.`,
+          409,
+        );
+      }
+
+      /*
+       * Pesanan yang sudah ditutup tidak boleh menerima uang. Tanpa pemeriksaan
+       * ini, tagihan milik pesanan CANCELLED masih bisa ditandai lunas.
+       */
+      if (isFinalBookingStatus(payment.booking.status)) {
+        throw new AppError(
+          'BOOKING_NOT_PAYABLE',
+          `Pesanan ${payment.booking.bookingCode} sudah berstatus ${payment.booking.status} dan tidak bisa menerima pembayaran.`,
           409,
         );
       }
@@ -666,16 +868,9 @@ export const paymentService = {
           },
         });
 
-        await tx.bookingStatusHistory.create({
-          data: {
-            bookingId: payment.bookingId,
-            fromStatus: payment.booking.status,
-            toStatus: payment.booking.status,
-            actor: BookingStatusActor.ADMIN,
-            actorUserId: params.verifierUserId,
-            note: `Pembayaran disetujui secara manual oleh ${params.verifierName || 'Admin'}. Status lunas (PAID).`,
-          },
-        });
+        /* Status pesanan tidak berubah saat pembayaran disetujui, jadi tidak ada
+           riwayat status yang ditulis. Jejak verifikasi ada di kolom payment
+           (verifiedAt/verifiedBy) dan di audit log. */
 
         await tx.auditLog.create({
           data: {
@@ -742,6 +937,45 @@ export const paymentService = {
               note: `Pesanan dibatalkan oleh ${params.verifierName || 'Admin'} setelah bukti transfer ditolak: ${params.notes || 'Bukti transfer tidak valid'}.`,
             },
           });
+
+          /*
+           * Uang yang buktinya sudah diunggah tetap harus tercatat sebagai
+           * pengembalian, walaupun bukti itulah yang ditolak. Tanpa catatan ini,
+           * dana pelanggan hilang dari antrean kantor dan tidak pernah ditransfer
+           * balik. Nominalnya ditandai belum terverifikasi supaya kantor
+           * mencocokkan mutasi bank lebih dulu.
+           */
+          const jenis = jenisRefund(payment.status);
+          if (jenis) {
+            const totalDibayar = Number(payment.totalAmount);
+            const terverifikasi = jenis === 'TERVERIFIKASI';
+            const hitungan = terverifikasi
+              ? hitungNominalRefund(totalDibayar, 'ADMIN')
+              : { totalDibayar, potongan: 0, nominal: totalDibayar };
+
+            await tx.bookingRefund.upsert({
+              where: { bookingId: payment.bookingId },
+              create: {
+                bookingId: payment.bookingId,
+                paymentId: payment.id,
+                totalDibayar: new Prisma.Decimal(hitungan.totalDibayar),
+                potongan: new Prisma.Decimal(hitungan.potongan),
+                nominal: new Prisma.Decimal(hitungan.nominal),
+                dibatalkanOleh: 'ADMIN',
+                alasan: `Pesanan dibatalkan setelah bukti transfer ditolak: ${params.notes || 'Bukti transfer tidak valid'}.`,
+                danaTerverifikasi: terverifikasi,
+                status: RefundStatus.MENUNGGU,
+                dicatatOleh: params.verifierUserId,
+              },
+              update: {
+                totalDibayar: new Prisma.Decimal(hitungan.totalDibayar),
+                potongan: new Prisma.Decimal(hitungan.potongan),
+                nominal: new Prisma.Decimal(hitungan.nominal),
+                dibatalkanOleh: 'ADMIN',
+                danaTerverifikasi: terverifikasi,
+              },
+            });
+          }
 
           if (payment.booking.driverId) {
             const supirMasihDipakai = await tx.booking.count({

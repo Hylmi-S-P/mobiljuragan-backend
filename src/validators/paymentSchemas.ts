@@ -67,6 +67,17 @@ export const adminVerifyPaymentSchema = z
     path: ['cancelBooking'],
   });
 
+/**
+ * Pencatatan pembayaran tunai oleh staf/admin di kantor.
+ *
+ * Pelanggan tidak bisa memilih tunai dari aplikasi, jadi satu-satunya jalan
+ * adalah aksi admin setelah uangnya benar-benar diterima.
+ */
+export const recordCashPaymentSchema = z.object({
+  bookingId: z.string().min(1, 'ID atau kode booking wajib diisi'),
+  notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
+});
+
 export const listPaymentQuerySchema = z.object({
   status: z.nativeEnum(PaymentStatus).optional(),
   method: z.nativeEnum(PaymentMethod).optional(),
