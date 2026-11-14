@@ -157,6 +157,22 @@ OTP_SALT="mobiljuragan-dev-otp-salt-key"
 SESSION_SECRET="CHANGE_ME_random_long_string"
 ```
 
+Penyimpanan berkas (dokumen sewa, media, template) memakai driver `lokal` secara
+bawaan dan menulis ke `storage/media`. Untuk memakai MinIO saat pengembangan atau
+Cloudflare R2 saat produksi, cukup ganti driver dan isi variabel `S3_*` — kode
+aplikasi tidak berubah:
+```env
+MEDIA_DRIVER=s3
+S3_ENDPOINT="http://127.0.0.1:9000"   # kosongkan untuk AWS S3
+S3_REGION="us-east-1"
+S3_BUCKET="mobiljuragan"
+S3_ACCESS_KEY="..."
+S3_SECRET_KEY="..."
+S3_FORCE_PATH_STYLE=true              # MinIO: wajib true
+```
+Berkas lama yang masih ada di disk tidak ikut pindah sendiri; perlu disalin ke
+bucket sebelum `MEDIA_DRIVER` diganti.
+
 ### Langkah 3: Menyiapkan MariaDB Lokal
 Pastikan service database MariaDB telah berjalan:
 - Jika menggunakan **FlyEnv**: pastikan modul MariaDB berstatus *Running* di port `3306`.

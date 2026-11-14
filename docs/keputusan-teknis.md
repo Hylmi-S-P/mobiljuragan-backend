@@ -86,6 +86,34 @@ ke `/api/v1/ws/tickets`. Klien membuang peristiwa `pesan` dengan `sequence` yang
 sudah lewat supaya sambung ulang tidak menggandakan pesan. Rincian dan syarat
 deploy ada di `docs/adr-websocket-tiket.md`.
 
+## Berkas dan penyimpanan
+
+**Satu jalur normalisasi gambar untuk semua unggahan.** Dokumen sewa dan media
+umum memakai `src/lib/imageNormalisasi.ts` dengan dua preset (`dokumen` 5 MB /
+2000 px / WebP q80, `media` 8 MB / 1600 px / WebP q82) dan batas yang sama:
+40 juta piksel. Sebelumnya jalur dokumen memanggil `sharp` tanpa
+`limitInputPixels`, sehingga berkas beberapa ratus kilobita yang mengaku
+50000×50000 piksel bisa memaksa server menyiapkan memori untuk seluruh piksel.
+Berkas yang melewati batas dijawab `FILE_TOO_MANY_PIXELS`, bukan galat 500.
+
+**Berkas pribadi tidak boleh tinggal di cache peramban.** KTP dan SIM disajikan
+dengan `Cache-Control: private, no-store` dan `X-Content-Type-Options: nosniff`,
+serta dialirkan langsung dari penyimpanan (`getStream` → `pipe`) bukan disalin
+utuh ke memori. Di komputer kantor yang dipakai bergantian, cache lima menit
+membuat KTP pelanggan bisa dibuka orang berikutnya tanpa melewati pemeriksaan
+sesi.
+
+**Tiga berkas dokumen diproses berurutan, bukan bersamaan.** Tiga decode
+serentak pada batas 40 juta piksel bisa memakan ratusan megabita.
+
+**Penyimpanan di balik satu antarmuka dengan driver `lokal` dan `s3`.** Driver
+s3 (`src/lib/mediaStorageS3.ts`) memakai S3 API biasa lewat `@aws-sdk/client-s3`,
+bukan SDK khusus MinIO, supaya MinIO lokal saat pengembangan dan Cloudflare R2
+saat produksi memakai kode yang sama dan hanya berbeda di `.env`
+(`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`,
+`S3_FORCE_PATH_STYLE`). SDK S3 baru diimpor saat driver s3 benar-benar dipakai.
+Yang disimpan di database selalu kunci objek, bukan URL.
+
 ## Alat dan proses
 
 **Jangan pakai `Set-Content`/`Add-Content` PowerShell 5.1 untuk berkas kode.**
