@@ -47,7 +47,7 @@ const tariffSettingsSchema = z.object({
     .max(10_000_000, 'Tarif jasa supir terlalu besar.'),
 });
 
-/* Unit yang sedang tersewa saat ini. Dipakai katalog untuk badge "Disewa".
+/* Unit yang sedang disewa saat ini. Dipakai katalog untuk badge "Disewa".
    Tidak menerima parameter: yang ditanyakan selalu "sekarang". */
 adminFleetRouter.get('/rented', adminFleetController.rented);
 

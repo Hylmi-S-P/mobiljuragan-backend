@@ -22,7 +22,7 @@ const DRIVER = (process.env.MEDIA_DRIVER ?? 'lokal').toLowerCase();
 const AKAR = resolve(process.env.MEDIA_DIR ?? join(process.cwd(), 'storage', 'media'));
 
 /** Hanya menerima jalur relatif yang aman, tanpa `..` dan tanpa akar absolut. */
-function pastikanJalurAman(objectKey: string): string {
+function pastikanJalurAmanDi(akar: string, objectKey: string): string {
   if (
     objectKey.length === 0 ||
     objectKey.startsWith('/') ||
@@ -33,8 +33,8 @@ function pastikanJalurAman(objectKey: string): string {
     throw new AppError('MEDIA_KEY_INVALID', 'Jalur objek media tidak valid.', 400);
   }
 
-  const penuh = resolve(AKAR, objectKey);
-  const akarDenganPemisah = AKAR.endsWith('\\') || AKAR.endsWith('/') ? AKAR : AKAR + '\\';
+  const penuh = resolve(akar, objectKey);
+  const akarDenganPemisah = akar.endsWith('\\') || akar.endsWith('/') ? akar : akar + '\\';
 
   if (!penuh.startsWith(akarDenganPemisah)) {
     throw new AppError(
@@ -45,6 +45,10 @@ function pastikanJalurAman(objectKey: string): string {
   }
 
   return penuh;
+}
+
+function pastikanJalurAman(objectKey: string): string {
+  return pastikanJalurAmanDi(AKAR, objectKey);
 }
 
 /**

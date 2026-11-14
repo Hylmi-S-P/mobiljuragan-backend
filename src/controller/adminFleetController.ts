@@ -77,7 +77,7 @@ export const adminFleetController = {
   /**
    * GET /api/v1/admin/fleet/rented
    *
-   * Daftar id unit yang sedang tersewa saat ini. Dipakai katalog armada untuk
+   * Daftar id unit yang sedang disewa saat ini. Dipakai katalog armada untuk
    * badge "Disewa".
    *
    * Kenapa endpoint terpisah, bukan menambah field di GET /admin/vehicles:

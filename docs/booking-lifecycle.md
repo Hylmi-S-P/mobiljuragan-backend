@@ -240,16 +240,19 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 
 ---
 
-## 10. Aturan yang akan ditambahkan
+## 10. Aturan yang sudah ditambahkan
 
-Bagian ini adalah rencana, bukan keadaan sekarang. Rujukannya `RENCANA-EKSEKUSI.md`
-di akar workspace.
+Bagian ini mencatat aturan yang dulu berupa rencana dan kini sudah berlaku di kode.
+Rujukannya `RENCANA-EKSEKUSI.md` di akar workspace.
 
-| Aturan | Gelombang |
+| Aturan | Berlaku sejak |
 | --- | --- |
-| `CONFIRMED -> COMPLETED` ditutup; selesai hanya lewat `IN_PROGRESS`. | 2 |
-| Refund dicatat di server: 100% bila dibatalkan admin/sistem, potongan tetap Rp 50.000 bila pelanggan membatalkan setelah bayar. | 2 |
-| `handedOverAt` dicatat saat serah terima. | 2 |
-| Penolakan pembayaran membatalkan pesanan, bukan hanya menandai tagihan gagal. | 2 |
-| Pengingat tenggat admin pada jam ke-12. | 6 |
+| `CONFIRMED -> COMPLETED` ditutup; selesai hanya lewat `IN_PROGRESS`. | gelombang 7 (T7.10) |
+| Refund dicatat di server: 100% bila dibatalkan admin/sistem, potongan tetap Rp 50.000 bila pelanggan membatalkan setelah bayar. | gelombang 2 (T2.5) |
+| `handedOverAt` dicatat saat serah terima. | gelombang 7 (T7.10) |
+| Penolakan pembayaran membatalkan pesanan, bukan hanya menandai tagihan gagal. | gelombang 2 (T2.3) dan 7 (T7.7) |
+| Tenggat unggah dokumen hanya berlaku untuk sewa lepas kunci. | gelombang 7 (T7.6) |
+
+Yang **belum** dikerjakan: pengingat tenggat admin pada jam ke-12 (menunggu T6.6,
+tertahan sampai kredensial FCM tersedia).
 

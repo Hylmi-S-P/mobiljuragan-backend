@@ -112,10 +112,8 @@ mobiljuragan-backend/
 └── tsconfig.json            # Konfigurasi compiler TypeScript (NodeNext)
 ```
 
-Suite E2E disimpan di folder `.verify/e2e/` pada root workspace, di luar repo ini, supaya berkas uji
-dan laporan hasilnya tidak ikut ter-commit. Perintah `npm test` tetap bisa dijalankan dari folder
-ini. Kalau folder tersebut tidak tersedia, backend tetap bisa dijalankan dan diperiksa manual lewat
-endpoint pada tabel di bagian 5.
+Suite E2E berada di `test/e2e/` di dalam repo ini, sehingga ikut ter-version dan bisa dijalankan siapa pun
+yang meng-clone. Perintah `npm test` menjalankannya dari folder ini.
 
 ---
 
@@ -204,10 +202,10 @@ Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi book
 ```bash
 npm test
 ```
-*(Harus menampilkan 52/52 pemeriksaan lolos. Suite ini berjalan lewat HTTP sungguhan di port 4999,
-ikut menguji jalur gagal seperti 401, 403, dan 409, lalu menulis laporan ke `.verify/e2e/report.md`
-dan `.verify/e2e/last-run.json` di root workspace. Kalau ada satu saja pemeriksaan yang gagal,
-perintahnya keluar dengan kode bukan nol sehingga bisa dipakai di alur otomatis.)*
+*(Seluruh pemeriksaan harus lulus. Suite ini membuat database uji terpisah `mobiljuragan_test`,
+menjalankan migrasi dan seed di sana, lalu menguji lewat HTTP sungguhan di port 4100 termasuk jalur gagal
+seperti 401, 403, dan 409. Database pengembangan tidak disentuh. Kalau ada satu saja pemeriksaan yang
+gagal, perintahnya keluar dengan kode bukan nol sehingga bisa dipakai di alur otomatis.)*
 
 Typecheck khusus berkas uji dijalankan terpisah karena `tsconfig.json` sengaja hanya mengompilasi `src/`:
 ```bash

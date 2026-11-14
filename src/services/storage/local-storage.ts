@@ -1,53 +1,33 @@
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, resolve } from 'node:path';
-import { AppError } from '../../lib/response.js';
+import { mediaStorage } from '../../lib/mediaStorage.js';
 import type { FileStorage, StoredFile } from './file-storage.js';
 
 /**
- * Penyimpanan lokal di disk server.
+ * Penyimpanan berkas di disk server.
  *
- * Dipakai selama target akhir (S3 atau VPS) belum diputuskan. Folder berkas
- * sengaja berada di luar `src/` dan tidak disajikan sebagai static publik:
+ * Sebelumnya ada dua pipeline paralel: `mediaStorage` untuk media katalog dan
+ * `LocalFileStorage` untuk dokumen sewa, masing-masing dengan folder akar dan
+ * pemeriksaan jalur sendiri. Sekarang keduanya memakai satu penampung: dokumen
+ * disimpan di subfolder `dokumen/` di dalam akar penyimpanan yang sama, sehingga
+ * pemindahan ke S3 nanti hanya perlu mengganti satu adapter.
+ *
+ * Folder tetap berada di luar `src/` dan tidak disajikan sebagai static publik:
  * dokumen berisi KTP/SIM, jadi aksesnya lewat endpoint ber-otorisasi.
  */
+const PREFIX_DOKUMEN = 'dokumen';
+
 export class LocalFileStorage implements FileStorage {
-  private readonly rootDir: string;
+  async put(key: string, data: Buffer, mimeType = 'image/webp'): Promise<StoredFile> {
+    const tersimpan = await mediaStorage.simpan(`${PREFIX_DOKUMEN}/${key}`, data);
 
-  constructor(rootDir = process.env.UPLOAD_DIR ?? resolve(process.cwd(), 'uploads')) {
-    this.rootDir = resolve(rootDir);
-  }
-
-  /** Mencegah path keluar dari folder penyimpanan (path traversal). */
-  private safePath(key: string): string {
-    const target = resolve(join(this.rootDir, key));
-    if (!target.startsWith(this.rootDir)) {
-      throw new AppError('INVALID_FILE_PATH', 'Nama berkas tidak valid.', 400);
-    }
-    return normalize(target);
-  }
-
-  async put(key: string, data: Buffer): Promise<StoredFile> {
-    const target = this.safePath(key);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, data);
-
-    return { key, size: data.byteLength, mimeType: 'image/webp' };
+    return { key, size: tersimpan.byte, mimeType };
   }
 
   async get(key: string): Promise<Buffer> {
-    try {
-      return await readFile(this.safePath(key));
-    } catch {
-      throw new AppError('FILE_NOT_FOUND', 'Berkas tidak ditemukan.', 404);
-    }
+    return mediaStorage.baca(`${PREFIX_DOKUMEN}/${key}`);
   }
 
   async delete(key: string): Promise<void> {
-    try {
-      await unlink(this.safePath(key));
-    } catch {
-      // Berkas sudah tidak ada: tidak perlu dianggap gagal.
-    }
+    await mediaStorage.hapus(`${PREFIX_DOKUMEN}/${key}`);
   }
 
   urlFor(key: string): string {

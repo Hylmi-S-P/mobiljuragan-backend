@@ -22,7 +22,7 @@ pun; keberadaannya hanya warisan sebelum proyek pindah ke MariaDB.
 
 1. `migration_lock.toml` diperbaiki menjadi `provider = "mysql"`.
 2. Dua migrasi PostgreSQL lama dihapus dari direktori migrasi.
-   **Salinan aslinya disimpan** di `.verify/backup-migrasi/migrations-lama/` (di luar repo).
+   **Salinan aslinya tidak lagi disertakan** karena migrasi itu tidak pernah dipakai di MySQL.
 3. Dibuat satu migrasi baseline: `20261024120000_baseline_mysql/migration.sql`.
    Isinya skema lengkap dalam dialek MySQL, dihasilkan dari `schema.prisma`.
 4. Baseline ditandai sudah diterapkan dengan `prisma migrate resolve --applied`,

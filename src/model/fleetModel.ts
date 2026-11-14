@@ -46,7 +46,7 @@ export const fleetModel = {
   },
 
   /**
-   * Unit yang sedang tersewa pada satu titik waktu.
+   * Unit yang sedang disewa pada satu titik waktu.
    *
    * Dipakai katalog armada untuk menampilkan badge "Disewa". Tanpa ini, katalog
    * membaca kolom `operationalStatus` saja, dan kolom itu menyimpan keadaan unit
