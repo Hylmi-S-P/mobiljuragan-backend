@@ -173,6 +173,28 @@ S3_FORCE_PATH_STYLE=true              # MinIO: wajib true
 Berkas lama yang masih ada di disk tidak ikut pindah sendiri; perlu disalin ke
 bucket sebelum `MEDIA_DRIVER` diganti.
 
+#### Menyalin berkas lama ke bucket
+
+Kunci objek **harus sama** dengan jalur relatif di dalam `storage/media`, karena
+itulah yang tersimpan di database (`dokumen/<bookingId>/<uuid>.webp`,
+`media/YYYY/MM/<sha256>.webp`). Dengan MinIO Client:
+
+```bash
+mc alias set lokal http://127.0.0.1:9000 minioadmin minioadmin
+mc mb --ignore-existing lokal/mobiljuragan
+mc mirror --overwrite storage/media lokal/mobiljuragan
+mc ls --recursive lokal/mobiljuragan | wc -l   # bandingkan dengan jumlah berkas di disk
+```
+
+`mc mirror` mempertahankan struktur folder, jadi kunci objek otomatis cocok.
+Setelah jumlahnya sama, baru ganti `MEDIA_DRIVER=s3` dan jalankan ulang server —
+variabel `.env` hanya dibaca saat proses mulai, bukan saat berkas berubah.
+
+> **Ganti kredensial bawaan.** MinIO yang baru dipasang memakai
+> `minioadmin:minioadmin` dan menulis peringatan di log. Untuk pemakaian di luar
+> laptop pengembang, set `MINIO_ROOT_USER` dan `MINIO_ROOT_PASSWORD` sebelum
+> menyalakan server, lalu samakan `S3_ACCESS_KEY`/`S3_SECRET_KEY`.
+
 ### Langkah 3: Menyiapkan MariaDB Lokal
 Pastikan service database MariaDB telah berjalan:
 - Jika menggunakan **FlyEnv**: pastikan modul MariaDB berstatus *Running* di port `3306`.

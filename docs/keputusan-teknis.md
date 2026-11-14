@@ -121,6 +121,13 @@ saat produksi memakai kode yang sama dan hanya berbeda di `.env`
 `S3_FORCE_PATH_STYLE`). SDK S3 baru diimpor saat driver s3 benar-benar dipakai.
 Yang disimpan di database selalu kunci objek, bukan URL.
 
+**Pindah driver tidak memindahkan berkas.** Kunci objek sama dengan jalur relatif
+di `storage/media`, jadi penyalinan cukup `mc mirror storage/media
+lokal/mobiljuragan` tanpa mengubah database. Urutannya: salin dulu, bandingkan
+jumlah objek dengan jumlah berkas di disk, baru ganti `MEDIA_DRIVER` dan jalankan
+ulang server — `.env` hanya dibaca saat proses mulai. MinIO bawaan memakai
+`minioadmin:minioadmin`; kredensial itu hanya boleh untuk laptop pengembang.
+
 ## Alat dan proses
 
 **Jangan pakai `Set-Content`/`Add-Content` PowerShell 5.1 untuk berkas kode.**
