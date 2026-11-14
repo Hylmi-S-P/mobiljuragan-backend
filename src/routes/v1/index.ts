@@ -27,11 +27,15 @@ import { customerAiRouter } from './customerAiRoutes.js';
 import { mediaRouter } from './mediaRoutes.js';
 import { documentRouter } from './documentRoutes.js';
 import { documentTemplateRouter } from './documentTemplateRoutes.js';
+import { publicConfigRouter } from './publicConfig.js';
 
 export const v1Router: Router = Router();
 
 // Titik serah terima resmi (publik, dipakai mobile & dashboard): /api/v1/pickup-points
 v1Router.use('/pickup-points', pickupPointRouter);
+
+// Pengaturan publik untuk aplikasi pelanggan (tarif supir global, jam operasional): /api/v1/config
+v1Router.use('/config', publicConfigRouter);
 
 // Manajemen pembayaran admin portal: /api/v1/admin/payments/*
 v1Router.use('/admin/payments', adminPaymentRouter);

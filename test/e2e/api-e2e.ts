@@ -2220,6 +2220,52 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T7.8',
+    nama: 'Pengaturan publik membawa tarif supir yang sama dengan yang dipakai menagih',
+    async fn({ adminToken }) {
+      const awal = await api('/config');
+      harapan(awal, 200, 'baca pengaturan publik');
+      if (typeof awal.body.data.driverDailyRate !== 'number') {
+        throw new Error('pengaturan publik harus memuat driverDailyRate berupa angka');
+      }
+      if (awal.body.data.driverDailyRate <= 0) {
+        throw new Error('tarif supir publik harus lebih besar dari nol');
+      }
+
+      /* Angka yang dibaca aplikasi harus angka yang akan dipakai server saat
+         menagih, bukan angka terpisah yang bisa berbeda. */
+      const ubah = await api('/admin/fleet/tariff-settings', {
+        method: 'PATCH',
+        token: adminToken,
+        body: { driverDailyRate: 175000 },
+      });
+      harapan(ubah, 200, 'ubah tarif supir');
+
+      const sesudah = await api('/config');
+      harapan(sesudah, 200, 'baca pengaturan publik setelah diubah');
+      if (sesudah.body.data.driverDailyRate !== 175000) {
+        throw new Error(
+          `pengaturan publik harus mengikuti tarif terbaru, menerima ${sesudah.body.data.driverDailyRate}`,
+        );
+      }
+
+      const jam = sesudah.body.data.serviceHours;
+      if (!jam || jam.openMinute !== 360 || jam.closeMinute !== 1320) {
+        throw new Error('jam operasional publik harus 06.00 sampai 22.00 WIT');
+      }
+
+      harapan(
+        await api('/admin/fleet/tariff-settings', {
+          method: 'PATCH',
+          token: adminToken,
+          body: { driverDailyRate: awal.body.data.driverDailyRate },
+        }),
+        200,
+        'pulihkan tarif supir',
+      );
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {
