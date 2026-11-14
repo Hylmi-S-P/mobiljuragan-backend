@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws';
 import { BASE_ORIGIN, sqlUji, startHarness, stopServer } from './harness.js';
+import { generateBookingCode } from '../../src/lib/bookingCode.js';
 import {
   api,
   assignDriver,
@@ -2349,6 +2350,35 @@ const kasus: Kasus[] = [
       harapan(detail, 200, 'baca detail setelah serah terima');
       if (!detail.body.data.handedOverAt) {
         throw new Error('waktu serah terima harus tercatat saat sewa mulai');
+      }
+    },
+  },
+  {
+    id: 'T7.13',
+    nama: 'Kode booking bertanggal kalender Merauke, bukan UTC, dan memakai alfabet yang pasti',
+    async fn() {
+      const POLA = /^MJ-\d{8}-[0-9A-Z]{4}$/;
+
+      /* 13 Nov 15.38 UTC = 14 Nov 00.38 WIT. Kode memakai tanggal kalender
+         kantor, jadi harus 20261114 — bukan 20261113 seperti versi lama. */
+      const lewatTengahMalamWit = generateBookingCode(new Date('2026-11-13T15:38:00.000Z'));
+      if (!lewatTengahMalamWit.startsWith('MJ-20261114-')) {
+        throw new Error(`tanggal harus 20261114 (WIT), menerima ${lewatTengahMalamWit}`);
+      }
+
+      /* 13 Nov 14.59 UTC = 13 Nov 23.59 WIT — masih tanggal yang sama. */
+      const sebelumTengahMalamWit = generateBookingCode(new Date('2026-11-13T14:59:00.000Z'));
+      if (!sebelumTengahMalamWit.startsWith('MJ-20261113-')) {
+        throw new Error(`tanggal harus 20261113 (WIT), menerima ${sebelumTengahMalamWit}`);
+      }
+
+      /* Bentuk kode: empat simbol dari 0-9A-Z, tidak pernah huruf kecil atau
+         tanda baca — sebagian kode ini diketik ulang staf dari tangkapan layar. */
+      for (let i = 0; i < 200; i += 1) {
+        const kode = generateBookingCode();
+        if (!POLA.test(kode)) {
+          throw new Error(`bentuk kode tidak sesuai: ${kode}`);
+        }
       }
     },
   },

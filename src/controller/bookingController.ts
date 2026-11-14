@@ -4,6 +4,7 @@ import { bookingModel } from '../model/bookingModel.js';
 import { refundModel } from '../model/refundModel.js';
 import { BookingStatus, BookingStatusActor, OperationalStatus, RefundStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
+import { generateBookingCode } from '../lib/bookingCode.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
 import { MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
 import type { createBookingSchema, customerCancelBookingSchema, updateRefundAccountSchema } from '../validators/bookingSchemas.js';
@@ -20,12 +21,7 @@ import type { createBookingSchema, customerCancelBookingSchema, updateRefundAcco
  * standar `{ error: { code, message, details } }`.
  */
 
-/** Kode booking berformat MJ-YYYYMMDD-XXXX, acak supaya tidak mudah ditebak pelanggan lain. */
-function generateBookingCode(): string {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `MJ-${dateStr}-${randomStr}`;
-}
+/** Kode booking dibentuk di `src/lib/bookingCode.ts` (tanggal Merauke + acak kuat). */
 
 export const bookingController = {
   /**
