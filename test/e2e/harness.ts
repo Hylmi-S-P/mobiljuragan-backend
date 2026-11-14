@@ -240,6 +240,13 @@ async function spawnServer(): Promise<void> {
        * mencapai 429 tanpa mengunggah dua puluh berkas.
        */
       UPLOAD_RATE_MAX: '5',
+      /*
+       * Uji tidak boleh menulis ke bucket atau ke folder penyimpanan yang dipakai
+       * pengembangan. Driver dipaksa lokal dan diarahkan ke folder uji sendiri,
+       * supaya `.env` yang menunjuk MinIO/R2 tidak ikut terpakai saat pengujian.
+       */
+      MEDIA_DRIVER: 'lokal',
+      MEDIA_DIR: path.join(DIREKTORI_INI, '.media'),
     },
     /*
      * stdout/stderr diarahkan ke berkas, bukan pipe. Di lingkungan ini pipe

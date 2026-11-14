@@ -39,3 +39,5 @@ storage/
 # Rekonsiliasi backfill (berisi nominal pelanggan)
 backfill/
 
+
+test/e2e/.media/
