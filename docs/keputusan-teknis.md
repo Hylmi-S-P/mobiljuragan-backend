@@ -86,6 +86,13 @@ ke `/api/v1/ws/tickets`. Klien membuang peristiwa `pesan` dengan `sequence` yang
 sudah lewat supaya sambung ulang tidak menggandakan pesan. Rincian dan syarat
 deploy ada di `docs/adr-websocket-tiket.md`.
 
+**Daftar tiket disegarkan tiap 30 detik, bukan 5 detik, dan berhenti di latar
+belakang.** Respons daftar tiket membawa seluruh pesan tiap tiket, jadi
+menyegarkannya tiap lima detik berarti mengunduh ulang percakapan yang tidak
+berubah. Perubahan status yang penting sudah datang lewat WebSocket saat
+percakapan dibuka, dan pelanggan tetap bisa menarik daftar untuk menyegarkan
+sendiri. Saat aplikasi kembali ke depan, daftar disegarkan sekali.
+
 ## Berkas dan penyimpanan
 
 **Satu jalur normalisasi gambar untuk semua unggahan.** Dokumen sewa dan media
