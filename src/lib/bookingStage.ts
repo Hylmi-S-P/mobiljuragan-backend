@@ -29,7 +29,6 @@ const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   ],
   [BookingStatus.CONFIRMED]: [
     BookingStatus.IN_PROGRESS,
-    BookingStatus.COMPLETED,
     BookingStatus.CANCELLED,
   ],
   [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED],

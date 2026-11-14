@@ -2302,6 +2302,56 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T7.10',
+    nama: 'Sewa tidak bisa diselesaikan tanpa serah terima, dan serah terima mencatat waktunya',
+    async fn({ adminToken }) {
+      const pesanan = await siapkanPesanan(adminToken);
+      harapan(
+        await uploadSemuaDokumen(pesanan.customerToken, pesanan.booking.id),
+        200,
+        'unggah dokumen',
+      );
+      harapan(
+        await verifyDocuments(adminToken, pesanan.booking.id, 'APPROVE'),
+        200,
+        'verifikasi dokumen',
+      );
+      const konfirmasi = await confirmTariff(adminToken, pesanan.booking.id);
+      if (konfirmasi.status !== 'CONFIRMED') {
+        throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasi.status}`);
+      }
+      const tagihan = await createPayment(pesanan.customerToken, pesanan.booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      harapan(
+        await uploadPaymentProof(pesanan.customerToken, tagihan.body.data.id as string),
+        200,
+        'unggah bukti transfer',
+      );
+      harapan(
+        await verifyPayment(adminToken, tagihan.body.data.id as string, 'APPROVE'),
+        200,
+        'verifikasi pembayaran',
+      );
+
+      /* Menyelesaikan pesanan tanpa menyerahkan armada berarti unit tidak pernah
+         tercatat keluar dari kantor; itu dulu diizinkan. */
+      const lompat = await api(`/admin/bookings/${pesanan.booking.id}/status`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'COMPLETED', note: 'Coba selesaikan tanpa serah terima.' },
+      });
+      harapan(lompat, 409, 'selesaikan tanpa serah terima');
+
+      harapan(await handover(adminToken, pesanan.booking.id), 200, 'serah terima armada');
+
+      const detail = await api(`/admin/bookings/${pesanan.booking.id}`, { token: adminToken });
+      harapan(detail, 200, 'baca detail setelah serah terima');
+      if (!detail.body.data.handedOverAt) {
+        throw new Error('waktu serah terima harus tercatat saat sewa mulai');
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {

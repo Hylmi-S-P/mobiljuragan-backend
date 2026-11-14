@@ -351,6 +351,13 @@ model Booking {
   /// katalog; tanpa tenggat, pesanan yang ditinggalkan menahan unit selamanya.
   adminDeadlineAt DateTime?
 
+  /// Waktu unit benar-benar diserahkan ke penyewa (masuk IN_PROGRESS).
+  ///
+  /// Sebelumnya jam sewa hanya diambil dari jadwal yang diisi pelanggan saat
+  /// memesan, sehingga tidak ada catatan kapan kunci berpindah tangan dan tidak
+  /// bisa dibuktikan bila penyewa mengembalikan unit lebih lambat.
+  handedOverAt DateTime?
+
   payment  Payment?
   document BookingDocument?
   lineItems BookingLineItem[]

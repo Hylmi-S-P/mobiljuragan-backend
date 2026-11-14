@@ -517,6 +517,13 @@ export const bookingModel = {
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }
 
+      /* Mencatat kapan unit benar-benar diserahkan. Jadwal yang diisi pelanggan
+         hanya rencana; waktu serah terima adalah kejadian yang perlu dibuktikan
+         bila penyewa mengembalikan unit di luar jadwal. */
+      if (isStartingRental) {
+        updateData.handedOverAt = new Date();
+      }
+
       /* Pesanan yang dibatalkan atau ditolak SETELAH dibayar menimbulkan kewajiban
          mengembalikan uang. Catatan ini dulu tidak pernah dibuat: nominal refund
          hanya dihitung di aplikasi mobile lalu disimpan di cache perangkat, jadi
