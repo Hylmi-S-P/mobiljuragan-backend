@@ -5,7 +5,6 @@ import {
   DocumentDeadlineState,
   DocumentStatus,
   DriverReadiness,
-  DriverRoute,
   OperationalStatus,
   PaymentStatus,
   RefundStatus,
@@ -373,7 +372,6 @@ export const bookingModel = {
   updateStatusWithHistoryAndAudit(input: {
     id: string;
     nextStatus: BookingStatus;
-    routeScope?: DriverRoute;
     note: string | null;
     /** Null untuk perubahan yang dipicu sistem, bukan orang. */
     actorUserId: string | null;
@@ -511,9 +509,6 @@ export const bookingModel = {
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
       if (isConfirming && komponenTarif) {
         updateData.quotedAmount = komponenTarif.subtotal;
-        if (input.routeScope !== undefined) {
-          updateData.routeScope = input.routeScope;
-        }
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }
 

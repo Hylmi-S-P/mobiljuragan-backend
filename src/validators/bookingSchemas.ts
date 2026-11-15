@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BookingStatus, RentalType, DriverRoute } from '../generated/prisma/client.js';
+import { BookingStatus, RentalType } from '../generated/prisma/client.js';
 
 /**
  * Skema validasi modul pemesanan sewa.
@@ -46,17 +46,6 @@ export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus, {
     error: 'Status sewa tidak valid.',
   }),
-  /*
-   * Rute tidak lagi ditanyakan saat menetapkan tarif. Biaya rute, diskon, dan
-   * cashback semuanya dicatat sebagai baris penyesuaian manual (surcharge),
-   * sehingga kolom ini hanya dipertahankan untuk data lama dan pemanggil yang
-   * masih mengirimnya.
-   */
-  routeScope: z
-    .nativeEnum(DriverRoute, {
-      error: 'Rute perjalanan tidak valid (pilih DALAM_KOTA atau LUAR_KOTA).',
-    })
-    .optional(),
   note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
 });
 

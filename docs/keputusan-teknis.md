@@ -13,8 +13,10 @@ hari`, hanya mode dengan supir). Staf tidak bisa menimpa komponen dasar; semua
 diskon, cashback, biaya rute, dan tambahan medan dicatat sebagai
 `BookingLineItem` (TAMBAH/KURANG + justifikasi). Alasannya: angka yang diketik
 bebas tidak bisa diaudit, dan selisih antara layar pelanggan dan tagihan adalah
-sumber sengketa. Konsekuensi: `routeScope` tidak lagi wajib saat konfirmasi
-tarif, dan `routeFee` tidak pernah menjadi kolom.
+sumber sengketa. Konsekuensi: `routeFee` tidak pernah menjadi kolom, dan
+`bookings.routeScope` dihapus seluruhnya karena tidak pernah terisi — rute
+hanya melekat pada supir sebagai spesialisasi (`drivers.routeScope`), bukan
+syarat penugasan.
 
 **Batas bayar 2 jam, ditegakkan server.** `Payment.expiresAt` diisi saat tagihan
 dibuat dan dibaca oleh `expireOverduePayments()` di job siklus hidup. Sebelumnya

@@ -185,7 +185,7 @@ export const adminBookingController = {
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status: nextStatus, routeScope, note } = req.body as z.infer<
+      const { status: nextStatus, note } = req.body as z.infer<
         typeof updateBookingStatusSchema
       >;
       const staffUser = req.user!;
@@ -193,7 +193,6 @@ export const adminBookingController = {
       const result = await bookingModel.updateStatusWithHistoryAndAudit({
         id,
         nextStatus,
-        routeScope,
         note: note ?? null,
         actorUserId: staffUser.userId,
         actor: actorOf(staffUser.role),

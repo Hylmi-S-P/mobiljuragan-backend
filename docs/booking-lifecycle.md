@@ -133,7 +133,7 @@ keadaan setengah jadi.
 | --- | --- |
 | Semua | Satu baris `BookingStatusHistory` (`fromStatus`, `toStatus`, aktor, catatan). |
 | Semua | Satu baris `AuditLog` dengan aksi `UPDATE_BOOKING_STATUS`. |
-| -> `CONFIRMED` | `quotedAmount` disimpan, `tariffStatus = CONFIRMED`, `routeScope` disimpan bila dikirim. |
+| -> `CONFIRMED` | `quotedAmount` disimpan, `tariffStatus = CONFIRMED`. |
 | -> `IN_PROGRESS` | `Vehicle.operationalStatus = BOOKED`. |
 | -> `COMPLETED` | Armada menjadi `IN_SERVICE` dengan `serviceStartedAt = sekarang` dan `serviceExpectedDoneAt = sekarang + 24 jam`. Kalau masih ada pesanan aktif lain yang mulai sebelum masa pemeriksaan berakhir, armada tetap `BOOKED` dan kedua stempel waktu dikosongkan. |
 | -> `COMPLETED` / `CANCELLED` / `REJECTED` | Supir dilepas ke `SIAGA`, tetapi hanya bila tidak ada pesanan aktif lain yang masih memegangnya. |
@@ -194,7 +194,7 @@ beserta commit penutupnya, supaya alasan aturan itu ada tidak hilang.
 | 12 | Tidak ada tenggat dokumen | `ee73746` |
 | 13 | Mengunggah ulang sebagian berkas menghapus berkas lain yang sudah benar | `0d67eae` — kolom yang tidak dikirim memakai berkas lama |
 | 14 | Tarif bisa diketik staf dan tidak berasal dari katalog | `8d9d4ec` — `quotedAmount` dihitung server dari `pricePerDay` + `driverDailyRate` |
-| 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400. **Dicabut lagi** oleh `a0b4cf4`: rute, diskon, dan cashback dicatat sebagai baris penyesuaian manual, jadi `routeScope` kembali opsional |
+| 15 | Rute perjalanan tidak wajib saat tarif dikonfirmasi | `0d67eae` — `CONFIRMED` tanpa `routeScope` ditolak 400. **Dicabut lagi** oleh `a0b4cf4`: rute, diskon, dan cashback dicatat sebagai baris penyesuaian manual. Kolom `bookings.routeScope` kemudian dihapus seluruhnya karena tidak pernah terisi; rute kini hanya melekat pada supir sebagai spesialisasi |
 | 16 | Pesanan yang ditutup saat bukti transfer belum diperiksa tidak menghasilkan catatan refund | `6d82a42` — `danaTerverifikasi: false`, potongan nol, pembayaran `FAILED` |
 | 17 | Penutupan tiket oleh pelanggan selalu gagal 409 | `d2386d1` — pesan penutup dibuat lebih dulu di dalam satu transaksi (`closeWithMessage`) |
 | 18 | Staf bisa menutup tiket secara manual, padahal penutupan hanya milik sistem | `d2386d1` — `RESOLVED`/`CLOSED` dari endpoint admin ditolak 409 `TICKET_CLOSE_BY_SYSTEM` |
