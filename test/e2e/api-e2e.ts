@@ -20,7 +20,6 @@ import {
   harapan,
   loginAdmin,
   loginCustomer,
-  recordCashPayment,
   requestDocumentRevision,
   uploadDocuments,
   uploadPaymentProof,
@@ -2108,7 +2107,7 @@ const kasus: Kasus[] = [
   },
   {
     id: 'T7.7',
-    nama: 'Lubang pembayaran ditutup: tenggat, pesanan batal, refund saat tolak, dan tunai kantor',
+    nama: 'Lubang pembayaran ditutup: tenggat, pesanan batal, refund saat tolak, dan jalur tunai dihapus',
     async fn({ adminToken }) {
       /* Menyiapkan pesanan CONFIRMED yang tagihannya sudah diunggah buktinya. */
       const siapkanTagihan = async () => {
@@ -2200,7 +2199,8 @@ const kasus: Kasus[] = [
         throw new Error('refund dari bukti yang belum diperiksa harus ditandai belum terverifikasi');
       }
 
-      /* 4. Tunai kantor mencatat pembayaran lunas tanpa bukti transfer. */
+      /* 4. Jalur tunai kantor sudah dihapus seluruhnya: rutenya tidak boleh
+         ada lagi, karena pembayaran tunai kini dicatat di luar sistem. */
       const tunai = await siapkanPesanan(adminToken);
       harapan(
         await uploadSemuaDokumen(tunai.customerToken, tunai.booking.id),
@@ -2212,14 +2212,12 @@ const kasus: Kasus[] = [
       if (konfirmasiTunai.status !== 'CONFIRMED') {
         throw new Error(`tarif harus CONFIRMED, menerima ${konfirmasiTunai.status}`);
       }
-      const catatTunai = await recordCashPayment(adminToken, tunai.booking.id, 'Diterima kasir.');
-      harapan(catatTunai, 201, 'catat pembayaran tunai');
-      if (catatTunai.body.data.status !== 'PAID') {
-        throw new Error(`pembayaran tunai harus PAID, menerima ${catatTunai.body.data.status}`);
-      }
-      if (catatTunai.body.data.method !== 'CASH') {
-        throw new Error(`metode harus CASH, menerima ${catatTunai.body.data.method}`);
-      }
+      const catatTunai = await api('/admin/payments/cash', {
+        method: 'POST',
+        token: adminToken,
+        body: { bookingId: tunai.booking.id, notes: 'Diterima kasir.' },
+      });
+      harapan(catatTunai, 404, 'catat pembayaran tunai (rute sudah dihapus)');
     },
   },
   {
@@ -2438,6 +2436,91 @@ const kasus: Kasus[] = [
       const isi = Buffer.from(await berkas.arrayBuffer());
       if (isi.subarray(8, 12).toString('ascii') !== 'WEBP') {
         throw new Error('berkas yang disajikan harus WebP hasil normalisasi');
+      }
+    },
+  },
+  {
+    id: 'T7.15',
+    nama: 'Penyesuaian biaya hanya di tahap tarif, dan total final yang dikunci dipakai saat menagih',
+    async fn({ adminToken }) {
+      const { customerToken, booking } = await siapkanPesanan(adminToken);
+
+      const penyesuaian = (nominal: number, arah: 'TAMBAH' | 'KURANG', deskripsi: string) =>
+        api(`/admin/bookings/${booking.id}/line-items`, {
+          method: 'POST',
+          token: adminToken,
+          body: {
+            kategori: arah === 'KURANG' ? 'Diskon' : 'BBM',
+            deskripsi,
+            nominal,
+            arah,
+            justifikasi: 'Diuji oleh harness E2E.',
+          },
+        });
+
+      /* Tahap 1: pesanan belum diterima, jadi belum ada tarif yang bisa
+         disesuaikan. Sebelum diperbaiki, baris bisa ditambahkan di sini. */
+      pastikanDitolak(
+        await penyesuaian(100000, 'KURANG', 'Potongan pelanggan baru'),
+        409,
+        'LINE_ITEM_WRONG_STAGE',
+        'tambah penyesuaian di tahap 1',
+      );
+
+      harapan(await uploadSemuaDokumen(customerToken, booking.id), 200, 'unggah dokumen');
+      harapan(await verifyDocuments(adminToken, booking.id, 'APPROVE'), 200, 'setujui dokumen');
+      harapan(
+        await api(`/admin/bookings/${booking.id}/status`, {
+          method: 'PATCH',
+          token: adminToken,
+          body: { status: 'PENDING_CONFIRMATION' },
+        }),
+        200,
+        'kirim ke antrean konfirmasi tarif',
+      );
+
+      /* Tahap 2: penyesuaian diterima. */
+      harapan(
+        await penyesuaian(100000, 'KURANG', 'Potongan pelanggan baru'),
+        201,
+        'tambah potongan di tahap tarif',
+      );
+      harapan(await penyesuaian(50000, 'TAMBAH', 'Tambahan BBM'), 201, 'tambah biaya BBM');
+
+      harapan(
+        await api(`/admin/bookings/${booking.id}/status`, {
+          method: 'PATCH',
+          token: adminToken,
+          body: { status: 'CONFIRMED' },
+        }),
+        200,
+        'tetapkan tarif',
+      );
+
+      const detail = await api(`/admin/bookings/${booking.id}`, { token: adminToken });
+      harapan(detail, 200, 'baca detail pesanan');
+      const pesanan = detail.body.data?.booking ?? detail.body.data;
+      const tarif = Number(pesanan.quotedAmount);
+      const final = Number(pesanan.finalAmount);
+      if (final !== tarif - 100000 + 50000) {
+        throw new Error(`total final harus ${tarif - 50000}, menerima ${final}`);
+      }
+
+      /* Setelah tarif ditetapkan, totalnya sudah dikunci. */
+      pastikanDitolak(
+        await penyesuaian(10000, 'KURANG', 'Terlambat'),
+        409,
+        'LINE_ITEM_WRONG_STAGE',
+        'tambah penyesuaian setelah tarif ditetapkan',
+      );
+
+      /* Tagihan memakai angka terkunci, bukan tarif dasar. */
+      const tagihan = await createPayment(customerToken, booking.id);
+      harapan(tagihan, 201, 'buat tagihan');
+      if (Number(tagihan.body.data.totalAmount) !== final) {
+        throw new Error(
+          `tagihan harus memakai total final ${final}, menerima ${tagihan.body.data.totalAmount}`,
+        );
       }
     },
   },

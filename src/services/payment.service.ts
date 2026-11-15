@@ -268,7 +268,10 @@ export const paymentService = {
           );
         }
 
-        const baseAmount = Number(booking.quotedAmount);
+        /* Angka yang ditagihkan adalah total yang dikunci saat admin menetapkan
+           tarif (`finalAmount`), bukan subtotal katalog. Pesanan lama yang
+           dikonfirmasi sebelum kolom ini ada tetap memakai `quotedAmount`. */
+        const baseAmount = Number(booking.finalAmount ?? booking.quotedAmount);
 
         /* Nominal tagihan sama dengan tarif yang disepakati.
            Sebelumnya server menambahkan "kode unik" 1-100 ke total, sementara
@@ -343,162 +346,6 @@ export const paymentService = {
               totalAmount,
               uniqueCode,
               method: params.method,
-            },
-          },
-        });
-
-        return denganBuktiSegar(payment);
-      }),
-    );
-  },
-
-  /**
-   * Mencatat pembayaran tunai yang diterima langsung di kantor.
-   *
-   * Pelanggan tidak lagi bisa memilih tunai dari aplikasi (keputusan B13).
-   * Uang tunai hanya dicatat staf/admin setelah uangnya benar-benar diterima,
-   * jadi pembayaran langsung lahir berstatus PAID.
-   */
-  async recordCashPayment(
-    params: { bookingId: string; notes?: string },
-    actor: PaymentActor,
-  ) {
-    return withPaymentLock(() =>
-      db.$transaction(async (tx) => {
-        const booking = await tx.booking.findFirst({
-          where: {
-            OR: [{ id: params.bookingId }, { bookingCode: params.bookingId }],
-          },
-          include: {
-            payment: true,
-            vehicle: true,
-            customer: {
-              select: { id: true, fullName: true, phoneNumber: true },
-            },
-          },
-        });
-
-        if (!booking) {
-          throw new AppError(
-            'BOOKING_NOT_FOUND',
-            `Pesanan sewa '${params.bookingId}' tidak ditemukan.`,
-            404,
-          );
-        }
-
-        if (isFinalBookingStatus(booking.status)) {
-          throw new AppError(
-            'BOOKING_NOT_PAYABLE',
-            `Pesanan ini sudah berstatus ${booking.status} dan tidak bisa menerima pembayaran.`,
-            409,
-          );
-        }
-
-        if (booking.status !== BookingStatus.CONFIRMED) {
-          throw new AppError(
-            'BOOKING_NOT_QUOTED',
-            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dicatat.',
-            409,
-          );
-        }
-
-        if (!booking.quotedAmount || Number(booking.quotedAmount) <= 0) {
-          throw new AppError(
-            'BOOKING_NOT_QUOTED',
-            'Tarif sewa belum dikonfirmasi oleh tim/admin. Pembayaran belum dapat dicatat.',
-            409,
-          );
-        }
-
-        if (booking.payment?.status === PaymentStatus.PAID) {
-          throw new AppError(
-            'PAYMENT_ALREADY_SETTLED',
-            'Pesanan ini sudah lunas dan tidak perlu dicatat lagi.',
-            409,
-          );
-        }
-
-        /* Bukti transfer yang sudah diunggah harus diverifikasi apa adanya.
-           Mencatat tunai di atasnya akan membuat dua sumber uang untuk satu
-           tagihan. */
-        if (booking.payment?.status === PaymentStatus.PENDING_VERIFICATION) {
-          throw new AppError(
-            'PAYMENT_PROOF_PENDING',
-            'Bukti transfer pelanggan sudah diunggah. Verifikasi bukti itu, bukan mencatat pembayaran tunai.',
-            409,
-          );
-        }
-
-        const totalAmount = Number(booking.quotedAmount);
-        const sekarang = new Date();
-        const acknowledgedBy = `${actor.userId}`;
-        const catatan = params.notes
-          ? `Tunai diterima di kantor. ${params.notes}`
-          : 'Tunai diterima di kantor.';
-
-        const payment = booking.payment
-          ? await tx.payment.update({
-              where: { id: booking.payment.id },
-              data: {
-                method: PaymentMethod.CASH,
-                status: PaymentStatus.PAID,
-                baseAmount: new Prisma.Decimal(totalAmount),
-                totalAmount: new Prisma.Decimal(totalAmount),
-                verifiedAt: sekarang,
-                verifiedBy: actor.userId,
-                acknowledgedAt: sekarang,
-                acknowledgedBy,
-                notes: booking.payment.notes
-                  ? `${booking.payment.notes} | ${catatan}`
-                  : catatan,
-              },
-              include: {
-                booking: {
-                  include: {
-                    vehicle: true,
-                    customer: {
-                      select: { id: true, fullName: true, phoneNumber: true },
-                    },
-                  },
-                },
-              },
-            })
-          : await tx.payment.create({
-              data: {
-                bookingId: booking.id,
-                baseAmount: new Prisma.Decimal(totalAmount),
-                uniqueCode: 0,
-                totalAmount: new Prisma.Decimal(totalAmount),
-                method: PaymentMethod.CASH,
-                status: PaymentStatus.PAID,
-                verifiedAt: sekarang,
-                verifiedBy: actor.userId,
-                acknowledgedAt: sekarang,
-                acknowledgedBy,
-                notes: catatan,
-              },
-              include: {
-                booking: {
-                  include: {
-                    vehicle: true,
-                    customer: {
-                      select: { id: true, fullName: true, phoneNumber: true },
-                    },
-                  },
-                },
-              },
-            });
-
-        await tx.auditLog.create({
-          data: {
-            actorId: actor.userId,
-            action: 'RECORD_CASH_PAYMENT',
-            entityType: 'Payment',
-            entityId: payment.id,
-            metadata: {
-              bookingCode: booking.bookingCode,
-              totalAmount,
-              notes: params.notes ?? null,
             },
           },
         });

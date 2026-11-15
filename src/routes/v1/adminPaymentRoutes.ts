@@ -20,7 +20,3 @@ adminPaymentRouter.patch('/:id/verify', paymentController.adminVerifyPayment);
 
 // 3. Shortcut Penolakan Pembayaran
 adminPaymentRouter.patch('/:id/reject', paymentController.adminRejectPayment);
-
-// 4. Pencatatan pembayaran tunai di kantor. Pelanggan tidak bisa memilih tunai
-//    dari aplikasi, jadi uang tunai hanya masuk lewat jalur ini.
-adminPaymentRouter.post('/cash', paymentController.recordCashPayment);

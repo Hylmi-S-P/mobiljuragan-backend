@@ -20,7 +20,12 @@ import {
   pembatalDari,
   statusMembukaRefund,
 } from '../lib/refund.js';
-import { getDriverDailyRate, hitungKomponenTarif, type KomponenTarif } from '../lib/tariff.js';
+import {
+  getDriverDailyRate,
+  hitungKomponenTarif,
+  hitungTotalFinal,
+  type KomponenTarif,
+} from '../lib/tariff.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
 
 /**
@@ -316,6 +321,13 @@ export const bookingModel = {
         payment: true,
         document: true,
         refund: true,
+        /* Rincian penyesuaian ikut dikirim supaya aplikasi bisa menampilkan
+           dasar angka yang sama dengan dashboard. Tanpa ini pelanggan hanya
+           melihat satu total tanpa tahu diskon atau biaya tambahannya. */
+        lineItems: {
+          where: { dibatalkanPada: null },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
   },
@@ -508,7 +520,23 @@ export const bookingModel = {
 
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
       if (isConfirming && komponenTarif) {
+        /* Total final dikunci di sini, sekali. `quotedAmount` tetap subtotal
+           katalog (harga sewa + jasa supir) supaya rinciannya masih terbaca;
+           `finalAmount` adalah angka yang benar-benar ditagihkan. */
+        const barisPenyesuaian = await tx.bookingLineItem.findMany({
+          where: { bookingId: booking.id, dibatalkanPada: null },
+          select: { nominal: true, arah: true, dibatalkanPada: true },
+        });
+
         updateData.quotedAmount = komponenTarif.subtotal;
+        updateData.finalAmount = hitungTotalFinal(
+          komponenTarif.subtotal,
+          barisPenyesuaian.map((item) => ({
+            nominal: Number(item.nominal),
+            arah: item.arah,
+            dibatalkanPada: item.dibatalkanPada,
+          })),
+        );
         updateData.tariffStatus = TariffStatus.CONFIRMED;
       }
 
@@ -883,10 +911,18 @@ export const bookingModel = {
     return db.$transaction(async (tx) => {
       const booking = await tx.booking.findFirst({
         where: { OR: [{ id: input.bookingId }, { bookingCode: input.bookingId }] },
-        select: { id: true, bookingCode: true },
+        select: { id: true, bookingCode: true, status: true },
       });
 
-      if (!booking) return null;
+      if (!booking) return { kind: 'not_found' as const };
+
+      /* Penyesuaian biaya hanya boleh di tahap penetapan tarif. Begitu admin
+         menekan "Tetapkan Tarif & Lanjutkan", totalnya sudah dikunci dan
+         ditagihkan; menambah baris sesudah itu akan membuat tagihan dan angka
+         di layar pelanggan berbeda. */
+      if (booking.status !== BookingStatus.PENDING_CONFIRMATION) {
+        return { kind: 'wrong_stage' as const, status: booking.status };
+      }
 
       const item = await tx.bookingLineItem.create({
         data: {
@@ -917,7 +953,7 @@ export const bookingModel = {
         },
       });
 
-      return { item, bookingId: booking.id };
+      return { kind: 'ok' as const, item, bookingId: booking.id };
     });
   },
 
@@ -933,11 +969,20 @@ export const bookingModel = {
     return db.$transaction(async (tx) => {
       const item = await tx.bookingLineItem.findUnique({
         where: { id: input.lineItemId },
-        include: { booking: { select: { id: true, bookingCode: true } } },
+        include: {
+          booking: { select: { id: true, bookingCode: true, status: true } },
+        },
       });
 
       if (!item) return { kind: 'not_found' as const };
       if (item.dibatalkanPada) return { kind: 'already_cancelled' as const };
+
+      /* Sama seperti penambahan: setelah tarif ditetapkan, totalnya sudah
+         dikunci. Membatalkan baris sesudah itu akan mengubah rincian tanpa
+         mengubah angka yang ditagihkan. */
+      if (item.booking.status !== BookingStatus.PENDING_CONFIRMATION) {
+        return { kind: 'wrong_stage' as const, status: item.booking.status };
+      }
 
       const updated = await tx.bookingLineItem.update({
         where: { id: item.id },

@@ -383,7 +383,7 @@ export async function requestDocumentRevision(
 export async function confirmTariff(
   adminToken: string,
   bookingId: string,
-  payload: { routeScope?: string; note?: string } = {},
+  payload: { note?: string } = {},
 ): Promise<any> {
   const pending = await api(`/admin/bookings/${bookingId}/status`, {
     method: 'PATCH',
@@ -397,7 +397,6 @@ export async function confirmTariff(
     token: adminToken,
     body: {
       status: 'CONFIRMED',
-      routeScope: payload.routeScope ?? 'DALAM_KOTA',
       ...(payload.note ? { note: payload.note } : {}),
     },
   });
@@ -456,19 +455,6 @@ export async function verifyPayment(
     method: 'PATCH',
     token: adminToken,
     body: { action, ...opsi },
-  });
-}
-
-/** Mencatat pembayaran tunai yang diterima di kantor. */
-export async function recordCashPayment(
-  adminToken: string,
-  bookingId: string,
-  notes?: string,
-): Promise<ResponsApi> {
-  return api('/admin/payments/cash', {
-    method: 'POST',
-    token: adminToken,
-    body: { bookingId, ...(notes ? { notes } : {}) },
   });
 }
 

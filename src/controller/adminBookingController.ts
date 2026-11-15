@@ -367,11 +367,20 @@ export const adminBookingController = {
         actorUserId: staffUser.userId,
       });
 
-      if (!hasil) {
+      if (hasil.kind === 'not_found') {
         throw new AppError(
           'BOOKING_NOT_FOUND',
           `Pesanan dengan pengenal '${id}' tidak ditemukan.`,
           404,
+        );
+      }
+
+      if (hasil.kind === 'wrong_stage') {
+        throw new AppError(
+          'LINE_ITEM_WRONG_STAGE',
+          'Penyesuaian biaya hanya bisa ditambahkan saat pesanan berada di tahap penetapan tarif.',
+          409,
+          { status: hasil.status },
         );
       }
 
@@ -423,6 +432,15 @@ export const adminBookingController = {
           'LINE_ITEM_ALREADY_CANCELLED',
           'Penyesuaian biaya ini sudah dibatalkan sebelumnya.',
           409,
+        );
+      }
+
+      if (hasil.kind === 'wrong_stage') {
+        throw new AppError(
+          'LINE_ITEM_WRONG_STAGE',
+          'Penyesuaian biaya hanya bisa diubah saat pesanan berada di tahap penetapan tarif.',
+          409,
+          { status: hasil.status },
         );
       }
 

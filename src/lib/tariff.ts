@@ -92,3 +92,30 @@ export function hitungKomponenTarif(input: {
     subtotal: hargaSewa + jasaSupir,
   };
 }
+
+/**
+ * Total akhir pesanan: subtotal tarif ditambah seluruh baris penyesuaian yang
+ * masih berlaku.
+ *
+ * `nominal` pada baris penyesuaian selalu positif; arahnya ada di `arah`.
+ * Baris yang sudah dibatalkan (`dibatalkanPada` terisi) tidak ikut dihitung,
+ * karena pembatalan penyesuaian berarti biayanya tidak pernah ditagihkan.
+ *
+ * Angka ini dikunci sekali saat admin menekan "Tetapkan Tarif & Lanjutkan",
+ * lalu dipakai tagihan pembayaran dan tampilan pelanggan. Tanpa penguncian,
+ * baris penyesuaian yang ditambah setelah pelanggan membayar akan membuat
+ * tagihan dan angka di layar berbeda.
+ */
+export function hitungTotalFinal(
+  subtotal: number,
+  baris: Array<{ nominal: number; arah: 'TAMBAH' | 'KURANG'; dibatalkanPada: Date | null }>,
+): number {
+  const penyesuaian = baris
+    .filter((item) => item.dibatalkanPada === null)
+    .reduce(
+      (jumlah, item) => jumlah + (item.arah === 'KURANG' ? -item.nominal : item.nominal),
+      0,
+    );
+
+  return subtotal + penyesuaian;
+}

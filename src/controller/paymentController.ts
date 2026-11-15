@@ -6,7 +6,6 @@ import {
   adminVerifyPaymentSchema,
   createPaymentSchema,
   listPaymentQuerySchema,
-  recordCashPaymentSchema,
   uploadPaymentProofSchema,
 } from '../validators/paymentSchemas.js';
 
@@ -176,20 +175,4 @@ export const paymentController = {
     }
   },
 
-  /**
-   * POST /api/v1/admin/payments/cash
-   * Mencatat pembayaran tunai yang diterima di kantor.
-   */
-  async recordCashPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const body = recordCashPaymentSchema.parse(req.body);
-      const payment = await paymentService.recordCashPayment(
-        { bookingId: body.bookingId, notes: body.notes },
-        actorOf(req),
-      );
-      sendSuccess(res, payment, 201);
-    } catch (error) {
-      next(error);
-    }
-  },
 };

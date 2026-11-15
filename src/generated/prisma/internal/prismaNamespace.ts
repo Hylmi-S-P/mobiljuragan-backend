@@ -2021,6 +2021,7 @@ export const BookingScalarFieldEnum = {
   numberGuests: 'numberGuests',
   tariffStatus: 'tariffStatus',
   quotedAmount: 'quotedAmount',
+  finalAmount: 'finalAmount',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
