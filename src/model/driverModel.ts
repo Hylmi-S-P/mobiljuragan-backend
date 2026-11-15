@@ -256,4 +256,28 @@ export const driverModel = {
       },
     });
   },
+
+  /**
+   * Melepas supir yang tertahan SEDANG_TUGAS tanpa pesanan aktif.
+   *
+   * Seperti armada BOOKED, status ini dinaikkan dan diturunkan di beberapa jalur
+   * terpisah. Jalur yang terlewat membuat supir tidak pernah kembali ke daftar
+   * siaga — dan sekali SEDANG_TUGAS, admin pun tidak bisa mengubahnya sendiri
+   * karena controller menolak dengan DRIVER_ON_DUTY. Sapuan ini membandingkan
+   * status dengan penugasan yang benar-benar ada.
+   *
+   * Supir yang ditandai LIBUR tidak disentuh: itu pilihan admin, bukan sisa proses.
+   */
+  async releaseOrphanedBusyDrivers(): Promise<number> {
+    const hasil = await db.driver.updateMany({
+      where: {
+        readiness: DriverReadiness.SEDANG_TUGAS,
+        isActive: true,
+        bookings: { none: { status: { in: ACTIVE_BOOKING_STATUSES } } },
+      },
+      data: { readiness: DriverReadiness.SIAGA },
+    });
+
+    return hasil.count;
+  },
 };

@@ -1,4 +1,5 @@
 import { bookingModel } from '../model/bookingModel.js';
+import { driverModel } from '../model/driverModel.js';
 
 /**
  * Penjadwal siklus hidup pesanan.
@@ -10,6 +11,9 @@ import { bookingModel } from '../model/bookingModel.js';
  *   pemeriksaan dan laporan tidak menahan pesanan di kolom "sewa berjalan".
  * - Tagihan yang lewat batas waktu bayar harus dibatalkan, supaya pesanan tidak
  *   menggantung di status CONFIRMED tanpa pembayaran.
+ * - Armada yang tertinggal di status BOOKED tanpa pesanan aktif harus dilepas,
+ *   supaya unit tidak menghilang dari katalog karena status yang tidak pernah
+ *   diturunkan.
  *
  * Interval 5 menit dipilih karena semua tenggatnya dihitung dalam jam: selisih
  * paling jauh 5 menit tidak berarti bagi pelanggan, tetapi cukup rapat untuk
@@ -63,6 +67,32 @@ export function startBookingLifecycleJob(intervalMs = 5 * 60 * 1000) {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[BookingLifecycleJob] Gagal menyelesaikan sewa yang lewat:', error);
+    }
+
+    try {
+      const dilepas = await bookingModel.releaseOrphanedBookedVehicles();
+      if (dilepas > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[BookingLifecycleJob] Armada tertahan BOOKED tanpa pesanan dilepas: ${dilepas} unit.`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[BookingLifecycleJob] Gagal melepas armada BOOKED yatim:', error);
+    }
+
+    try {
+      const supirDilepas = await driverModel.releaseOrphanedBusyDrivers();
+      if (supirDilepas > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[BookingLifecycleJob] Supir tertahan SEDANG_TUGAS tanpa pesanan dilepas: ${supirDilepas} orang.`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[BookingLifecycleJob] Gagal melepas supir SEDANG_TUGAS yatim:', error);
     }
   };
 

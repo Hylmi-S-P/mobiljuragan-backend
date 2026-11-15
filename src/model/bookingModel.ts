@@ -1313,4 +1313,32 @@ export const bookingModel = {
 
     return dibatalkan;
   },
+
+  /**
+   * Melepas armada yang tertahan di status BOOKED tanpa pesanan aktif.
+   *
+   * Status BOOKED hanya dinaikkan sistem saat pesanan masuk IN_PROGRESS dan
+   * diturunkan di beberapa jalur terpisah: COMPLETED, CANCELLED/REJECTED lewat
+   * perubahan status, kedaluwarsa pembayaran, dan penolakan bukti bayar. Jalur
+   * yang terlewat meninggalkan unit BOOKED selamanya — katalog menampilkannya
+   * "Disewa" padahal tidak ada pesanan yang memakainya, dan karena
+   * `POST /bookings` menolak armada yang status operasionalnya bukan AVAILABLE,
+   * unit itu tidak bisa dipesan lagi.
+   *
+   * Sapuan ini membandingkan kenyataan (tidak ada pesanan yang mengunci) dengan
+   * kolomnya, jadi ia juga membereskan sisa data yang dihapus di luar alur biasa.
+   * Armada MAINTENANCE, IN_SERVICE, dan UNAVAILABLE tidak disentuh: status itu
+   * memang dipilih admin.
+   */
+  async releaseOrphanedBookedVehicles(): Promise<number> {
+    const hasil = await db.vehicle.updateMany({
+      where: {
+        operationalStatus: OperationalStatus.BOOKED,
+        bookings: { none: { status: { in: BOOKING_BLOCKING_STATUSES } } },
+      },
+      data: { operationalStatus: OperationalStatus.AVAILABLE },
+    });
+
+    return hasil.count;
+  },
 };

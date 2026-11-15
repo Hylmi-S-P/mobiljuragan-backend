@@ -2524,6 +2524,80 @@ const kasus: Kasus[] = [
       }
     },
   },
+  {
+    id: 'T7.16',
+    nama: 'Armada dan supir yang tertahan tanpa pesanan aktif dilepas otomatis oleh sapuan siklus hidup',
+    async fn({ adminToken }) {
+      /* Kasus lapangan: pesanan dihapus di luar alur biasa (mis. pembersihan
+         data), sehingga status operasional armada tidak pernah diturunkan.
+         Akibatnya katalog menampilkan "Disewa" untuk unit tanpa pesanan, dan
+         karena `POST /bookings` menolak armada yang bukan AVAILABLE, unit itu
+         tidak bisa dipesan lagi. Sapuan siklus hidup harus memulihkannya. */
+      const armada = await createVehicle(adminToken);
+      const supir = await createDriver(adminToken);
+
+      await sqlUji('UPDATE vehicles SET operationalStatus = ? WHERE id = ?', [
+        'BOOKED',
+        armada.id,
+      ]);
+      await sqlUji('UPDATE drivers SET readiness = ? WHERE id = ?', [
+        'SEDANG_TUGAS',
+        supir.id,
+      ]);
+
+      const batas = Date.now() + 20_000;
+      let statusArmada = '';
+      let statusSupir = '';
+
+      while (Date.now() < batas) {
+        const katalog = await api('/vehicles?operationalStatus=ALL');
+        statusArmada =
+          (katalog.body?.data ?? []).find((v: any) => v.id === armada.id)?.operationalStatus ??
+          '';
+
+        const roster = await api('/admin/drivers?includeInactive=true', { token: adminToken });
+        statusSupir =
+          (roster.body?.data ?? []).find((d: any) => d.id === supir.id)?.readiness ?? '';
+
+        if (statusArmada === 'AVAILABLE' && statusSupir === 'SIAGA') break;
+        await new Promise((selesai) => setTimeout(selesai, 500));
+      }
+
+      if (statusArmada !== 'AVAILABLE') {
+        throw new Error(
+          `armada tanpa pesanan harus kembali AVAILABLE, menerima ${statusArmada || 'tanpa status'}`,
+        );
+      }
+
+      if (statusSupir !== 'SIAGA') {
+        throw new Error(
+          `supir tanpa pesanan harus kembali SIAGA, menerima ${statusSupir || 'tanpa status'}`,
+        );
+      }
+
+      /* Armada yang memang terikat pesanan aktif tidak boleh ikut dilepas. */
+      const terpakai = await createVehicle(adminToken);
+      const pelanggan = await loginCustomer();
+      const pesananAktif = await createBooking(pelanggan.token, terpakai.id);
+      await sqlUji('UPDATE vehicles SET operationalStatus = ? WHERE id = ?', [
+        'BOOKED',
+        terpakai.id,
+      ]);
+
+      await new Promise((selesai) => setTimeout(selesai, 3_000));
+
+      const katalogAkhir = await api('/vehicles?operationalStatus=ALL');
+      const statusTerpakai =
+        (katalogAkhir.body?.data ?? []).find((v: any) => v.id === terpakai.id)
+          ?.operationalStatus ?? '';
+
+      if (statusTerpakai !== 'BOOKED') {
+        throw new Error(
+          `armada dengan pesanan aktif ${pesananAktif.bookingCode} harus tetap BOOKED, menerima ${statusTerpakai || 'tanpa status'}`,
+        );
+      }
+    },
+  },
 ];
 
 function ambilFilterOnly(): Set<string> | null {
