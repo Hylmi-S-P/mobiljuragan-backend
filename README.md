@@ -190,6 +190,21 @@ mc ls --recursive lokal/mobiljuragan | wc -l   # bandingkan dengan jumlah berkas
 Setelah jumlahnya sama, baru ganti `MEDIA_DRIVER=s3` dan jalankan ulang server —
 variabel `.env` hanya dibaca saat proses mulai, bukan saat berkas berubah.
 
+#### Membereskan rujukan berkas yang objeknya hilang
+
+Kalau database dipulihkan dari mesin lain atau bucket terhapus, baris database bisa
+masih menunjuk berkas yang sudah tidak ada — dashboard lalu menawarkan tombol yang
+selalu gagal, dan status dokumen `VERIFIED` menjadi klaim tanpa bukti. Perapiannya:
+
+```bash
+npm run db:rapikan-berkas              # melapor saja
+npm run db:rapikan-berkas -- --terapkan  # menulis perubahan
+```
+
+Skrip hanya mengosongkan rujukan dan menurunkan status dokumen ke
+`PENDING_UPLOAD`; baris pesanan, pembayaran, dan nominal uang tidak disentuh.
+Setiap perubahan dicatat di `audit_logs` sebagai `BERSIHKAN_RUJUKAN_BERKAS_HILANG`.
+
 > **Ganti kredensial bawaan.** MinIO yang baru dipasang memakai
 > `minioadmin:minioadmin` dan menulis peringatan di log. Untuk pemakaian di luar
 > laptop pengembang, set `MINIO_ROOT_USER` dan `MINIO_ROOT_PASSWORD` sebelum
