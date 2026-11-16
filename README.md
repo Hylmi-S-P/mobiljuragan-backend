@@ -289,6 +289,17 @@ Seed bersifat idempoten — dijalankan berulang kali tidak menggandakan baris, h
 
 Data transaksi (pemesanan, pembayaran, tiket) sengaja tidak diisi oleh seed. Untuk pengujian, pakai harness E2E di `test/e2e/` yang menyiapkan dan membersihkan datanya sendiri.
 
+### Langkah 6b (Opsional): Mengosongkan Data Pengujian
+Kalau ingin memulai pengujian manual dari nol, ada satu perintah yang menghapus data transaksi tanpa menyentuh data induk (armada, supir, FAQ, tarif) maupun akun admin/staf:
+```bash
+npm run db:reset                # transaksi saja: pesanan, tiket, dokumen, pembayaran
+npm run db:reset:pelanggan      # ditambah akun pelanggan, OTP, dan pembatas nomor
+npm run db:reset -- --dengan-pelanggan --dengan-audit  # ditambah seluruh catatan audit
+```
+Yang dihapus: pesan tiket, tiket, pengembalian dana, pembayaran, dokumen persyaratan, baris penyesuaian biaya, riwayat status, pesanan, dan objek media beserta berkasnya di bucket/disk. Status semua armada dikembalikan ke `AVAILABLE` dan seluruh supir ke `SIAGA`, sehingga armada serta supir tidak tertahan akibat pesanan yang dihapus langsung dari database.
+
+Tanpa `--dengan-pelanggan`, akun pelanggan dan jejak autentikasinya (OTP, pembatas nomor, jejak identitas) tetap utuh. Tanpa `--dengan-audit`, catatan audit tetap disimpan — berguna kalau masih ingin menelusuri kejadian lama meski pesanannya sudah dihapus.
+
 ### Langkah 7: Jalankan Pengujian Otomatis
 Verifikasi seluruh fungsionalitas backend mulai dari autentikasi, transaksi booking, antrean operasional admin, sampai modul supir:
 ```bash
