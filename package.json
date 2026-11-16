@@ -23,6 +23,7 @@
     "uji:wa": "tsx scripts/uji-otp-wa.ts",
     "db:reset-test-data": "tsx scripts/reset-test-data.ts",
     "db:lepas-kode-unik": "tsx scripts/lepas-kode-unik-pembayaran.ts",
+    "db:rapikan-berkas": "tsx scripts/rapikan-rujukan-berkas-hilang.ts",
     "prisma:deploy": "prisma migrate deploy",
     "audit:identitas": "tsx scripts/audit-identitas.ts",
     "audit:pemulihan": "tsx scripts/audit-pemulihan-identitas.ts",
