@@ -1,4 +1,3 @@
-import { WebSocket } from 'ws';
 import { BASE_ORIGIN, sqlUji, startHarness, stopServer } from './harness.js';
 import { generateBookingCode } from '../../src/lib/bookingCode.js';
 import {
@@ -135,49 +134,57 @@ async function siapkanPesananTerbayar(adminToken: string): Promise<{
 }
 
 /**
- * Klien WebSocket kecil untuk menguji saluran peristiwa tiket.
+ * Klien SSE kecil untuk menguji saluran peristiwa tiket (`/api/v1/tickets/:id/events`).
  *
  * Peristiwa yang datang disimpan di antrean, lalu `tunggu` mengambil yang cocok.
- * Cara ini menghindari balapan: peristiwa bisa tiba sebelum asersi dijalankan.
  */
-class SoketTiket {
-  private readonly socket: WebSocket;
+class AliranTiket {
+  private readonly controller = new AbortController();
   private readonly diterima: any[] = [];
-  private kodeTutup: number | null = null;
+  public statusRespons: number | null = null;
 
-  constructor(token: string | null) {
-    const alamat = `${BASE_ORIGIN.replace('http://', 'ws://')}/api/v1/ws/tickets`;
-    const url = token ? `${alamat}?token=${encodeURIComponent(token)}` : alamat;
-    this.socket = new WebSocket(url);
-    this.socket.on('message', (mentah) => {
+  async buka(ticketId: string, token: string | null): Promise<void> {
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const respons = await fetch(`${BASE_ORIGIN}/api/v1/tickets/${ticketId}/events`, {
+      headers,
+      signal: this.controller.signal,
+    });
+    this.statusRespons = respons.status;
+
+    if (respons.status !== 200 || !respons.body) {
+      return;
+    }
+
+    const reader = respons.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    void (async () => {
       try {
-        this.diterima.push(JSON.parse(mentah.toString()));
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blok = buffer.split('\n\n');
+          buffer = blok.pop() ?? '';
+          for (const bagian of blok) {
+            for (const baris of bagian.split('\n')) {
+              if (baris.startsWith('data: ')) {
+                try {
+                  this.diterima.push(JSON.parse(baris.slice(6)));
+                } catch {
+                  // Abaikan baris non-JSON
+                }
+              }
+            }
+          }
+        }
       } catch {
-        /* Isi yang bukan JSON diabaikan; server tidak pernah mengirimnya. */
+        // Aliran ditutup lewat abort()
       }
-    });
-    this.socket.on('close', (kode) => {
-      this.kodeTutup = kode;
-    });
-  }
-
-  async buka(): Promise<void> {
-    if (this.socket.readyState === WebSocket.OPEN) return;
-    await new Promise<void>((resolve, reject) => {
-      const batas = setTimeout(() => reject(new Error('soket tidak terbuka dalam 5 detik')), 5000);
-      this.socket.once('open', () => {
-        clearTimeout(batas);
-        resolve();
-      });
-      this.socket.once('error', (galat) => {
-        clearTimeout(batas);
-        reject(galat);
-      });
-    });
-  }
-
-  kirim(isi: unknown): void {
-    this.socket.send(JSON.stringify(isi));
+    })();
   }
 
   async tunggu(predikat: (pesan: any) => boolean, batasMs = 5000): Promise<any> {
@@ -188,22 +195,13 @@ class SoketTiket {
       await new Promise((selesai) => setTimeout(selesai, 50));
     }
     throw new Error(
-      `tidak ada peristiwa yang cocok dalam ${batasMs} ms; diterima: ` +
+      `tidak ada peristiwa SSE yang cocok dalam ${batasMs} ms; diterima: ` +
         JSON.stringify(this.diterima),
     );
   }
 
-  async tungguTutup(batasMs = 5000): Promise<number> {
-    const mulai = Date.now();
-    while (Date.now() - mulai < batasMs) {
-      if (this.kodeTutup !== null) return this.kodeTutup;
-      await new Promise((selesai) => setTimeout(selesai, 50));
-    }
-    throw new Error('soket tidak ditutup server dalam batas waktu');
-  }
-
   tutup(): void {
-    this.socket.close();
+    this.controller.abort();
   }
 }
 
@@ -2018,25 +2016,22 @@ const kasus: Kasus[] = [
   },
   {
     id: 'T8.1',
-    nama: 'Saluran WebSocket mendorong pesan baru dan menolak tiket milik orang lain',
+    nama: 'Saluran SSE mendorong pesan baru dan menolak tiket milik orang lain',
     async fn({ adminToken }) {
       const pelanggan = await loginCustomer();
       const tiket = await createTicket(pelanggan.token);
 
-      const soket = new SoketTiket(pelanggan.token);
-      await soket.buka();
-
-      const sambung = await soket.tunggu((pesan) => pesan.jenis === 'siap');
-      if (sambung.userId === undefined) {
-        throw new Error('peristiwa siap tidak menyebut akun yang tersambung');
+      const aliran = new AliranTiket();
+      await aliran.buka(tiket.id, pelanggan.token);
+      if (aliran.statusRespons !== 200) {
+        throw new Error(`aliran SSE harus 200, menerima ${aliran.statusRespons}`);
       }
 
-      soket.kirim({ aksi: 'langganan', ticketId: tiket.id });
-      const langganan = await soket.tunggu(
+      const siap = await aliran.tunggu(
         (pesan) => pesan.jenis === 'siap' && pesan.ticketId === tiket.id,
       );
-      if (langganan.ticketId !== tiket.id) {
-        throw new Error('server tidak mengonfirmasi langganan tiket');
+      if (siap.ticketId !== tiket.id) {
+        throw new Error('server tidak mengonfirmasi aliran SSE tiket');
       }
 
       /* Balasan admin harus sampai tanpa klien menanyakan ulang. */
@@ -2050,7 +2045,7 @@ const kasus: Kasus[] = [
       });
       harapan(balasan, 201, 'balas tiket sebagai admin');
 
-      const peristiwaPesan = await soket.tunggu((pesan) => pesan.jenis === 'pesan');
+      const peristiwaPesan = await aliran.tunggu((pesan) => pesan.jenis === 'pesan');
       if (peristiwaPesan.ticketId !== tiket.id) {
         throw new Error('peristiwa pesan datang untuk tiket yang salah');
       }
@@ -2058,25 +2053,22 @@ const kasus: Kasus[] = [
         throw new Error('peristiwa pesan tidak membawa nomor urut untuk deduplikasi');
       }
 
-      /* Tiket milik pelanggan lain tidak boleh diikuti. */
+      aliran.tutup();
+
+      /* Tiket milik pelanggan lain tidak boleh diikuti (403 FORBIDDEN). */
       const pelangganLain = await loginCustomer();
       const tiketLain = await createTicket(pelangganLain.token);
-      soket.kirim({ aksi: 'langganan', ticketId: tiketLain.id });
-      const ditolak = await soket.tunggu(
-        (pesan) => pesan.jenis === 'galat' && pesan.ticketId === tiketLain.id,
-      );
-      if (ditolak.kode !== 'TICKET_NOT_FOUND') {
-        throw new Error(`kode penolakan harus TICKET_NOT_FOUND, menerima ${ditolak.kode}`);
+      const aliranLain = new AliranTiket();
+      await aliranLain.buka(tiketLain.id, pelanggan.token);
+      if (aliranLain.statusRespons !== 403) {
+        throw new Error(`tiket orang lain harus ditolak 403, menerima ${aliranLain.statusRespons}`);
       }
 
-      soket.tutup();
-
-      /* Tanpa token, soket ditutup dengan kode 4401. */
-      const tanpaToken = new SoketTiket(null);
-      await tanpaToken.buka();
-      const kode = await tanpaToken.tungguTutup();
-      if (kode !== 4401) {
-        throw new Error(`soket tanpa token harus ditutup 4401, menerima ${kode}`);
+      /* Tanpa token, ditolak 401. */
+      const tanpaToken = new AliranTiket();
+      await tanpaToken.buka(tiket.id, null);
+      if (tanpaToken.statusRespons !== 401) {
+        throw new Error(`aliran SSE tanpa token harus ditolak 401, menerima ${tanpaToken.statusRespons}`);
       }
     },
   },

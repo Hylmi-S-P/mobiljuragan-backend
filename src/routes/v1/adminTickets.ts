@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ticketController } from '../../controller/ticketController.js';
+import { streamTicketEvents } from '../../controller/ticketEventController.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
@@ -14,6 +15,7 @@ adminTicketRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
 adminTicketRouter.get('/', ticketController.list);
 adminTicketRouter.post('/', ticketController.create);
 adminTicketRouter.get('/:id', ticketController.detail);
+adminTicketRouter.get('/:id/events', streamTicketEvents);
 adminTicketRouter.patch('/:id/status', ticketController.updateStatus);
 adminTicketRouter.post('/:id/messages', ticketController.addMessage);
 adminTicketRouter.post('/:id/handover', ticketController.handover);

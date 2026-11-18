@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ticketController } from '../../controller/ticketController.js';
+import { streamTicketEvents } from '../../controller/ticketEventController.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { ticketMessageRateLimiter } from '../../middleware/rateLimiter.js';
 
@@ -32,5 +33,5 @@ ticketRouter.post('/:id/handover', ticketController.handover);
 ticketRouter.patch('/:id/close', ticketController.closeCustomerTicket);
 ticketRouter.post('/:id/close', ticketController.closeCustomerTicket);
 
-/* Peristiwa tiket tidak lagi lewat HTTP. Klien berlangganan ke
-   `/api/v1/ws/tickets` (WebSocket) yang dipasang di `src/ws/ticketSocket.ts`. */
+/* Saluran peristiwa tiket (Server-Sent Events berbasis EventEmitter). */
+ticketRouter.get('/:id/events', streamTicketEvents);
