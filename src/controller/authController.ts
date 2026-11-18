@@ -160,9 +160,8 @@ export const authController = {
    * Meminta kode OTP.
    *
    * Tidak membuat atau mengubah baris `users`. Untuk `intent=register`, nomor
-   * yang sudah terdaftar ditolak; untuk `intent=login`, nomor yang belum
-   * terdaftar dijawab dengan bentuk sukses yang sama agar daftar pelanggan tidak
-   * bisa dipetakan dari luar.
+   * yang sudah terdaftar ditolak (409); untuk `intent=login`, nomor yang belum
+   * terdaftar ditolak (404), dan akun nonaktif/terkunci ditolak sebelum OTP dibuat.
    */
   async requestOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -186,20 +185,31 @@ export const authController = {
         );
       }
 
-      /* Nomor tak dikenal pada alur masuk: jawab seperti biasa, tanpa membuat
-         kode. Pemanggil tidak bisa membedakan nomor terdaftar dari yang tidak. */
       if (!inginDaftar && !user) {
-        logger.info({ phoneNumber }, '[OTP REQUEST] Nomor belum terdaftar, permintaan diabaikan.');
-        sendSuccess(
-          res,
-          {
-            phoneNumber,
-            expiresInSeconds: OTP_TTL_MINUTES * 60,
-            resendCooldownSeconds: 60,
-          },
-          200,
+        throw new AppError(
+          'PHONE_NOT_REGISTERED',
+          'Nomor WhatsApp ini belum terdaftar. Silakan daftar akun baru terlebih dahulu.',
+          404,
         );
-        return;
+      }
+
+      if (!inginDaftar && user) {
+        if (!user.isActive) {
+          throw new AppError(
+            'ACCOUNT_INACTIVE',
+            'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+            403,
+          );
+        }
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+          const sisaMenit = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60_000);
+          throw new AppError(
+            'ACCOUNT_LOCKED',
+            `Akun ini terkunci sementara. Coba lagi dalam ${sisaMenit} menit.`,
+            429,
+            { retryAfterMinutes: sisaMenit },
+          );
+        }
       }
 
       const izin = await authModel.catatPengiriman(phoneNumber, new Date());
@@ -220,7 +230,7 @@ export const authController = {
       const kode = generateOtp();
       const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
 
-      await authModel.simpanKodeBaru({
+      const kodeBaru = await authModel.simpanKodeBaru({
         userId: user?.id ?? null,
         phoneNumber,
         otpHash: hashOtp(kode),
@@ -230,15 +240,20 @@ export const authController = {
 
       logger.info({ phoneNumber, purpose }, '[OTP REQUEST] Kode verifikasi dibuat.');
 
-      whatsappOtpService
-        .sendOtp({
-          phoneNumber,
-          otpCode: kode,
-          fullName: user?.fullName ?? 'Pelanggan MobilJuragan',
-        })
-        .catch((err) => {
-          logger.error({ err, phoneNumber }, '[OTP REQUEST] Gagal mengirim WhatsApp OTP');
-        });
+      const terkirim = await whatsappOtpService.sendOtp({
+        phoneNumber,
+        otpCode: kode,
+        fullName: user?.fullName ?? 'Pelanggan MobilJuragan',
+      });
+
+      if (!terkirim) {
+        await authModel.batalkanPengirimanGagal(phoneNumber, kodeBaru.id);
+        throw new AppError(
+          'OTP_DELIVERY_FAILED',
+          'Gagal mengirim kode OTP ke WhatsApp. Silakan coba beberapa saat lagi.',
+          503,
+        );
+      }
 
       sendSuccess(
         res,

@@ -18,7 +18,9 @@
  */
 export function normalizePhoneNumber(raw: string): string {
   let cleaned = raw.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
+  if (cleaned.startsWith('620')) {
+    cleaned = '0' + cleaned.slice(3);
+  } else if (cleaned.startsWith('62')) {
     cleaned = '0' + cleaned.slice(2);
   } else if (!cleaned.startsWith('0')) {
     cleaned = '0' + cleaned;
@@ -33,7 +35,9 @@ export function normalizePhoneNumber(raw: string): string {
  */
 export function toInternationalPhone(phone: string): string {
   let cleaned = phone.trim().replace(/\D/g, '');
-  if (cleaned.startsWith('0')) {
+  if (cleaned.startsWith('620')) {
+    cleaned = '62' + cleaned.slice(3);
+  } else if (cleaned.startsWith('0')) {
     cleaned = '62' + cleaned.slice(1);
   } else if (!cleaned.startsWith('62')) {
     cleaned = '62' + cleaned;

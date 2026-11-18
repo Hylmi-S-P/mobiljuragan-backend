@@ -231,13 +231,52 @@ export const passwordController = {
   /**
    * POST /api/v1/auth/password/reset/request
    *
-   * Selalu menjawab sukses, kecuali nomor acap kali meminta kode. Jawaban yang
-   * berbeda-beda akan membocorkan nomor mana yang punya akun.
+   * Memvalidasi keberadaan pelanggan, status aktif, dan status penguncian
+   * sebelum mengirim kode pemulihan via WhatsApp.
    */
   async mintaReset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { phoneNumber: rawPhone } = req.body as { phoneNumber: string };
       const phoneNumber = normalizePhoneNumber(rawPhone);
+
+      const guard = await authModel.ambilGuard(phoneNumber);
+      if (guard?.blockedUntil && guard.blockedUntil.getTime() > Date.now()) {
+        const sisaMenit = Math.ceil((guard.blockedUntil.getTime() - Date.now()) / 60_000);
+        throw new AppError(
+          'ACCOUNT_LOCKED',
+          `Terlalu banyak percobaan untuk nomor ini. Coba lagi dalam ${sisaMenit} menit.`,
+          429,
+          { retryAfterMinutes: sisaMenit },
+        );
+      }
+
+      const pelanggan = await profilModel.ambilPelanggan(phoneNumber);
+
+      if (!pelanggan) {
+        throw new AppError(
+          'PHONE_NOT_REGISTERED',
+          'Nomor WhatsApp ini belum terdaftar. Silakan daftar akun baru terlebih dahulu.',
+          404,
+        );
+      }
+
+      if (!pelanggan.isActive) {
+        throw new AppError(
+          'ACCOUNT_INACTIVE',
+          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          403,
+        );
+      }
+
+      if (pelanggan.lockedUntil && pelanggan.lockedUntil.getTime() > Date.now()) {
+        const sisaMenit = Math.ceil((pelanggan.lockedUntil.getTime() - Date.now()) / 60_000);
+        throw new AppError(
+          'ACCOUNT_LOCKED',
+          `Akun ini terkunci sementara. Coba lagi dalam ${sisaMenit} menit.`,
+          429,
+          { retryAfterMinutes: sisaMenit },
+        );
+      }
 
       const izin = await authModel.catatPengiriman(phoneNumber, new Date());
       if (!izin.boleh) {
@@ -251,22 +290,9 @@ export const passwordController = {
         );
       }
 
-      const pelanggan = await profilModel.ambilPelanggan(phoneNumber);
-
-      /* Nomor bukan pelanggan terdaftar: jangan buat kode, tetap jawab sukses. */
-      if (!pelanggan) {
-        logger.info({ phoneNumber }, '[RESET KATA SANDI] Nomor tidak terdaftar, diabaikan.');
-        sendSuccess(res, {
-          phoneNumber,
-          expiresInSeconds: OTP_TTL_MINUTES * 60,
-          resendCooldownSeconds: 60,
-        });
-        return;
-      }
-
       const kode = generateOtp();
 
-      await authModel.simpanKodeBaru({
+      const kodeBaru = await authModel.simpanKodeBaru({
         userId: pelanggan.id,
         phoneNumber,
         otpHash: hashOtp(kode),
@@ -277,11 +303,20 @@ export const passwordController = {
       const kodePengembanganDiizinkan =
         process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_OTP_BYPASS === 'true';
 
-      whatsappOtpService
-        .sendOtp({ phoneNumber, otpCode: kode, fullName: pelanggan.fullName })
-        .catch((err) => {
-          logger.error({ err, phoneNumber }, '[RESET KATA SANDI] Gagal mengirim WhatsApp.');
-        });
+      const terkirim = await whatsappOtpService.sendOtp({
+        phoneNumber,
+        otpCode: kode,
+        fullName: pelanggan.fullName,
+      });
+
+      if (!terkirim) {
+        await authModel.batalkanPengirimanGagal(phoneNumber, kodeBaru.id);
+        throw new AppError(
+          'OTP_DELIVERY_FAILED',
+          'Gagal mengirim kode OTP ke WhatsApp. Silakan coba beberapa saat lagi.',
+          503,
+        );
+      }
 
       sendSuccess(res, {
         phoneNumber,
@@ -369,6 +404,24 @@ export const passwordController = {
       const pelanggan = await profilModel.ambilPelanggan(phoneNumber);
       if (!pelanggan) {
         throw new AppError('INVALID_CREDENTIALS', 'Nomor atau kode tidak sesuai.', 401);
+      }
+
+      if (!pelanggan.isActive) {
+        throw new AppError(
+          'ACCOUNT_INACTIVE',
+          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          403,
+        );
+      }
+
+      if (pelanggan.lockedUntil && pelanggan.lockedUntil.getTime() > Date.now()) {
+        const sisaMenit = Math.ceil((pelanggan.lockedUntil.getTime() - Date.now()) / 60_000);
+        throw new AppError(
+          'ACCOUNT_LOCKED',
+          `Akun ini terkunci sementara. Coba lagi dalam ${sisaMenit} menit.`,
+          429,
+          { retryAfterMinutes: sisaMenit },
+        );
       }
 
       const pelanggaran = periksaKataSandi(password);

@@ -268,6 +268,13 @@ export const whatsappOtpService = {
     }
 
     if (penyedia === 'off') {
+      if (process.env.NODE_ENV === 'test' && process.env.ALLOW_DEV_OTP_BYPASS === 'true') {
+        logger.info(
+          { phoneNumber },
+          '[WA OTP] Mode uji dengan ALLOW_DEV_OTP_BYPASS=true: pengiriman WhatsApp disimulasikan berhasil.',
+        );
+        return true;
+      }
       logger.warn(
         { phoneNumber },
         '[WA OTP] Tidak ada penyedia WhatsApp yang dikonfigurasi (WAPI_API_KEY / WA_GATEWAY_URL kosong).',

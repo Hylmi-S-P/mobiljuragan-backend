@@ -262,6 +262,26 @@ export const authModel = {
       .catch(() => null);
   },
 
+  /**
+   * Membatalkan pencatatan cooldown/kuota serta menghapus OTP yang baru dibuat
+   * ketika pengiriman pesan WhatsApp gagal di gateway.
+   */
+  async batalkanPengirimanGagal(phoneNumber: string, otpId: string): Promise<void> {
+    await db.$transaction(async (tx) => {
+      await tx.otpVerification.deleteMany({ where: { id: otpId } });
+      const guard = await tx.phoneGuard.findUnique({ where: { phoneNumber } });
+      if (guard) {
+        await tx.phoneGuard.update({
+          where: { phoneNumber },
+          data: {
+            lastSentAt: null,
+            sendCount: Math.max(0, guard.sendCount - 1),
+          },
+        });
+      }
+    });
+  },
+
   catatLoginBerhasil(userId: string) {
     return db.user.update({
       where: { id: userId },

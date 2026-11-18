@@ -171,7 +171,7 @@ export const profilModel = {
   async ambilPelanggan(phoneNumber: string) {
     const user = await db.user.findUnique({
       where: { phoneNumber },
-      select: { id: true, fullName: true, role: true, isActive: true },
+      select: { id: true, fullName: true, role: true, isActive: true, lockedUntil: true },
     });
     if (!user || user.role !== UserRole.CUSTOMER) return null;
     return user;
