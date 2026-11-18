@@ -1069,22 +1069,31 @@ const kasus: Kasus[] = [
       const paymentId = tagihan.body.data.id;
       const totalAmount = Number(tagihan.body.data.totalAmount);
 
-      /* Bukti diunggah tetapi sengaja TIDAK diverifikasi: inilah kasus lapangan
-         ketika staf mencurigai penipuan dan langsung menutup pesanan. */
+      /* Bukti diunggah tetapi belum diverifikasi: admin ditolak bila mencoba
+         membatalkan pesanan secara langsung sebelum memverifikasi bukti bayar,
+         sedangkan pelanggan yang membatalkan pesanannya sendiri tetap masuk
+         antrean refund dengan danaTerverifikasi = false. */
       harapan(
         await uploadPaymentProof(pesanan.customerToken, paymentId),
         200,
         'unggah bukti transfer',
       );
 
-      const batal = await api(`/admin/bookings/${pesanan.booking.id}/status`, {
+      const batalAdminDitolak = await api(`/admin/bookings/${pesanan.booking.id}/status`, {
         method: 'PATCH',
         token: adminToken,
-        body: { status: 'CANCELLED', note: 'Indikasi penipuan saat pemeriksaan bukti transfer.' },
+        body: { status: 'CANCELLED', note: 'Mencoba batal sebelum verifikasi pembayaran.' },
       });
-      harapan(batal, 200, 'admin membatalkan sebelum verifikasi pembayaran');
+      harapan(batalAdminDitolak, 409, 'admin ditolak membatalkan saat bukti bayar belum diverifikasi');
 
-      const refund = batal.body.data.refund;
+      const batal = await api(`/bookings/${pesanan.booking.id}/cancel`, {
+        method: 'PATCH',
+        token: pesanan.customerToken,
+        body: { reason: 'Pelanggan membatalkan saat bukti transfer belum diperiksa.' },
+      });
+      harapan(batal, 200, 'pelanggan membatalkan sebelum verifikasi pembayaran');
+
+      const refund = batal.body.data.booking.refund;
       if (!refund) {
         throw new Error('pembatalan sebelum verifikasi pembayaran tidak membuat catatan refund');
       }
@@ -1126,9 +1135,18 @@ const kasus: Kasus[] = [
         );
       }
 
+      /* Mencoba memproses/mencairkan refund sebelum konfirmasi dana masuk wajib ditolak 409. */
+      const cairkanSebelumKonfirmasi = await api(`/admin/refunds/${refund.id}`, {
+        method: 'PATCH',
+        token: adminToken,
+        body: { status: 'DIPROSES', catatan: 'Coba proses tanpa konfirmasi dana' },
+      });
+      harapan(cairkanSebelumKonfirmasi, 409, 'pencairan refund sebelum konfirmasi dana ditolak');
+
       /* Staf mencocokkan mutasi bank dan uangnya ternyata ADA. Pembatalan ini
-         dilakukan admin, jadi aturan B12 memberi pengembalian penuh — berbeda
-         dengan T2.5 yang dibatalkan pelanggan sendiri (dipotong 50.000). */
+         dilakukan pelanggan, jadi potongan Rp 50.000 otomatis dihitung, Payment
+         berubah menjadi REFUNDED, dan status tetap MENUNGGU karena nomor rekening
+         pelanggan masih kosong. */
       const danaMasuk = await api(`/admin/refunds/${refund.id}`, {
         method: 'PATCH',
         token: adminToken,
@@ -1138,14 +1156,19 @@ const kasus: Kasus[] = [
       if (danaMasuk.body.data.danaTerverifikasi !== true) {
         throw new Error('danaTerverifikasi harus true setelah dikonfirmasi');
       }
-      if (Number(danaMasuk.body.data.potongan) !== 0) {
+      if (Number(danaMasuk.body.data.potongan) !== 50_000) {
         throw new Error(
-          `potongan harus 0 untuk pembatalan oleh admin, menerima ${danaMasuk.body.data.potongan}`,
+          `potongan harus 50000 untuk pembatalan oleh pelanggan, menerima ${danaMasuk.body.data.potongan}`,
         );
       }
-      if (Number(danaMasuk.body.data.nominal) !== totalAmount) {
+      if (Number(danaMasuk.body.data.nominal) !== totalAmount - 50_000) {
         throw new Error(
-          `nominal harus ${totalAmount}, menerima ${danaMasuk.body.data.nominal}`,
+          `nominal harus ${totalAmount - 50_000}, menerima ${danaMasuk.body.data.nominal}`,
+        );
+      }
+      if (danaMasuk.body.data.status !== 'MENUNGGU') {
+        throw new Error(
+          `status refund harus tetap MENUNGGU bila rekening kosong, menerima ${danaMasuk.body.data.status}`,
         );
       }
 
@@ -1181,13 +1204,13 @@ const kasus: Kasus[] = [
         200,
         'unggah bukti transfer (kasus kedua)',
       );
-      const batalKedua = await api(`/admin/bookings/${kedua.booking.id}/status`, {
+      const batalKedua = await api(`/bookings/${kedua.booking.id}/cancel`, {
         method: 'PATCH',
-        token: adminToken,
-        body: { status: 'CANCELLED', note: 'Bukti transfer tidak bisa diverifikasi.' },
+        token: kedua.customerToken,
+        body: { reason: 'Bukti transfer tidak bisa diverifikasi.' },
       });
       harapan(batalKedua, 200, 'batalkan pesanan kedua');
-      const refundKedua = batalKedua.body.data.refund;
+      const refundKedua = batalKedua.body.data.booking.refund;
       if (!refundKedua) {
         throw new Error('pesanan kedua tidak membuat catatan refund');
       }

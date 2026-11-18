@@ -79,4 +79,26 @@ export function statusMembukaRefund(status: BookingStatus): boolean {
   );
 }
 
+/**
+ * Mengonversi nilai Decimal pada catatan refund menjadi angka bulat murni
+ * untuk serialisasi JSON ke klien Dashboard dan Mobile.
+ */
+export function normalkanRefund<
+  T extends { totalDibayar: unknown; potongan: unknown; nominal: unknown },
+>(
+  refund: T | null | undefined,
+): (Omit<T, 'totalDibayar' | 'potongan' | 'nominal'> & {
+  totalDibayar: number;
+  potongan: number;
+  nominal: number;
+}) | null {
+  if (!refund) return null;
+  return {
+    ...refund,
+    totalDibayar: Math.round(Number(refund.totalDibayar)),
+    potongan: Math.round(Number(refund.potongan)),
+    nominal: Math.round(Number(refund.nominal)),
+  };
+}
+
 export { RefundStatus };

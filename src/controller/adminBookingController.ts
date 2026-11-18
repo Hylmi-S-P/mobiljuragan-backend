@@ -6,6 +6,7 @@ import { computeBookingBlockers } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
 import { segarkanTautanMedia } from '../lib/mediaService.js';
+import { normalkanRefund } from '../lib/refund.js';
 import { toClientDocument } from '../services/document.service.js';
 import type {
   adminBookingQuerySchema,
@@ -73,6 +74,90 @@ function actorOf(role: string): BookingStatusActor {
   return role === UserRole.ADMIN ? BookingStatusActor.ADMIN : BookingStatusActor.STAFF;
 }
 
+/**
+ * Menyeragamkan kontrak respons booking sisi admin:
+ * - konversi nilai Decimal (`quotedAmount`, `finalAmount`, `refund`) menjadi angka bulat `number`
+ * - tanda tangan ulang tautan dokumen & bukti transfer (`segarkanTautanMedia`)
+ * - penguraian `rejectionTargets` dokumen (`toClientDocument`)
+ * - penyertaan `blockers`
+ */
+async function formatAdminBooking<
+  T extends {
+    status: any;
+    rentalType: any;
+    tariffStatus: any;
+    quotedAmount: { toString(): string } | number | null;
+    finalAmount?: { toString(): string } | number | null;
+    document?: {
+      status: any;
+      statementLetterUrl?: string | null;
+      ktpUrl?: string | null;
+      simUrl?: string | null;
+      rejectionReason?: string | null;
+      rejectionTargets?: string | null;
+    } | null;
+    payment?: {
+      status: any;
+      proofImageUrl?: string | null;
+    } | null;
+    refund?: {
+      totalDibayar: unknown;
+      potongan: unknown;
+      nominal: unknown;
+    } | null;
+    vehicle?: {
+      operationalStatus?: any;
+    } | null;
+  },
+>(booking: T) {
+  const document = booking.document
+    ? toClientDocument({
+        ...booking.document,
+        statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
+        ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
+        simUrl: await segarkanTautanMedia(booking.document.simUrl),
+      })
+    : (booking.document ?? null);
+
+  const payment = booking.payment
+    ? {
+        ...booking.payment,
+        proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
+      }
+    : (booking.payment ?? null);
+
+  const quotedAmount =
+    booking.quotedAmount !== null && booking.quotedAmount !== undefined
+      ? Math.round(Number(booking.quotedAmount))
+      : null;
+
+  const finalAmount =
+    booking.finalAmount !== null && booking.finalAmount !== undefined
+      ? Math.round(Number(booking.finalAmount))
+      : null;
+
+  return {
+    ...booking,
+    quotedAmount,
+    finalAmount,
+    document,
+    payment,
+    refund: normalkanRefund(booking.refund),
+    blockers: computeBookingBlockers({
+      status: booking.status,
+      rentalType: booking.rentalType,
+      tariffStatus: booking.tariffStatus,
+      quotedAmount: booking.quotedAmount !== null ? String(booking.quotedAmount) : null,
+      document: booking.document ?? null,
+      payment: booking.payment ?? null,
+      vehicle:
+        booking.vehicle && booking.vehicle.operationalStatus
+          ? { operationalStatus: booking.vehicle.operationalStatus }
+          : null,
+    }),
+  };
+}
+
 export const adminBookingController = {
   /**
    * GET /api/v1/admin/bookings
@@ -108,9 +193,10 @@ export const adminBookingController = {
       const skip = (page - 1) * limit;
 
       const bookings = await bookingModel.listPaged({ where: whereClause, skip, take: limit });
+      const items = await Promise.all(bookings.map((b) => formatAdminBooking(b)));
 
       sendSuccess(res, {
-        items: bookings,
+        items,
         pagination: {
           page,
           limit,
@@ -141,36 +227,10 @@ export const adminBookingController = {
         );
       }
 
-      /*
-       * Tautan berkas pribadi ditandatangani ulang sebelum dikirim.
-       *
-       * Yang tersimpan di database adalah rujukan stabil TANPA tanda tangan,
-       * karena tanda tangannya punya masa berlaku dan akan mati besok. Tanpa
-       * penyegaran di sini, pratinjau KTP/SIM/surat pernyataan di dashboard
-       * ditolak 403 oleh endpoint media, karena kategori itu bersifat pribadi.
-       *
-       * Bukti transfer diperlakukan sama. Foto armada tidak perlu ini karena
-       * kategorinya publik.
-       */
-      const dokumen = booking.document
-        ? toClientDocument({
-            ...booking.document,
-            statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
-            ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
-            simUrl: await segarkanTautanMedia(booking.document.simUrl),
-          })
-        : booking.document;
+      const formatted = await formatAdminBooking(booking);
 
       sendSuccess(res, {
-        ...booking,
-        document: dokumen,
-        payment: booking.payment
-          ? {
-              ...booking.payment,
-              proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
-            }
-          : booking.payment,
-        blockers: computeBookingBlockers(booking),
+        ...formatted,
         whatsappIntent: buildWhatsAppIntent(booking),
       });
     } catch (error) {
@@ -247,8 +307,10 @@ export const adminBookingController = {
         );
       }
 
+      const formatted = await formatAdminBooking(result.booking);
+
       sendSuccess(res, {
-        ...result.booking,
+        ...formatted,
         /* Rincian tarif ikut dikirim supaya dashboard bisa menampilkan asal angka
            (harga sewa, jasa supir) tanpa menghitung ulang di klien. */
         tariffBreakdown: result.kind === 'ok' ? result.komponenTarif : null,
@@ -332,8 +394,10 @@ export const adminBookingController = {
         );
       }
 
+      const formatted = await formatAdminBooking(result.booking);
+
       sendSuccess(res, {
-        ...result.booking,
+        ...formatted,
         whatsappIntent: buildWhatsAppIntent(result.booking),
       });
     } catch (error) {

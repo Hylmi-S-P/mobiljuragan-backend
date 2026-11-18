@@ -6,8 +6,101 @@ import { BookingStatus, BookingStatusActor, OperationalStatus, RefundStatus, Use
 import { AppError, sendSuccess } from '../lib/response.js';
 import { generateBookingCode } from '../lib/bookingCode.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
-import { MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
+import { computeBookingBlockers, MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
+import { segarkanTautanMedia } from '../lib/mediaService.js';
+import { normalkanRefund } from '../lib/refund.js';
+import { toClientDocument } from '../services/document.service.js';
 import type { createBookingSchema, customerCancelBookingSchema, updateRefundAccountSchema } from '../validators/bookingSchemas.js';
+
+/**
+ * Menyeragamkan kontrak respons booking sisi pelanggan:
+ * - konversi nilai Decimal (`quotedAmount`, `finalAmount`, `refund`) menjadi angka bulat `number`
+ * - tanda tangan ulang tautan dokumen & bukti transfer (`segarkanTautanMedia`)
+ * - penguraian `rejectionTargets` dokumen (`toClientDocument`)
+ * - penyertaan `blockers` dan `deadline`
+ */
+async function formatCustomerBooking<
+  T extends {
+    status: BookingStatus;
+    rentalType: any;
+    tariffStatus: any;
+    quotedAmount: { toString(): string } | number | null;
+    finalAmount?: { toString(): string } | number | null;
+    documentDeadlineState: any;
+    documentDeadlineAt: Date | null;
+    document?: {
+      status: any;
+      statementLetterUrl?: string | null;
+      ktpUrl?: string | null;
+      simUrl?: string | null;
+      rejectionReason?: string | null;
+      rejectionTargets?: string | null;
+    } | null;
+    payment?: {
+      status: any;
+      proofImageUrl?: string | null;
+    } | null;
+    refund?: {
+      totalDibayar: unknown;
+      potongan: unknown;
+      nominal: unknown;
+    } | null;
+    vehicle?: {
+      operationalStatus?: any;
+    } | null;
+  },
+>(booking: T) {
+  const document = booking.document
+    ? toClientDocument({
+        ...booking.document,
+        statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
+        ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
+        simUrl: await segarkanTautanMedia(booking.document.simUrl),
+      })
+    : (booking.document ?? null);
+
+  const payment = booking.payment
+    ? {
+        ...booking.payment,
+        proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
+      }
+    : (booking.payment ?? null);
+
+  const quotedAmount =
+    booking.quotedAmount !== null && booking.quotedAmount !== undefined
+      ? Math.round(Number(booking.quotedAmount))
+      : null;
+
+  const finalAmount =
+    booking.finalAmount !== null && booking.finalAmount !== undefined
+      ? Math.round(Number(booking.finalAmount))
+      : null;
+
+  return {
+    ...booking,
+    quotedAmount,
+    finalAmount,
+    document,
+    payment,
+    refund: normalkanRefund(booking.refund),
+    blockers: computeBookingBlockers({
+      status: booking.status,
+      rentalType: booking.rentalType,
+      tariffStatus: booking.tariffStatus,
+      quotedAmount: booking.quotedAmount !== null ? String(booking.quotedAmount) : null,
+      document: booking.document ?? null,
+      payment: booking.payment ?? null,
+      vehicle:
+        booking.vehicle && booking.vehicle.operationalStatus
+          ? { operationalStatus: booking.vehicle.operationalStatus }
+          : null,
+    }),
+    deadline: deskripsikanTenggat({
+      state: booking.documentDeadlineState,
+      deadlineAt: booking.documentDeadlineAt,
+    }),
+  };
+}
 
 /**
  * Controller pemesanan sewa sisi pelanggan.
@@ -102,7 +195,7 @@ export const bookingController = {
         numberGuests: payload.numberGuests || null,
       });
 
-      sendSuccess(res, booking, 201);
+      sendSuccess(res, await formatCustomerBooking(booking), 201);
     } catch (error) {
       next(error);
     }
@@ -122,7 +215,9 @@ export const bookingController = {
         isStaffOrAdmin,
       });
 
-      sendSuccess(res, bookings);
+      const formatted = await Promise.all(bookings.map((b) => formatCustomerBooking(b)));
+
+      sendSuccess(res, formatted);
     } catch (error) {
       next(error);
     }
@@ -155,6 +250,10 @@ export const bookingController = {
 
       sendSuccess(res, {
         ...booking,
+        quotedAmount:
+          booking.quotedAmount !== null && booking.quotedAmount !== undefined
+            ? Math.round(Number(booking.quotedAmount))
+            : null,
         deadline: deskripsikanTenggat({
           state: booking.documentDeadlineState,
           deadlineAt: booking.documentDeadlineAt,
@@ -190,13 +289,7 @@ export const bookingController = {
         );
       }
 
-      sendSuccess(res, {
-        ...booking,
-        deadline: deskripsikanTenggat({
-          state: booking.documentDeadlineState,
-          deadlineAt: booking.documentDeadlineAt,
-        }),
-      });
+      sendSuccess(res, await formatCustomerBooking(booking));
     } catch (error) {
       next(error);
     }
@@ -228,7 +321,10 @@ export const bookingController = {
       }
 
       if (booking.status === BookingStatus.CANCELLED) {
-        sendSuccess(res, { message: 'Pesanan sudah dalam status dibatalkan.', booking });
+        sendSuccess(res, {
+          message: 'Pesanan sudah dalam status dibatalkan.',
+          booking: await formatCustomerBooking(booking),
+        });
         return;
       }
 
@@ -282,7 +378,7 @@ export const bookingController = {
 
       sendSuccess(res, {
         message: 'Pesanan berhasil dibatalkan.',
-        booking: result.booking,
+        booking: await formatCustomerBooking(result.booking),
       });
     } catch (error) {
       next(error);
@@ -337,7 +433,7 @@ export const bookingController = {
 
       sendSuccess(res, {
         message: 'Rekening tujuan pengembalian dana tersimpan.',
-        refund: updated,
+        refund: normalkanRefund(updated),
       });
     } catch (error) {
       next(error);

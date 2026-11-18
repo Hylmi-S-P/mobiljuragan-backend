@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import { db } from '../db.js';
-import { RefundStatus, type Prisma } from '../generated/prisma/client.js';
+import { PaymentStatus, RefundStatus, type Prisma } from '../generated/prisma/client.js';
 import { refundModel } from '../model/refundModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import { hitungNominalRefund, type PembatalOleh } from '../lib/refund.js';
+import { hitungNominalRefund, normalkanRefund, type PembatalOleh } from '../lib/refund.js';
 import { listRefundQuerySchema, updateRefundSchema } from '../validators/refundSchemas.js';
 
 /**
@@ -36,7 +36,7 @@ export const adminRefundController = {
       ]);
 
       sendSuccess(res, {
-        items,
+        items: items.map((item) => normalkanRefund(item)),
         meta: {
           page: query.page,
           limit: query.limit,
@@ -106,12 +106,21 @@ export const adminRefundController = {
         );
       }
 
+      if (!refund.danaTerverifikasi && body.konfirmasiDana === undefined) {
+        throw new AppError(
+          'REFUND_FUNDS_NOT_VERIFIED',
+          'Dana masuk belum dikonfirmasi. Konfirmasi mutasi dana masuk terlebih dahulu sebelum memproses pengembalian dana.',
+          409,
+        );
+      }
+
       const data: Prisma.BookingRefundUpdateInput = {};
 
       /* Konfirmasi dana: staf mencocokkan mutasi bank untuk pesanan yang ditutup
          saat bukti transfernya belum diperiksa. Dua kemungkinan, dua akibat:
-         uangnya ada → aturan potongan normal berlaku; uangnya tidak ada → tidak
-         ada yang perlu dikembalikan, barisnya ditutup dengan nominal nol. */
+         uangnya ada → aturan potongan normal berlaku dan Payment menjadi REFUNDED;
+         uangnya tidak ada → tidak ada yang perlu dikembalikan, barisnya ditutup
+         dengan nominal nol. */
       if (body.konfirmasiDana !== undefined) {
         if (refund.danaTerverifikasi) {
           throw new AppError(
@@ -129,6 +138,13 @@ export const adminRefundController = {
           data.danaTerverifikasi = true;
           data.potongan = hitungan.potongan;
           data.nominal = hitungan.nominal;
+
+          if (refund.paymentId) {
+            await db.payment.update({
+              where: { id: refund.paymentId },
+              data: { status: PaymentStatus.REFUNDED },
+            });
+          }
         } else {
           data.potongan = 0;
           data.nominal = 0;
@@ -165,12 +181,21 @@ export const adminRefundController = {
           : body.catatan;
       }
 
-      if (body.status !== undefined) {
+      const nomorRekeningTerisi = Boolean(
+        (body.nomorRekening ?? refund.nomorRekening)?.trim(),
+      );
+
+      if (body.status !== undefined && body.konfirmasiDana === undefined) {
         data.status = body.status;
         data.diselesaikanPada = body.status === RefundStatus.SELESAI ? new Date() : null;
-      } else if (refund.status === RefundStatus.MENUNGGU && data.status === undefined) {
-        /* Begitu admin mengisi data rekening, barisnya berarti sedang dikerjakan.
-           Tidak menimpa status yang sudah ditentukan oleh konfirmasi dana. */
+      } else if (
+        refund.status === RefundStatus.MENUNGGU &&
+        data.status === undefined &&
+        nomorRekeningTerisi
+      ) {
+        /* Hanya berpindah ke DIPROSES bila nomor rekening pelanggan sudah terisi,
+           sehingga bila rekening masih kosong status tetap MENUNGGU dan pelanggan
+           tetap bisa mengklaim rekeningnya dari aplikasi Mobile. */
         data.status = RefundStatus.DIPROSES;
       }
 
@@ -191,7 +216,7 @@ export const adminRefundController = {
         },
       });
 
-      sendSuccess(res, updated);
+      sendSuccess(res, normalkanRefund(updated));
     } catch (error) {
       next(error);
     }

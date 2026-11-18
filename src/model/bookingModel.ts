@@ -66,6 +66,7 @@ const bookingVehicleSummary = {
     category: true,
     seatingCapacity: true,
     transmission: true,
+    operationalStatus: true,
   },
 } as const;
 
@@ -350,6 +351,8 @@ export const bookingModel = {
         customer: bookingCustomerSummary,
         vehicle: bookingVehicleSummary,
         driver: bookingDriverSummary,
+        document: true,
+        refund: true,
         statusHistory: {
           orderBy: { changedAt: 'desc' },
           take: 1,
@@ -412,6 +415,23 @@ export const bookingModel = {
       /* Urutan tahap dijaga di satu tempat (lib/bookingStage): pesanan tidak boleh
          meloncat dari permintaan masuk langsung ke pembayaran. */
       assertBookingTransition(booking.status, input.nextStatus);
+
+      /* Admin/staf tidak boleh membatalkan atau menolak pesanan ketika bukti
+         pembayaran pelanggan sedang menunggu verifikasi (PENDING_VERIFICATION).
+         Staf wajib memverifikasi bukti pembayaran terlebih dahulu. */
+      if (
+        (input.nextStatus === BookingStatus.CANCELLED ||
+          input.nextStatus === BookingStatus.REJECTED) &&
+        (input.actor === BookingStatusActor.ADMIN ||
+          input.actor === BookingStatusActor.STAFF) &&
+        booking.payment?.status === PaymentStatus.PENDING_VERIFICATION
+      ) {
+        throw new AppError(
+          'PAYMENT_VERIFICATION_REQUIRED',
+          'Bukti pembayaran sedang menunggu verifikasi. Verifikasi bukti pembayaran terlebih dahulu sebelum membatalkan atau menolak pesanan.',
+          409,
+        );
+      }
 
       /* Nominal tarif tidak lagi diketik staf. Komponen dasarnya dihitung dari
          harga katalog unit dan tarif supir global, sehingga dua pesanan untuk unit
