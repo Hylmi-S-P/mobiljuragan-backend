@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import {
   BookingStatus,
   BookingStatusActor,
+  DocumentDeadlineState,
   DocumentStatus,
   DriverReadiness,
   OperationalStatus,
@@ -738,12 +739,16 @@ export const paymentService = {
         return denganBuktiSegar(updated);
       } else {
         // REJECT
+        const now = new Date();
         const updated = await tx.payment.update({
           where: { id: paymentId },
           data: {
             status: PaymentStatus.FAILED,
-            verifiedAt: new Date(),
+            verifiedAt: now,
             verifiedBy: params.verifierUserId,
+            ...(params.cancelBooking
+              ? {}
+              : { expiresAt: new Date(now.getTime() + 12 * 60 * 60 * 1000) }),
             notes: params.notes
               ? `${payment.notes ? payment.notes + ' | ' : ''}DITOLAK: ${params.notes}`
               : `${payment.notes ? payment.notes + ' | ' : ''}Bukti transfer ditolak admin.`,
@@ -771,7 +776,12 @@ export const paymentService = {
         if (params.cancelBooking && !isFinalBookingStatus(payment.booking.status)) {
           await tx.booking.update({
             where: { id: payment.bookingId },
-            data: { status: BookingStatus.CANCELLED },
+            data: {
+              status: BookingStatus.CANCELLED,
+              documentDeadlineState: DocumentDeadlineState.NONE,
+              documentDeadlineAt: null,
+              adminDeadlineAt: null,
+            },
           });
 
           await tx.bookingStatusHistory.create({

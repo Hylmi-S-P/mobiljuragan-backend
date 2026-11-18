@@ -532,6 +532,14 @@ export const bookingModel = {
         updateData.adminDeadlineAt = null;
       }
 
+      if (
+        input.nextStatus === BookingStatus.CANCELLED ||
+        input.nextStatus === BookingStatus.REJECTED
+      ) {
+        updateData.documentDeadlineState = DocumentDeadlineState.NONE;
+        updateData.documentDeadlineAt = null;
+      }
+
       // Mengisi tarif sekaligus menandai tarif sudah dikonfirmasi tim.
       if (isConfirming && komponenTarif) {
         /* Total final dikunci di sini, sekali. `quotedAmount` tetap subtotal
@@ -1056,7 +1064,14 @@ export const bookingModel = {
              tenggat menjadi PAUSED. */
           const terkini = await tx.booking.findUnique({
             where: { id: booking.id },
-            select: { documentDeadlineState: true, documentDeadlineAt: true, status: true },
+            select: {
+              bookingCode: true,
+              documentDeadlineState: true,
+              documentDeadlineAt: true,
+              status: true,
+              driverId: true,
+              vehicleId: true,
+            },
           });
 
           if (
@@ -1075,6 +1090,8 @@ export const bookingModel = {
             data: {
               status: BookingStatus.CANCELLED,
               documentDeadlineState: DocumentDeadlineState.NONE,
+              documentDeadlineAt: null,
+              adminDeadlineAt: null,
             },
           });
 
@@ -1085,6 +1102,56 @@ export const bookingModel = {
               toStatus: BookingStatus.CANCELLED,
               actor: BookingStatusActor.SYSTEM,
               note: 'Dibatalkan otomatis: dokumen persyaratan sewa tidak diunggah sebelum batas waktu.',
+            },
+          });
+
+          if (terkini.driverId) {
+            const supirMasihDipakai = await tx.booking.count({
+              where: {
+                driverId: terkini.driverId,
+                id: { not: booking.id },
+                status: { in: BOOKING_BLOCKING_STATUSES },
+              },
+            });
+
+            if (supirMasihDipakai === 0) {
+              await tx.driver.update({
+                where: { id: terkini.driverId },
+                data: { readiness: DriverReadiness.SIAGA },
+              });
+            }
+          }
+
+          const armadaMasihDipakai = await tx.booking.count({
+            where: {
+              vehicleId: terkini.vehicleId,
+              id: { not: booking.id },
+              status: { in: ACTIVE_BOOKING_STATUSES },
+            },
+          });
+
+          if (armadaMasihDipakai === 0) {
+            await tx.vehicle.updateMany({
+              where: {
+                id: terkini.vehicleId,
+                operationalStatus: OperationalStatus.BOOKED,
+              },
+              data: { operationalStatus: OperationalStatus.AVAILABLE },
+            });
+          }
+
+          await tx.auditLog.create({
+            data: {
+              actorId: null,
+              action: 'EXPIRE_DOCUMENT_DEADLINE',
+              entityType: 'Booking',
+              entityId: booking.id,
+              metadata: {
+                bookingCode: terkini.bookingCode,
+                fromStatus: terkini.status,
+                toStatus: BookingStatus.CANCELLED,
+                documentDeadlineAt: terkini.documentDeadlineAt.toISOString(),
+              },
             },
           });
 
@@ -1198,8 +1265,11 @@ export const bookingModel = {
   async expireOverduePayments(now: Date = new Date()): Promise<number> {
     const kedaluwarsa = await db.payment.findMany({
       where: {
-        status: PaymentStatus.UNPAID,
+        status: { in: [PaymentStatus.UNPAID, PaymentStatus.FAILED] },
         expiresAt: { lt: now },
+        booking: {
+          status: { notIn: CLOSED_BOOKING_STATUSES },
+        },
       },
       select: { id: true, bookingId: true },
     });
@@ -1233,9 +1303,11 @@ export const bookingModel = {
 
           if (
             !terkini ||
-            terkini.status !== PaymentStatus.UNPAID ||
+            (terkini.status !== PaymentStatus.UNPAID &&
+              terkini.status !== PaymentStatus.FAILED) ||
             !terkini.expiresAt ||
-            terkini.expiresAt >= now
+            terkini.expiresAt >= now ||
+            CLOSED_BOOKING_STATUSES.includes(terkini.booking.status)
           ) {
             return;
           }
@@ -1255,7 +1327,12 @@ export const bookingModel = {
           if (!CLOSED_BOOKING_STATUSES.includes(pesanan.status)) {
             await tx.booking.update({
               where: { id: pesanan.id },
-              data: { status: BookingStatus.CANCELLED },
+              data: {
+                status: BookingStatus.CANCELLED,
+                documentDeadlineState: DocumentDeadlineState.NONE,
+                documentDeadlineAt: null,
+                adminDeadlineAt: null,
+              },
             });
 
             await tx.bookingStatusHistory.create({
