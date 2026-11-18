@@ -59,12 +59,13 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     const bookingWhere = dateFilter ? { createdAt: dateFilter } : {};
 
-    // 1. Ambil semua booking yang relevan dengan unit armada beserta status pembayarannya
+    // 1. Ambil semua booking yang relevan dengan unit armada beserta status pembayaran & refund
     const bookings = await db.booking.findMany({
       where: bookingWhere,
       include: {
         vehicle: true,
         payment: true,
+        refund: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -121,11 +122,13 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     // Kalkulasi per booking
     for (const b of bookings) {
-      const amount = b.quotedAmount ? Number(b.quotedAmount) : 0;
       const isPaid = b.payment?.status === 'PAID';
+      const refundFee =
+        !isPaid && b.refund?.status === 'SELESAI' ? Number(b.refund.potongan ?? 0) : 0;
 
       if (isPaid) {
-        // Omzet kas masuk riil hanya tercatat jika pembayaran telah terverifikasi lunas (PAID)
+        // Omzet kas masuk riil menggunakan finalAmount (atau payment.totalAmount / quotedAmount)
+        const amount = Number(b.finalAmount ?? b.payment?.totalAmount ?? b.quotedAmount ?? 0);
         totalRevenue += amount;
 
         if (b.rentalType === 'WITHOUT_DRIVER') {
@@ -139,6 +142,20 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
           stat.totalRevenue += amount;
+        }
+      } else if (refundFee > 0) {
+        // Pendapatan dari biaya potongan pembatalan atas refund yang telah diselesaikan
+        totalRevenue += refundFee;
+
+        if (b.rentalType === 'WITHOUT_DRIVER') {
+          tanpaSupirOmzet += refundFee;
+        } else {
+          denganSupirOmzet += refundFee;
+        }
+
+        const stat = vehicleStatsMap.get(b.vehicleId);
+        if (stat) {
+          stat.totalRevenue += refundFee;
         }
       }
       /* Piutang berjalan tidak lagi dihitung. Kartunya sudah dihapus dari laporan
@@ -183,19 +200,47 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     const transaksiLunas = await db.booking.findMany({
-      where: { payment: { is: { status: 'PAID' } } },
+      where: {
+        OR: [
+          { payment: { is: { status: 'PAID' } } },
+          {
+            refund: {
+              is: {
+                status: 'SELESAI',
+                potongan: { gt: 0 },
+              },
+            },
+          },
+        ],
+      },
       select: {
         quotedAmount: true,
+        finalAmount: true,
         createdAt: true,
-        payment: { select: { verifiedAt: true } },
+        payment: { select: { status: true, totalAmount: true, verifiedAt: true } },
+        refund: { select: { status: true, potongan: true, diselesaikanPada: true } },
       },
     });
 
-    const tanggalMasuk = (b: (typeof transaksiLunas)[number]): Date =>
-      b.payment?.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
+    const tanggalMasuk = (b: (typeof transaksiLunas)[number]): Date => {
+      if (b.payment?.status === 'PAID') {
+        return b.payment.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
+      }
+      if (b.refund?.diselesaikanPada) {
+        return new Date(b.refund.diselesaikanPada);
+      }
+      return b.payment?.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
+    };
 
-    const nominal = (b: (typeof transaksiLunas)[number]): number =>
-      b.quotedAmount ? Number(b.quotedAmount) : 0;
+    const nominal = (b: (typeof transaksiLunas)[number]): number => {
+      if (b.payment?.status === 'PAID') {
+        return Number(b.finalAmount ?? b.payment.totalAmount ?? b.quotedAmount ?? 0);
+      }
+      if (b.refund?.status === 'SELESAI') {
+        return Number(b.refund.potongan ?? 0);
+      }
+      return 0;
+    };
 
     /* --- Grafik 1: 12 bulan terakhir, tiap bulan dipecah per minggu --- */
     type BulanGrafik = {
