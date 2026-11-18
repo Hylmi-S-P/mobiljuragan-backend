@@ -191,3 +191,32 @@ export function computeBookingBlockers(input: BlockerInput): BookingBlocker[] {
 
   return blockers;
 }
+
+export type BookingSubStage =
+  | 'CREATED'
+  | 'PENDING_CONFIRMATION'
+  | 'AWAITING_PAYMENT'
+  | 'READY_FOR_HANDOVER'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REJECTED';
+
+/**
+ * Menurunkan sub-tahapan operasional dari kombinasi status pesanan & pembayaran
+ * tanpa mengubah enum `BookingStatus` di skema database Prisma.
+ *
+ * Saat `Booking.status === CONFIRMED` dan `Payment.status === PAID`, pesanan
+ * berada di sub-stage `READY_FOR_HANDOVER` ("Siap Serah Terima").
+ */
+export function resolveBookingSubStage(
+  status: BookingStatus,
+  paymentStatus?: PaymentStatus | null,
+): BookingSubStage {
+  if (status === BookingStatus.CONFIRMED) {
+    return paymentStatus === PaymentStatus.PAID
+      ? 'READY_FOR_HANDOVER'
+      : 'AWAITING_PAYMENT';
+  }
+  return status as BookingSubStage;
+}

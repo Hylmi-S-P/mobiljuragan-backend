@@ -1,12 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
+import { db } from '../db.js';
 import { bookingModel } from '../model/bookingModel.js';
 import { refundModel } from '../model/refundModel.js';
 import { BookingStatus, BookingStatusActor, OperationalStatus, RefundStatus, UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { generateBookingCode } from '../lib/bookingCode.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
-import { computeBookingBlockers, MAKS_PESANAN_AKTIF_PER_NOMOR } from '../lib/bookingStage.js';
+import { computeBookingBlockers, MAKS_PESANAN_AKTIF_PER_NOMOR, resolveBookingSubStage } from '../lib/bookingStage.js';
 import { segarkanTautanMedia } from '../lib/mediaService.js';
 import { normalkanRefund } from '../lib/refund.js';
 import { toClientDocument } from '../services/document.service.js';
@@ -78,6 +79,7 @@ async function formatCustomerBooking<
 
   return {
     ...booking,
+    subStage: resolveBookingSubStage(booking.status, booking.payment?.status),
     quotedAmount,
     finalAmount,
     document,
@@ -425,10 +427,32 @@ export const bookingController = {
         );
       }
 
+      const shouldMoveToDiproses =
+        booking.refund.danaTerverifikasi === true &&
+        booking.refund.status === RefundStatus.MENUNGGU;
+
       const updated = await refundModel.update(booking.refund.id, {
         namaBank: refundAccount.bankName,
         nomorRekening: refundAccount.accountNumber,
         namaPemilik: refundAccount.accountHolderName,
+        ...(shouldMoveToDiproses ? { status: RefundStatus.DIPROSES } : {}),
+      });
+
+      await db.auditLog.create({
+        data: {
+          actorId: customer.userId,
+          action: 'CLAIM_REFUND_ACCOUNT',
+          entityType: 'BookingRefund',
+          entityId: booking.refund.id,
+          metadata: {
+            bookingCode: updated.booking.bookingCode,
+            namaBank: refundAccount.bankName,
+            nomorRekening: refundAccount.accountNumber,
+            namaPemilik: refundAccount.accountHolderName,
+            previousStatus: booking.refund.status,
+            newStatus: updated.status,
+          },
+        },
       });
 
       sendSuccess(res, {

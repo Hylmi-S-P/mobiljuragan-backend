@@ -1275,6 +1275,11 @@ const kasus: Kasus[] = [
           `nomor rekening harus tersimpan, menerima ${klaim.body.data.refund.nomorRekening}`,
         );
       }
+      if (klaim.body.data.refund.status !== 'DIPROSES') {
+        throw new Error(
+          `status refund terverifikasi harus otomatis menjadi DIPROSES setelah rekening diisi, menerima ${klaim.body.data.refund.status}`,
+        );
+      }
 
       /* Nomor rekening berisi huruf harus ditolak sebelum disimpan. */
       const salah = await api(`/bookings/${pesanan.booking.id}/refund-account`, {
@@ -2174,11 +2179,6 @@ const kasus: Kasus[] = [
 
       /* 2. Pesanan yang sudah dibatalkan tidak boleh menerima uang. */
       const dibatalkan = await siapkanTagihan();
-      harapan(
-        await uploadPaymentProof(dibatalkan.customerToken, dibatalkan.paymentId),
-        200,
-        'unggah bukti transfer',
-      );
       harapan(
         await api(`/admin/bookings/${dibatalkan.booking.id}/status`, {
           method: 'PATCH',

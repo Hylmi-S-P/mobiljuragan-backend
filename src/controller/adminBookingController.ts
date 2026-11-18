@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { BookingStatusActor, UserRole, type Prisma } from '../generated/prisma/client.js';
 import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js';
-import { computeBookingBlockers } from '../lib/bookingStage.js';
+import { computeBookingBlockers, resolveBookingSubStage } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
 import { segarkanTautanMedia } from '../lib/mediaService.js';
@@ -138,6 +138,7 @@ async function formatAdminBooking<
 
   return {
     ...booking,
+    subStage: resolveBookingSubStage(booking.status, booking.payment?.status),
     quotedAmount,
     finalAmount,
     document,

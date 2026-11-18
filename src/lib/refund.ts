@@ -1,4 +1,5 @@
 import { BookingStatus, BookingStatusActor, PaymentStatus, RefundStatus } from '../generated/prisma/client.js';
+import { tautanMedia } from './mediaService.js';
 
 /**
  * Potongan tetap saat pelanggan membatalkan pesanannya sendiri setelah membayar.
@@ -79,18 +80,36 @@ export function statusMembukaRefund(status: BookingStatus): boolean {
   );
 }
 
+function bentukBuktiUrl(buktiMediaId: string | null | undefined): string | null {
+  if (typeof buktiMediaId !== 'string') return null;
+  const nilai = buktiMediaId.trim();
+  if (!nilai) return null;
+  if (nilai.startsWith('http://') || nilai.startsWith('https://')) {
+    return nilai;
+  }
+  const cocokMedia = /^\/api\/v1\/media\/([0-9a-fA-F-]{36})(?:\?.*)?$/.exec(nilai);
+  const mediaId = cocokMedia ? cocokMedia[1] : nilai;
+  return tautanMedia(mediaId, 'PAYMENT_PROOF');
+}
+
 /**
  * Mengonversi nilai Decimal pada catatan refund menjadi angka bulat murni
- * untuk serialisasi JSON ke klien Dashboard dan Mobile.
+ * serta menyertakan tautan bertanda tangan `buktiUrl` untuk klien Dashboard dan Mobile.
  */
 export function normalkanRefund<
-  T extends { totalDibayar: unknown; potongan: unknown; nominal: unknown },
+  T extends {
+    totalDibayar: unknown;
+    potongan: unknown;
+    nominal: unknown;
+    buktiMediaId?: string | null;
+  },
 >(
   refund: T | null | undefined,
 ): (Omit<T, 'totalDibayar' | 'potongan' | 'nominal'> & {
   totalDibayar: number;
   potongan: number;
   nominal: number;
+  buktiUrl: string | null;
 }) | null {
   if (!refund) return null;
   return {
@@ -98,6 +117,7 @@ export function normalkanRefund<
     totalDibayar: Math.round(Number(refund.totalDibayar)),
     potongan: Math.round(Number(refund.potongan)),
     nominal: Math.round(Number(refund.nominal)),
+    buktiUrl: bentukBuktiUrl(refund.buktiMediaId),
   };
 }
 
