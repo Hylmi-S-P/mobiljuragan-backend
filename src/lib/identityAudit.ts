@@ -21,7 +21,8 @@ export type ActionIdentitas =
   | 'PASSWORD_RESET'
   | 'PASSWORD_LOGIN_SUCCESS'
   | 'PASSWORD_LOGIN_FAILED'
-  | 'SESSIONS_REVOKED';
+  | 'SESSIONS_REVOKED'
+  | 'ACCOUNT_STATUS_CHANGED';
 
 export interface KonteksPermintaan {
   ipAddress?: string | null;

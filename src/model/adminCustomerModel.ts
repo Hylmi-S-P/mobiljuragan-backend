@@ -194,8 +194,11 @@ export const adminCustomerModel = {
   async ubahStatusAktif(userId: string, isActive: boolean) {
     return db.user.update({
       where: { id: userId },
-      data: { isActive },
-      select: { id: true, fullName: true, phoneNumber: true, isActive: true },
+      data: {
+        isActive,
+        ...(isActive === false ? { tokenVersion: { increment: 1 } } : {}),
+      },
+      select: { id: true, fullName: true, phoneNumber: true, isActive: true, tokenVersion: true },
     });
   },
 

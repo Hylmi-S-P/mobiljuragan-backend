@@ -217,7 +217,7 @@ export const adminCustomerController = {
         userId: hasil.id,
         actorType: 'ADMIN',
         actorId: admin.id,
-        action: isActive ? 'PROFILE_NAME_CHANGED' : 'SESSIONS_REVOKED',
+        action: 'ACCOUNT_STATUS_CHANGED',
         field: 'isActive',
         before: String(!isActive),
         after: String(isActive),

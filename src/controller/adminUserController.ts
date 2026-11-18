@@ -162,6 +162,16 @@ export const adminUserController = {
         }
       }
 
+      const perluCabutSesi =
+        Boolean(password) ||
+        (Boolean(role) && role !== existing.role) ||
+        Boolean(updateData.phoneNumber) ||
+        isActive === false;
+
+      if (perluCabutSesi) {
+        updateData.tokenVersion = { increment: 1 };
+      }
+
       // Hash sandi tidak ikut dicatat; hanya nama kolom yang berubah.
       const changedFields = Object.keys(updateData).filter((k) => k !== 'passwordHash');
 
