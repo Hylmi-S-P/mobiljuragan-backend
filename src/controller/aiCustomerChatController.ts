@@ -5,6 +5,7 @@ import { ticketModel } from '../model/ticketModel.js';
 import { TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
 import {
   generateConversationTraceId,
+  resolve9RouterConfig,
   resolveClientNetworkAffinity,
 } from './aiConfigController.js';
 import * as crypto from 'node:crypto';
@@ -133,38 +134,40 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
 
     // 1. Susun Konteks Pengetahuan Resmi (RAG)
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
-    const activeModel = config?.activeModel || 'gemini-2.5-flash';
+    const { gatewayUrl, apiKey, activeModel } = resolve9RouterConfig(config);
+    const enableRag = config?.enableRag ?? true;
 
     const systemPromptBase =
       config?.systemPrompt ||
       'Anda adalah Asisten Virtual Resmi MobilJuragan (CV. Mobil Juragan Express Transport, Merauke).';
 
     let ragContextText = '';
-    const activeDocs = await db.knowledgeDocument.findMany({
-      where: { isActive: true },
-      orderBy: { category: 'asc' },
-    });
+    if (enableRag) {
+      const activeDocs = await db.knowledgeDocument.findMany({
+        where: { isActive: true },
+        orderBy: { category: 'asc' },
+      });
 
-    const activeFaqs = await db.faq.findMany({
-      where: { isActive: true },
-      orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }],
-    });
+      const activeFaqs = await db.faq.findMany({
+        where: { isActive: true },
+        orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }],
+      });
 
-    if (activeDocs.length > 0) {
-      ragContextText += '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG) ===\n';
-      for (const doc of activeDocs) {
-        ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
+      if (activeDocs.length > 0) {
+        ragContextText += '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG) ===\n';
+        for (const doc of activeDocs) {
+          ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
+        }
+        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\n';
       }
-      ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\n';
-    }
 
-    if (activeFaqs.length > 0) {
-      ragContextText += '\n\n=== BASIS PENGETAHUAN FAQ RESMI MOBILJURAGAN ===\n';
-      for (const faq of activeFaqs) {
-        ragContextText += `\n[KATEGORI: ${faq.category}]\nTANYA: ${faq.question}\nJAWAB: ${faq.answer}\n`;
+      if (activeFaqs.length > 0) {
+        ragContextText += '\n\n=== BASIS PENGETAHUAN FAQ RESMI MOBILJURAGAN ===\n';
+        for (const faq of activeFaqs) {
+          ragContextText += `\n[KATEGORI: ${faq.category}]\nTANYA: ${faq.question}\nJAWAB: ${faq.answer}\n`;
+        }
+        ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
       }
-      ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
     }
 
     const fullSystemPrompt = `${systemPromptBase}${ragContextText}\nJawab pertanyaan pelanggan secara ramah, akurat, dan sopan sesuai standar MobilJuragan Merauke.`;
@@ -250,8 +253,8 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       'X-Forwarded-For': networkAffinity,
       'X-Real-IP': networkAffinity,
     };
-    if (config?.apiKey) {
-      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     const controller = new AbortController();

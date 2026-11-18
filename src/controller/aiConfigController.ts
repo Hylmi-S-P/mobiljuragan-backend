@@ -169,6 +169,98 @@ export async function clearAiGatewayLogs(req: Request, res: Response): Promise<v
   }
 }
 
+/**
+ * Membaca API key cadangan dari db.json 9Router lokal bila tersedia (lingkungan dev).
+ */
+function readLocal9RouterApiKey(): string | null {
+  try {
+    const candidates = [
+      path.join(os.homedir(), '.9router', 'db.json'),
+      path.join(
+        process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+        '9router',
+        'db.json',
+      ),
+    ];
+    for (const filePath of candidates) {
+      if (!fs.existsSync(filePath)) continue;
+      const raw = fs.readFileSync(filePath, 'utf8');
+      const parsed = JSON.parse(raw) as {
+        apiKeys?: Array<{ key?: string; token?: string; value?: string }>;
+        apiKey?: string;
+      };
+      if (typeof parsed.apiKey === 'string' && parsed.apiKey.trim()) {
+        return parsed.apiKey.trim();
+      }
+      if (Array.isArray(parsed.apiKeys) && parsed.apiKeys.length > 0) {
+        const first = parsed.apiKeys[0];
+        const candidate = first?.key || first?.token || first?.value;
+        if (typeof candidate === 'string' && candidate.trim()) {
+          return candidate.trim();
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export interface Resolved9RouterConfig {
+  gatewayUrl: string;
+  apiKey: string;
+  activeModel: string;
+}
+
+/**
+ * Menyelesaikan konfigurasi efektif gateway 9Router dengan prioritas .env -> DB -> db.json lokal -> default.
+ */
+export function resolve9RouterConfig(
+  dbConfig?: {
+    gatewayUrl?: string | null;
+    apiKey?: string | null;
+    activeModel?: string | null;
+  } | null,
+): Resolved9RouterConfig {
+  const gatewayUrl = (
+    process.env.NINEROUTER_GATEWAY_URL?.trim() ||
+    dbConfig?.gatewayUrl?.trim() ||
+    'http://localhost:20128/v1'
+  ).replace(/\/+$/, '');
+  const apiKey =
+    process.env.NINEROUTER_API_KEY?.trim() ||
+    dbConfig?.apiKey?.trim() ||
+    readLocal9RouterApiKey() ||
+    '';
+  const activeModel =
+    process.env.NINEROUTER_MODEL?.trim() ||
+    dbConfig?.activeModel?.trim() ||
+    'mj';
+
+  return { gatewayUrl, apiKey, activeModel };
+}
+
+/**
+ * Menghapus kredensial rahasia (`apiKey`, `fallbackApiKey`) sebelum konfigurasi AI dikirim ke browser.
+ */
+export function sanitizeAiConfigForClient<
+  T extends {
+    gatewayUrl?: string | null;
+    apiKey?: string | null;
+    activeModel?: string | null;
+    fallbackApiKey?: string | null;
+  },
+>(config: T) {
+  const resolved = resolve9RouterConfig(config);
+  const { apiKey: _apiKey, fallbackApiKey: _fallbackApiKey, ...safeRest } = config;
+  return {
+    ...safeRest,
+    gatewayUrl: resolved.gatewayUrl,
+    activeModel: resolved.activeModel,
+    hasApiKey: Boolean(resolved.apiKey),
+  };
+}
+
 export async function getAiConfig(req: Request, res: Response): Promise<void> {
   try {
     await ensureAiDefaults();
@@ -178,14 +270,15 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
     });
 
     if (!config) {
+      const resolved = resolve9RouterConfig(null);
       config = await db.aiSetting.create({
         data: {
           id: 'default',
-          gatewayUrl: 'http://localhost:20128/v1',
+          gatewayUrl: resolved.gatewayUrl,
           apiKey: '',
-          activeModel: 'gemini-2.5-flash',
-          fallbackModel: 'gemini-2.5-flash',
-          fallbackGatewayUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+          activeModel: resolved.activeModel,
+          fallbackModel: resolved.activeModel,
+          fallbackGatewayUrl: '',
           fallbackApiKey: '',
           autoFallbackEnabled: true,
           proxyUrl: '',
@@ -207,7 +300,7 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
     res.status(200).json({
       status: 'ok',
       data: {
-        config,
+        config: sanitizeAiConfigForClient(config),
         stats: {
           documentCount,
           activeDocumentCount,
@@ -224,6 +317,7 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
 
 export async function updateAiConfig(req: Request, res: Response): Promise<void> {
   try {
+    await ensureAiDefaults();
     const {
       gatewayUrl,
       apiKey,
@@ -239,50 +333,66 @@ export async function updateAiConfig(req: Request, res: Response): Promise<void>
       enableRag,
     } = req.body;
 
+    const resolvedDefault = resolve9RouterConfig(null);
+    const hasNonEmptyString = (val: unknown): val is string =>
+      typeof val === 'string' && val.trim().length > 0;
+
     const updated = await db.aiSetting.upsert({
       where: { id: 'default' },
       update: {
-        ...(gatewayUrl !== undefined ? { gatewayUrl: String(gatewayUrl).trim() } : {}),
-        ...(apiKey !== undefined ? { apiKey: String(apiKey).trim() } : {}),
-        ...(activeModel !== undefined ? { activeModel: String(activeModel).trim() } : {}),
-        ...(fallbackModel !== undefined ? { fallbackModel: String(fallbackModel).trim() } : {}),
-        ...(fallbackGatewayUrl !== undefined
-          ? { fallbackGatewayUrl: String(fallbackGatewayUrl).trim() }
+        ...(hasNonEmptyString(gatewayUrl) ? { gatewayUrl: gatewayUrl.trim() } : {}),
+        ...(hasNonEmptyString(apiKey) ? { apiKey: apiKey.trim() } : {}),
+        ...(hasNonEmptyString(activeModel) ? { activeModel: activeModel.trim() } : {}),
+        ...(hasNonEmptyString(fallbackModel) ? { fallbackModel: fallbackModel.trim() } : {}),
+        ...(hasNonEmptyString(fallbackGatewayUrl)
+          ? { fallbackGatewayUrl: fallbackGatewayUrl.trim() }
           : {}),
-        ...(fallbackApiKey !== undefined ? { fallbackApiKey: String(fallbackApiKey).trim() } : {}),
+        ...(hasNonEmptyString(fallbackApiKey) ? { fallbackApiKey: fallbackApiKey.trim() } : {}),
         ...(autoFallbackEnabled !== undefined
           ? { autoFallbackEnabled: Boolean(autoFallbackEnabled) }
           : {}),
         ...(proxyUrl !== undefined ? { proxyUrl: String(proxyUrl).trim() } : {}),
         ...(systemPrompt !== undefined ? { systemPrompt: String(systemPrompt) } : {}),
-        ...(temperature !== undefined ? { temperature: Number(temperature) } : {}),
-        ...(maxTokens !== undefined ? { maxTokens: Number(maxTokens) } : {}),
+        ...(temperature !== undefined && !isNaN(Number(temperature))
+          ? { temperature: Number(temperature) }
+          : {}),
+        ...(maxTokens !== undefined && !isNaN(Number(maxTokens))
+          ? { maxTokens: Number(maxTokens) }
+          : {}),
         ...(enableRag !== undefined ? { enableRag: Boolean(enableRag) } : {}),
       },
       create: {
         id: 'default',
-        gatewayUrl: gatewayUrl ? String(gatewayUrl).trim() : 'http://localhost:20128/v1',
-        apiKey: apiKey ? String(apiKey).trim() : '',
-        activeModel: activeModel ? String(activeModel).trim() : 'gemini-2.5-flash',
-        fallbackModel: fallbackModel ? String(fallbackModel).trim() : 'gemini-2.5-flash',
-        fallbackGatewayUrl: fallbackGatewayUrl
-          ? String(fallbackGatewayUrl).trim()
-          : 'https://generativelanguage.googleapis.com/v1beta/openai',
-        fallbackApiKey: fallbackApiKey ? String(fallbackApiKey).trim() : '',
+        gatewayUrl: hasNonEmptyString(gatewayUrl)
+          ? gatewayUrl.trim()
+          : resolvedDefault.gatewayUrl,
+        apiKey: hasNonEmptyString(apiKey) ? apiKey.trim() : '',
+        activeModel: hasNonEmptyString(activeModel)
+          ? activeModel.trim()
+          : resolvedDefault.activeModel,
+        fallbackModel: hasNonEmptyString(fallbackModel)
+          ? fallbackModel.trim()
+          : resolvedDefault.activeModel,
+        fallbackGatewayUrl: hasNonEmptyString(fallbackGatewayUrl)
+          ? fallbackGatewayUrl.trim()
+          : '',
+        fallbackApiKey: hasNonEmptyString(fallbackApiKey) ? fallbackApiKey.trim() : '',
         autoFallbackEnabled:
           autoFallbackEnabled !== undefined ? Boolean(autoFallbackEnabled) : true,
         proxyUrl: proxyUrl ? String(proxyUrl).trim() : '',
         healthStatus: 'HEALTHY',
         systemPrompt: systemPrompt ? String(systemPrompt) : 'Asisten MobilJuragan',
-        temperature: temperature !== undefined ? Number(temperature) : 0.7,
-        maxTokens: maxTokens !== undefined ? Number(maxTokens) : 1000,
+        temperature:
+          temperature !== undefined && !isNaN(Number(temperature)) ? Number(temperature) : 0.7,
+        maxTokens:
+          maxTokens !== undefined && !isNaN(Number(maxTokens)) ? Number(maxTokens) : 1200,
         enableRag: enableRag !== undefined ? Boolean(enableRag) : true,
       },
     });
 
     res.status(200).json({
       status: 'ok',
-      data: updated,
+      data: sanitizeAiConfigForClient(updated),
       message: 'Konfigurasi AI Gateway & mitigasi kuota berhasil disimpan.',
     });
   } catch (error) {
@@ -299,8 +409,7 @@ export async function checkAiGatewayHealth(req: Request, res: Response): Promise
   try {
     await ensureAiDefaults();
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
-    const apiKey = config?.apiKey || '';
+    const { gatewayUrl, apiKey, activeModel } = resolve9RouterConfig(config);
 
     const targetUrl = `${gatewayUrl}/models`;
     const headers: Record<string, string> = {};
@@ -350,7 +459,7 @@ export async function checkAiGatewayHealth(req: Request, res: Response): Promise
 
     recordGatewayLog({
       event: 'HEALTH_CHECK',
-      model: config?.activeModel || 'gemini-2.5-flash',
+      model: activeModel,
       status: statusCode,
       latencyMs,
       details: message,
@@ -365,8 +474,8 @@ export async function checkAiGatewayHealth(req: Request, res: Response): Promise
         message,
         checkedAt: new Date().toISOString(),
         gatewayUrl,
-        activeModel: config?.activeModel || 'gemini-2.5-flash',
-        fallbackModel: config?.fallbackModel || 'gemini-2.5-flash',
+        activeModel,
+        fallbackModel: config?.fallbackModel || activeModel,
         autoFallbackEnabled: config?.autoFallbackEnabled ?? true,
         proxyUrl: config?.proxyUrl || '',
       },
@@ -587,8 +696,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
     }
 
     const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const gatewayUrl = (config?.gatewayUrl || 'http://localhost:20128/v1').replace(/\/+$/, '');
-    const activeModel = config?.activeModel || 'gemini-2.5-flash';
+    const { gatewayUrl, apiKey, activeModel } = resolve9RouterConfig(config);
 
     const systemPromptBase =
       reqPrompt !== undefined && String(reqPrompt).trim()
@@ -678,8 +786,8 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       'X-Forwarded-For': networkAffinity,
       'X-Real-IP': networkAffinity,
     };
-    if (config?.apiKey) {
-      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     const controller = new AbortController();
@@ -855,6 +963,7 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
 
 export async function getKnowledgeCategories(_req: Request, res: Response): Promise<void> {
   try {
+    await ensureAiDefaults();
     const categories = await db.knowledgeCategory.findMany({
       orderBy: [{ orderIndex: 'asc' }, { label: 'asc' }],
     });

@@ -9,12 +9,15 @@ export async function ensureAiDefaults(): Promise<void> {
     });
 
     if (!existingSetting) {
+      const gatewayUrl = process.env.NINEROUTER_GATEWAY_URL?.trim() || 'http://localhost:20128/v1';
+      const activeModel = process.env.NINEROUTER_MODEL?.trim() || 'mj';
       await db.aiSetting.create({
         data: {
           id: 'default',
-          gatewayUrl: 'http://localhost:20128/v1',
+          gatewayUrl,
           apiKey: '',
-          activeModel: 'MJ',
+          activeModel,
+          fallbackModel: activeModel,
           temperature: 0.7,
           maxTokens: 1200,
           enableRag: true,
@@ -25,6 +28,26 @@ Jika pelanggan menanyakan hal di luar konteks atau membutuhkan bantuan darurat/n
         },
       });
       logger.info('Pengaturan awal AI Gateway MobilJuragan berhasil dibuat.');
+    }
+
+    // 1b. Inisialisasi Kategori Basis Pengetahuan (RAG) jika tabel masih kosong
+    const categoryCount = await db.knowledgeCategory.count();
+    if (categoryCount === 0) {
+      const initialCategories = [
+        { slug: 'SOP', label: 'SOP & Persyaratan', orderIndex: 10 },
+        { slug: 'ROUTE', label: 'Rute & Wilayah', orderIndex: 20 },
+        { slug: 'TARIFF', label: 'Tarif & Biaya', orderIndex: 30 },
+        { slug: 'EMERGENCY', label: 'Darurat & Bantuan', orderIndex: 40 },
+        { slug: 'GENERAL', label: 'Umum', orderIndex: 50 },
+      ];
+      for (const cat of initialCategories) {
+        await db.knowledgeCategory.upsert({
+          where: { slug: cat.slug },
+          update: {},
+          create: cat,
+        });
+      }
+      logger.info('5 Kategori Basis Pengetahuan (RAG) awal berhasil di-seed.');
     }
 
     // 2. Inisialisasi Dokumen Pengetahuan Awal jika tabel masih kosong
