@@ -18,8 +18,13 @@ import {
  * keputusan alur, bukan bentuk query.
  */
 
-/** Status booking yang membuat supir terkunci dan tidak boleh ditugaskan ganda. */
-const ACTIVE_BOOKING_STATUSES = [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS];
+/** Status booking yang membuat supir terkunci dan tidak boleh ditugaskan ganda maupun direset oleh sapuan cron. */
+const ACTIVE_BOOKING_STATUSES = [
+  BookingStatus.CREATED,
+  BookingStatus.PENDING_CONFIRMATION,
+  BookingStatus.CONFIRMED,
+  BookingStatus.IN_PROGRESS,
+];
 
 /** Bentuk include yang dipakai hampir semua endpoint: penugasan aktif terdekat. */
 const driverInclude = {

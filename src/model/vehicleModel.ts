@@ -71,16 +71,17 @@ async function assertManualStatusChange(
     );
   }
 
-  /* Masa in-service hanya boleh ditutup lewat aksi khusus, supaya jejak
-     pemeriksaan (serviceStartedAt/serviceExpectedDoneAt) ikut dibersihkan.
-     Sebelumnya `IN_SERVICE -> AVAILABLE` sengaja diloloskan di sini, dan
-     akibatnya admin bisa melewati aksi "Selesai Inspeksi" tanpa membersihkan
-     stempel waktu pemeriksaan: unit tampil tersedia padahal masih membawa
-     tanggal inspeksi lama. Sekarang semua perubahan manual ditolak. */
-  if (vehicle.operationalStatus === OperationalStatus.IN_SERVICE) {
+  /* Masa in-service ditutup lewat "Selesai Inspeksi" bila kembali tersedia,
+     atau boleh dialihkan manual ke MAINTENANCE / UNAVAILABLE apabila saat
+     pemeriksaan ditemukan kerusakan yang membutuhkan perbaikan bengkel. */
+  if (
+    vehicle.operationalStatus === OperationalStatus.IN_SERVICE &&
+    nextStatus !== OperationalStatus.MAINTENANCE &&
+    nextStatus !== OperationalStatus.UNAVAILABLE
+  ) {
     throw new AppError(
       'IN_SERVICE_ACTIVE',
-      'Armada sedang dalam masa in-service. Tutup masa pemeriksaan lewat aksi "Selesai Inspeksi", bukan dengan mengubah status.',
+      'Armada sedang dalam masa in-service. Tutup masa pemeriksaan lewat aksi "Selesai Inspeksi", atau ubah ke Servis/Nonaktif bila ditemukan kerusakan.',
       409,
     );
   }
@@ -119,12 +120,17 @@ export const vehicleModel = {
     const { category, transmission, search, operationalStatus, startDate, endDate } = filter;
     const whereClause: Prisma.VehicleWhereInput = {};
 
-    // Filter status operasional (sertakan AVAILABLE, BOOKED, MAINTENANCE agar status armada transparan)
+    // Filter status operasional (sertakan AVAILABLE, BOOKED, IN_SERVICE, MAINTENANCE agar status armada transparan)
     if (operationalStatus && operationalStatus !== 'ALL') {
       whereClause.operationalStatus = operationalStatus as OperationalStatus;
     } else if (!operationalStatus) {
       whereClause.operationalStatus = {
-        in: [OperationalStatus.AVAILABLE, OperationalStatus.BOOKED, OperationalStatus.MAINTENANCE],
+        in: [
+          OperationalStatus.AVAILABLE,
+          OperationalStatus.BOOKED,
+          OperationalStatus.IN_SERVICE,
+          OperationalStatus.MAINTENANCE,
+        ],
       };
     }
 
@@ -248,10 +254,15 @@ export const vehicleModel = {
     return db.$transaction(async (tx) => {
       await assertManualStatusChange(tx, vehicle, nextStatus);
 
+      const keluarInService =
+        vehicle.operationalStatus === OperationalStatus.IN_SERVICE &&
+        nextStatus !== OperationalStatus.IN_SERVICE;
+
       const updated = await tx.vehicle.update({
         where: { id: vehicle.id },
         data: {
           operationalStatus: nextStatus,
+          ...(keluarInService ? { serviceStartedAt: null, serviceExpectedDoneAt: null } : {}),
         },
       });
 
@@ -435,6 +446,11 @@ export const vehicleModel = {
         await assertManualStatusChange(tx, vehicle, data.operationalStatus);
       }
 
+      const keluarInService =
+        data.operationalStatus !== undefined &&
+        vehicle.operationalStatus === OperationalStatus.IN_SERVICE &&
+        data.operationalStatus !== OperationalStatus.IN_SERVICE;
+
       const updated = await tx.vehicle.update({
         where: { id: vehicle.id },
         data: {
@@ -450,6 +466,7 @@ export const vehicleModel = {
           ...(data.operationalStatus !== undefined
             ? { operationalStatus: data.operationalStatus }
             : {}),
+          ...(keluarInService ? { serviceStartedAt: null, serviceExpectedDoneAt: null } : {}),
         },
       });
 

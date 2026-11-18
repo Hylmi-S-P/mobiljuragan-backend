@@ -13,7 +13,7 @@ import {
   Prisma,
 } from '../generated/prisma/client.js';
 import { AppError } from '../lib/response.js';
-import { isFinalBookingStatus } from '../lib/bookingStage.js';
+import { BOOKING_BLOCKING_STATUSES, isFinalBookingStatus } from '../lib/bookingStage.js';
 import { hitungNominalRefund, jenisRefund } from '../lib/refund.js';
 import { generateDynamicQris } from '../utils/qris.js';
 import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
@@ -829,7 +829,7 @@ export const paymentService = {
               where: {
                 driverId: payment.booking.driverId,
                 id: { not: payment.bookingId },
-                status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
+                status: { in: BOOKING_BLOCKING_STATUSES },
               },
             });
 

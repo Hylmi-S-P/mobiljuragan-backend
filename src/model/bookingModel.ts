@@ -14,6 +14,7 @@ import {
 } from '../generated/prisma/client.js';
 import { assertBookingTransition, BOOKING_BLOCKING_STATUSES, JAM_TENGGAT_KONFIRMASI_ADMIN } from '../lib/bookingStage.js';
 import { tenggatAwal } from '../lib/documentDeadline.js';
+import { AppError } from '../lib/response.js';
 import {
   hitungNominalRefund,
   jenisRefund,
@@ -505,6 +506,19 @@ export const bookingModel = {
         return { kind: 'payment_unverified' as const, booking };
       }
 
+      if (
+        isStartingRental &&
+        (booking.vehicle.operationalStatus === OperationalStatus.IN_SERVICE ||
+          booking.vehicle.operationalStatus === OperationalStatus.MAINTENANCE ||
+          booking.vehicle.operationalStatus === OperationalStatus.UNAVAILABLE)
+      ) {
+        throw new AppError(
+          'VEHICLE_NOT_READY',
+          `Armada '${booking.vehicle.name}' sedang berstatus ${booking.vehicle.operationalStatus} dan belum siap diserahkan. Selesaikan masa pemeriksaan atau servis terlebih dahulu.`,
+          409,
+        );
+      }
+
       const updateData: Prisma.BookingUpdateInput = { status: input.nextStatus };
 
       /* Tenggat admin hanya berlaku selama pesanan menunggu penetapan tarif.
@@ -676,13 +690,13 @@ export const bookingModel = {
       });
 
       /* Supir dilepas kembali ke SIAGA saat pesanan selesai, batal, atau ditolak,
-         tetapi hanya kalau tidak ada pesanan aktif lain yang masih memegangnya. */
+         tetapi hanya kalau tidak ada pesanan aktif/terencana lain yang masih memegangnya. */
       if (booking.driverId && CLOSED_BOOKING_STATUSES.includes(input.nextStatus)) {
         const otherActiveBooking = await tx.booking.count({
           where: {
             driverId: booking.driverId,
             id: { not: booking.id },
-            status: { in: ACTIVE_BOOKING_STATUSES },
+            status: { in: BOOKING_BLOCKING_STATUSES },
           },
         });
 
@@ -705,7 +719,7 @@ export const bookingModel = {
 
       if (input.nextStatus === BookingStatus.COMPLETED) {
         const now = new Date();
-        const serviceExpectedDoneAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const serviceExpectedDoneAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
         /* Kalau masih ada pesanan aktif lain yang mulai sebelum masa in-service
            berakhir, armada tetap dianggap terpakai, bukan masuk pemeriksaan. */
@@ -736,14 +750,12 @@ export const bookingModel = {
         });
       }
 
-      /* Pesanan yang dibatalkan atau ditolak SETELAH dibayar menimbulkan kewajiban
-         mengembalikan uang. Catatan ini dulu tidak pernah dibuat: nominal refund
-         hanya dihitung di aplikasi mobile lalu disimpan di cache perangkat, jadi
-         kantor tidak punya daftar siapa yang harus ditransfer balik. */
+      /* Pengembalian armada ke AVAILABLE saat pesanan dibatalkan/ditolak hanya
+         berlaku bila armada saat ini berstatus BOOKED, sehingga tidak menimpa
+         IN_SERVICE, MAINTENANCE, atau UNAVAILABLE. */
       if (
-        (input.nextStatus === BookingStatus.CANCELLED ||
-          input.nextStatus === BookingStatus.REJECTED) &&
-        booking.vehicle.operationalStatus !== OperationalStatus.MAINTENANCE
+        input.nextStatus === BookingStatus.CANCELLED ||
+        input.nextStatus === BookingStatus.REJECTED
       ) {
         const otherActive = await tx.booking.count({
           where: {
@@ -754,8 +766,11 @@ export const bookingModel = {
         });
 
         if (otherActive === 0) {
-          await tx.vehicle.update({
-            where: { id: booking.vehicleId },
+          await tx.vehicle.updateMany({
+            where: {
+              id: booking.vehicleId,
+              operationalStatus: OperationalStatus.BOOKED,
+            },
             data: { operationalStatus: OperationalStatus.AVAILABLE },
           });
         }
@@ -1258,7 +1273,7 @@ export const bookingModel = {
                 where: {
                   driverId: pesanan.driverId,
                   id: { not: pesanan.id },
-                  status: { in: ACTIVE_BOOKING_STATUSES },
+                  status: { in: BOOKING_BLOCKING_STATUSES },
                 },
               });
 
