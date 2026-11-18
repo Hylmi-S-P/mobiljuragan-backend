@@ -28,6 +28,7 @@ import {
   type KomponenTarif,
 } from '../lib/tariff.js';
 import { normalizePickupLocation } from '../lib/pickupPoints.js';
+import { ticketModel } from './ticketModel.js';
 
 /**
  * Lapisan model untuk tabel `bookings` beserta riwayat statusnya.
@@ -805,6 +806,15 @@ export const bookingModel = {
       }
 
       return { kind: 'ok' as const, booking: updatedBooking, komponenTarif };
+    }).then(async (hasil) => {
+      if (hasil && hasil.kind === 'ok' && CLOSED_BOOKING_STATUSES.includes(input.nextStatus)) {
+        const pesanPenutup =
+          input.nextStatus === BookingStatus.COMPLETED
+            ? 'Tiket bantuan pesanan ditutup otomatis karena masa sewa telah selesai. Terima kasih telah menggunakan layanan MobilJuragan.'
+            : 'Tiket bantuan pesanan ditutup otomatis karena pesanan telah dibatalkan.';
+        await ticketModel.closeTicketsForBooking(hasil.booking.id, pesanPenutup);
+      }
+      return hasil;
     });
   },
 
@@ -1177,6 +1187,11 @@ export const bookingModel = {
 
           dibatalkan += 1;
         });
+
+        await ticketModel.closeTicketsForBooking(
+          booking.id,
+          'Tiket bantuan pesanan ditutup otomatis karena pesanan telah dibatalkan.',
+        );
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(`[BookingDeadline] Gagal membatalkan ${booking.bookingCode}:`, error);
@@ -1417,6 +1432,11 @@ export const bookingModel = {
 
           dibatalkan += 1;
         });
+
+        await ticketModel.closeTicketsForBooking(
+          tagihan.bookingId,
+          'Tiket bantuan pesanan ditutup otomatis karena pesanan telah dibatalkan.',
+        );
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(`[BookingLifecycle] Gagal membatalkan tagihan ${tagihan.id}:`, error);

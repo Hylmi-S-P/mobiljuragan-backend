@@ -1,10 +1,47 @@
 import { db } from '../db.js';
-import { TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
+import { TicketCategory, TicketHandler, TicketStatus, type Prisma } from '../generated/prisma/client.js';
+import { NOMOR_WHATSAPP_KANTOR, formatWaktuBantuan } from '../lib/kontak.js';
 import { AppError } from '../lib/response.js';
 import { publishTicketEvent } from '../lib/ticketEvents.js';
 
 /** Status tiket yang sudah final dan tidak boleh menerima pesan baru. */
 const STATUS_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
+
+/**
+ * Menyusun pesan pembuka percakapan bantuan untuk satu pesanan.
+ */
+export function susunPesanPembukaBantuan(booking: {
+  bookingCode: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  pickupLocation: string | null;
+  rentalType: string;
+  vehicle: { name: string; licensePlate: string };
+  driver?: { fullName: string; phoneNumber: string | null } | null;
+}): string {
+  const baris = [
+    `Halo, ini percakapan bantuan untuk pesanan ${booking.bookingCode}.`,
+    '',
+    `Unit: ${booking.vehicle.name} (${booking.vehicle.licensePlate})`,
+    `Jadwal: ${formatWaktuBantuan(booking.startDateTime)} sampai ${formatWaktuBantuan(booking.endDateTime)}`,
+    `Titik jemput: ${booking.pickupLocation ?? 'Kantor MobilJuragan'}`,
+  ];
+
+  if (booking.rentalType === 'WITH_DRIVER') {
+    baris.push(
+      booking.driver
+        ? `Supir: ${booking.driver.fullName}${booking.driver.phoneNumber ? ` (${booking.driver.phoneNumber})` : ''}`
+        : 'Supir: belum ditugaskan',
+    );
+  }
+
+  baris.push(
+    '',
+    `Tulis kebutuhan Anda di sini. Bila perlu bicara langsung, kantor bisa dihubungi di ${NOMOR_WHATSAPP_KANTOR}.`,
+  );
+
+  return baris.join('\n');
+}
 
 /**
  * Mengambil id tiket dari berbagai bentuk relasi yang diterima Prisma.
@@ -183,6 +220,100 @@ export const ticketModel = {
 
       return tiket;
     });
+  },
+
+  /**
+   * Memastikan tiket bantuan khusus pesanan dibuat otomatis saat pembayaran
+   * disetujui Admin (`Payment.status = PAID`). Jika tiket terbuka untuk pesanan
+   * tersebut sudah ada, dikembalikan apa adanya.
+   */
+  async ensureOpenTicketForBooking(booking: {
+    id: string;
+    customerId: string;
+    bookingCode: string;
+    startDateTime: Date;
+    endDateTime: Date;
+    pickupLocation: string | null;
+    rentalType: string;
+    vehicle: { name: string; licensePlate: string };
+    driver?: { fullName: string; phoneNumber: string | null } | null;
+  }) {
+    const existing = await ticketModel.findOpenByBooking(booking.id, booking.customerId);
+    if (existing) return existing;
+
+    const title = `Bantuan pesanan ${booking.bookingCode}`.slice(0, 100);
+    const openingMessage = susunPesanPembukaBantuan(booking);
+
+    return ticketModel.createForBooking({
+      customerId: booking.customerId,
+      bookingId: booking.id,
+      title,
+      category: TicketCategory.GENERAL,
+      description: `Percakapan bantuan untuk pesanan ${booking.bookingCode}.`,
+      openingMessage,
+    });
+  },
+
+  /**
+   * Menutup otomatis seluruh tiket bantuan yang terikat pada satu pesanan ketika
+   * pesanan tersebut selesai (`COMPLETED`) atau dibatalkan (`CANCELLED` / `REJECTED`).
+   */
+  async closeTicketsForBooking(bookingId: string, reasonMessage: string): Promise<number> {
+    const kandidat = await db.supportTicket.findMany({
+      where: {
+        bookingId,
+        status: { notIn: STATUS_FINAL },
+      },
+      select: { id: true },
+    });
+
+    if (kandidat.length === 0) return 0;
+
+    const now = new Date();
+    let ditutup = 0;
+
+    for (const tiket of kandidat) {
+      const hasil = await db.$transaction(async (tx) => {
+        const terakhir = await tx.ticketMessage.findFirst({
+          where: { ticketId: tiket.id },
+          orderBy: { sequence: 'desc' },
+          select: { sequence: true },
+        });
+
+        await tx.ticketMessage.create({
+          data: {
+            ticket: { connect: { id: tiket.id } },
+            body: reasonMessage,
+            isCustomer: false,
+            isAi: true,
+            sequence: (terakhir?.sequence ?? 0) + 1,
+          },
+        });
+
+        return tx.supportTicket.updateMany({
+          where: { id: tiket.id, status: { notIn: STATUS_FINAL } },
+          data: {
+            status: TicketStatus.CLOSED,
+            closedAt: now,
+            closedBySystem: true,
+            lastActivityAt: now,
+          },
+        });
+      });
+
+      ditutup += hasil.count;
+
+      if (hasil.count > 0) {
+        publishTicketEvent({
+          jenis: 'status',
+          ticketId: tiket.id,
+          status: TicketStatus.CLOSED,
+          versi: now.toISOString(),
+        });
+      }
+    }
+
+    return ditutup;
   },
 
   /**
@@ -496,17 +627,16 @@ export const ticketModel = {
   },
 
   /**
-   * Menutup otomatis tiket berstatus RESOLVED yang telah melewati batas masa tenggang (default 24 jam)
-   * tanpa adanya tanggapan atau pesan balasan baru dari pelanggan.
+   * Menutup otomatis tiket manual (`bookingId == null`) berstatus RESOLVED yang telah
+   * melewati batas masa tenggang (default 24 jam) tanpa tanggapan baru.
    */
   async autoCloseResolvedTickets(olderThanHours = 24) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const now = new Date();
 
-    /* Id dibaca lebih dulu supaya peristiwa penutupan bisa disiarkan per tiket.
-       `updateMany` hanya mengembalikan jumlah, dan klien yang sedang membuka
-       tiket itu perlu tahu bahwa tiketnya sudah ditutup. */
     const kandidat = await db.supportTicket.findMany({
       where: {
+        bookingId: null,
         status: TicketStatus.RESOLVED,
         updatedAt: { lte: cutoff },
       },
@@ -522,7 +652,7 @@ export const ticketModel = {
       },
       data: {
         status: TicketStatus.CLOSED,
-        closedAt: new Date(),
+        closedAt: now,
         closedBySystem: true,
       },
     });
@@ -532,7 +662,7 @@ export const ticketModel = {
         jenis: 'status',
         ticketId: tiket.id,
         status: TicketStatus.CLOSED,
-        versi: new Date().toISOString(),
+        versi: now.toISOString(),
       });
     }
 
@@ -540,24 +670,19 @@ export const ticketModel = {
   },
 
   /**
-   * Menutup tiket yang tidak bergerak selama lebih dari 24 jam.
+   * Menutup tiket manual (`bookingId == null`) yang tidak bergerak selama lebih dari 24 jam.
    *
-   * Berlaku untuk semua tiket, bukan hanya yang dipegang asisten. Keputusan ini
-   * diambil karena staf tidak bisa menutup tiket dan pelanggan sering tidak
-   * peduli menutupnya: tanpa penutupan oleh sistem, antrean customer care akan
-   * menumpuk dengan percakapan yang sudah selesai.
-   *
-   * Ukurannya `lastActivityAt`, bukan `updatedAt`: kolom terakhir ikut berubah
-   * saat admin hanya mengganti kategori, dan itu bukan tanda percakapan hidup.
-   *
-   * Tiket yang pesan terakhirnya dari pelanggan dan belum dijawab tetap ditutup,
-   * tetapi diberi catatan penutup supaya staf tahu ada pertanyaan yang terlewat.
+   * Tiket khusus pesanan (`bookingId != null`) dikecualikan dari auto-close 24 jam
+   * agar tetap aktif selama masa sewa berjalan dan hanya ditutup otomatis ketika
+   * pesanan selesai (`COMPLETED`) atau dibatalkan (`CANCELLED`).
    */
   async autoCloseIdleTickets(olderThanHours = 24) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const now = new Date();
 
     const kandidat = await db.supportTicket.findMany({
       where: {
+        bookingId: null,
         status: { notIn: STATUS_FINAL },
         lastActivityAt: { lte: cutoff },
       },
@@ -599,7 +724,7 @@ export const ticketModel = {
           where: { id: tiket.id, status: { notIn: STATUS_FINAL } },
           data: {
             status: TicketStatus.CLOSED,
-            closedAt: new Date(),
+            closedAt: now,
             closedBySystem: true,
           },
         });
@@ -612,7 +737,7 @@ export const ticketModel = {
           jenis: 'status',
           ticketId: tiket.id,
           status: TicketStatus.CLOSED,
-          versi: new Date().toISOString(),
+          versi: now.toISOString(),
         });
       }
     }

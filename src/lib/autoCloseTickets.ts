@@ -1,33 +1,35 @@
-import { BookingStatus } from '../generated/prisma/client.js';
+import { TicketStatus } from '../generated/prisma/client.js';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
+import { publishTicketEvent } from './ticketEvents.js';
 
 /**
- * Penutupan otomatis tiket yang sudah lama tidak bergerak.
+ * Penjadwal tunggal penutupan otomatis tiket manual (`bookingId == null`) yang tidak
+ * aktif selama 24 jam.
  *
- * Masalah yang diselesaikan: tiket yang ditinggalkan pelanggan menumpuk di
- * antrean tanpa batas. Tidak ada cara membedakan percakapan yang masih hidup
- * dari yang sudah mati, jadi admin melihat daftar panjang berisi tiket yang
- * sebenarnya sudah selesai.
- *
- * Aturan yang dipakai:
- * - Hanya tiket yang belum tertutup yang diperiksa.
- * - Batas diamnya 24 jam sejak aktivitas terakhir.
- * - Tiket yang masih ditangani AI TIDAK ikut ditutup, karena asisten AI boleh
- *   saja masih menunggu balasan pelanggan pada percakapan yang baru dimulai.
- * - Tiket yang punya pesanan aktif (CONFIRMED atau IN_PROGRESS) juga tidak
- *   ditutup. Pelanggan yang sedang dalam perjalanan masih butuh saluran ini,
- *   dan menutupnya di tengah jalan justru menambah masalah.
+ * Aturan yang ditegakkan:
+ * - Hanya tiket manual (`bookingId: null`) yang belum tertutup (`OPEN`, `IN_PROGRESS`,
+ *   `WAITING_CUSTOMER`, `RESOLVED`) yang diperiksa.
+ * - Tiket khusus pesanan (`bookingId != null`) dikecualikan dari auto-close 24 jam
+ *   selama masa sewa berjalan, dan ditutup otomatis begitu pesanan `COMPLETED` atau
+ *   `CANCELLED`.
+ * - Setiap penutupan otomatis selalu menyetel `status = CLOSED`,
+ *   `closedBySystem = true`, dan `closedAt = sekarang`.
  */
 
-/** Batas diam sebelum tiket ditutup, dalam milidetik. */
+/** Batas diam sebelum tiket ditutup, dalam milidetik (24 jam). */
 export const BATAS_DIAM_MS = 24 * 60 * 60 * 1000;
 
-/** Jeda antar siklus pemeriksaan, dalam milidetik. */
-const JEDA_SIKLUS_MS = 60 * 60 * 1000;
+/** Jeda antar siklus pemeriksaan, dalam milidetik (30 menit). */
+const JEDA_SIKLUS_MS = 30 * 60 * 1000;
 
-/** Status tiket yang dianggap masih terbuka. */
-const STATUS_TERBUKA = ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER'] as const;
+/** Status tiket yang masih dapat ditutup otomatis setelah diam 24 jam. */
+const STATUS_AKTIF_ATAU_RESOLVED: TicketStatus[] = [
+  TicketStatus.OPEN,
+  TicketStatus.IN_PROGRESS,
+  TicketStatus.WAITING_CUSTOMER,
+  TicketStatus.RESOLVED,
+];
 
 export interface HasilPenutupan {
   diperiksa: number;
@@ -37,10 +39,8 @@ export interface HasilPenutupan {
 }
 
 /**
- * Menutup satu putaran tiket yang sudah kedaluwarsa.
- *
- * Dipisah dari penjadwal supaya bisa dipanggil langsung oleh pengujian tanpa
- * menunggu satu jam.
+ * Menutup satu putaran tiket manual (`bookingId == null`) yang sudah tidak aktif
+ * selama minimal 24 jam.
  */
 export async function tutupTiketKedaluwarsa(
   sekarang: Date = new Date(),
@@ -49,10 +49,9 @@ export async function tutupTiketKedaluwarsa(
 
   const kandidat = await db.supportTicket.findMany({
     where: {
-      status: { in: [...STATUS_TERBUKA] },
-      lastActivityAt: { lt: batas },
-      /* Tiket yang masih dipegang AI dilewati. */
-      handledBy: { not: 'AI' },
+      bookingId: null,
+      status: { in: STATUS_AKTIF_ATAU_RESOLVED },
+      lastActivityAt: { lte: batas },
     },
     select: {
       id: true,
@@ -60,6 +59,11 @@ export async function tutupTiketKedaluwarsa(
       customerId: true,
       status: true,
       lastActivityAt: true,
+      messages: {
+        orderBy: { sequence: 'desc' },
+        take: 1,
+        select: { isCustomer: true },
+      },
     },
   });
 
@@ -72,107 +76,100 @@ export async function tutupTiketKedaluwarsa(
     };
   }
 
-  /* Pelanggan yang masih punya pesanan aktif tidak ikut ditutup. Satu query
-     untuk semua pelanggan kandidat, bukan satu query per tiket. */
-  const idPelanggan = [...new Set(kandidat.map((t) => t.customerId))];
-  const pesananAktif = await db.booking.findMany({
-    where: {
-      customerId: { in: idPelanggan },
-      status: { in: [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] },
-    },
-    select: { customerId: true },
-  });
-  const pelangganDenganPesanan = new Set(pesananAktif.map((b) => b.customerId));
+  const idYangDitutup: string[] = [];
 
-  const akanDitutup = kandidat.filter((t) => !pelangganDenganPesanan.has(t.customerId));
-  const dilewati = kandidat.length - akanDitutup.length;
+  for (const tiket of kandidat) {
+    const terakhirDariPelanggan = tiket.messages[0]?.isCustomer === true;
+    const catatan = terakhirDariPelanggan
+      ? 'Tiket ditutup otomatis karena tidak ada balasan selama 24 jam. Pesan terakhir Anda belum sempat dijawab petugas; tulis lagi di tiket ini bila masih perlu dibantu.'
+      : 'Tiket ditutup otomatis karena tidak ada aktivitas selama 24 jam. Tulis lagi di tiket ini bila masih perlu dibantu.';
 
-  if (akanDitutup.length === 0) {
-    return {
-      diperiksa: kandidat.length,
-      ditutup: 0,
-      dilewatiKarenaPesananAktif: dilewati,
-      idYangDitutup: [],
-    };
-  }
+    const hasil = await db.$transaction(async (tx) => {
+      if (tiket.status !== TicketStatus.RESOLVED) {
+        const pesanTerakhir = await tx.ticketMessage.aggregate({
+          where: { ticketId: tiket.id },
+          _max: { sequence: true },
+        });
+        const urutanBerikut = (pesanTerakhir._max.sequence ?? 0) + 1;
 
-  /* Setiap penutupan menulis pesan penjelasan supaya pelanggan tidak mendapati
-     tiketnya hilang tanpa sebab. Pesan dan perubahan status dibungkus satu
-     transaksi per tiket agar tidak pernah terpisah. */
-  for (const tiket of akanDitutup) {
-    await db.$transaction(async (tx) => {
-      const pesanTerakhir = await tx.ticketMessage.aggregate({
-        where: { ticketId: tiket.id },
-        _max: { sequence: true },
-      });
-      const urutanBerikut = (pesanTerakhir._max.sequence ?? 0) + 1;
+        await tx.ticketMessage.create({
+          data: {
+            ticketId: tiket.id,
+            body: catatan,
+            isCustomer: false,
+            isAi: true,
+            sequence: urutanBerikut,
+          },
+        });
+      }
 
-      await tx.ticketMessage.create({
-        data: {
-          ticketId: tiket.id,
-          body:
-            'Tiket ini ditutup otomatis karena tidak ada balasan selama 24 jam. ' +
-            'Kalau masih perlu dibantu, silakan balas pesan ini atau buat tiket baru.',
-          isCustomer: false,
-          isAi: false,
-          sequence: urutanBerikut,
+      return tx.supportTicket.updateMany({
+        where: {
+          id: tiket.id,
+          bookingId: null,
+          status: { in: STATUS_AKTIF_ATAU_RESOLVED },
         },
-      });
-
-      await tx.supportTicket.update({
-        where: { id: tiket.id },
         data: {
-          status: 'CLOSED',
+          status: TicketStatus.CLOSED,
+          closedBySystem: true,
+          closedAt: sekarang,
           lastActivityAt: sekarang,
         },
       });
     });
+
+    if (hasil.count > 0) {
+      idYangDitutup.push(tiket.id);
+      publishTicketEvent({
+        jenis: 'status',
+        ticketId: tiket.id,
+        status: TicketStatus.CLOSED,
+        versi: sekarang.toISOString(),
+      });
+    }
   }
 
   return {
     diperiksa: kandidat.length,
-    ditutup: akanDitutup.length,
-    dilewatiKarenaPesananAktif: dilewati,
-    idYangDitutup: akanDitutup.map((t) => t.id),
+    ditutup: idYangDitutup.length,
+    dilewatiKarenaPesananAktif: 0,
+    idYangDitutup,
   };
 }
 
 let penjadwal: NodeJS.Timeout | null = null;
 
 /**
- * Menyalakan penjadwal. Aman dipanggil berkali-kali: kalau sudah menyala,
- * panggilan berikutnya tidak membuat penjadwal kedua.
+ * Menyalakan penjadwal tunggal penutupan tiket. Aman dipanggil berkali-kali:
+ * kalau sudah menyala, panggilan berikutnya tidak membuat penjadwal kedua.
  */
-export function mulaiPenjadwalTiket(): void {
-  if (penjadwal) return;
-
-  const jalankan = async () => {
-    try {
-      const hasil = await tutupTiketKedaluwarsa();
-      if (hasil.ditutup > 0) {
-        logger.info(
-          {
-            ditutup: hasil.ditutup,
-            diperiksa: hasil.diperiksa,
-            dilewatiKarenaPesananAktif: hasil.dilewatiKarenaPesananAktif,
-          },
-          'Penutupan otomatis tiket selesai',
-        );
+export function mulaiPenjadwalTiket(intervalMs: number = JEDA_SIKLUS_MS): { stop: () => void } {
+  if (!penjadwal) {
+    const jalankan = async () => {
+      try {
+        const hasil = await tutupTiketKedaluwarsa();
+        if (hasil.ditutup > 0) {
+          logger.info(
+            {
+              ditutup: hasil.ditutup,
+              diperiksa: hasil.diperiksa,
+            },
+            'Penutupan otomatis tiket selesai',
+          );
+        }
+      } catch (error) {
+        logger.error({ error }, 'Penutupan otomatis tiket gagal');
       }
-    } catch (error) {
-      /* Kegagalan satu siklus tidak boleh mematikan penjadwal. Dicatat lalu
-         siklus berikutnya tetap berjalan. */
-      logger.error({ error }, 'Penutupan otomatis tiket gagal');
-    }
+    };
+
+    void jalankan();
+    penjadwal = setInterval(jalankan, intervalMs);
+    penjadwal.unref?.();
+  }
+
+  return {
+    stop: hentikanPenjadwalTiket,
   };
-
-  /* Satu putaran langsung saat mulai, lalu berkala. Tanpa putaran awal, tiket
-     yang sudah kedaluwarsa baru tertutup satu jam setelah server menyala. */
-  void jalankan();
-  penjadwal = setInterval(jalankan, JEDA_SIKLUS_MS);
-
-  /* Jangan menahan proses tetap hidup hanya karena penjadwal ini. */
-  penjadwal.unref?.();
 }
 
 /** Mematikan penjadwal. Dipakai pengujian supaya proses bisa berhenti bersih. */

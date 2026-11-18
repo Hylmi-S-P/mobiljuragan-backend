@@ -16,6 +16,7 @@ import {
 import { AppError } from '../lib/response.js';
 import { BOOKING_BLOCKING_STATUSES, isFinalBookingStatus } from '../lib/bookingStage.js';
 import { hitungNominalRefund, jenisRefund } from '../lib/refund.js';
+import { ticketModel } from '../model/ticketModel.js';
 import { generateDynamicQris } from '../utils/qris.js';
 import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
 
@@ -708,6 +709,9 @@ export const paymentService = {
             booking: {
               include: {
                 vehicle: true,
+                driver: {
+                  select: { fullName: true, phoneNumber: true },
+                },
                 customer: {
                   select: { id: true, fullName: true, phoneNumber: true },
                 },
@@ -736,7 +740,7 @@ export const paymentService = {
           },
         });
 
-        return denganBuktiSegar(updated);
+        return { kind: 'APPROVE' as const, updated };
       } else {
         // REJECT
         const now = new Date();
@@ -887,8 +891,18 @@ export const paymentService = {
           },
         });
 
-        return denganBuktiSegar(updated);
+        return { kind: 'REJECT' as const, updated };
       }
+    }).then(async (hasil) => {
+      if (hasil.kind === 'APPROVE') {
+        await ticketModel.ensureOpenTicketForBooking(hasil.updated.booking);
+      } else if (params.cancelBooking) {
+        await ticketModel.closeTicketsForBooking(
+          hasil.updated.bookingId,
+          'Tiket bantuan pesanan ditutup otomatis karena pesanan telah dibatalkan.',
+        );
+      }
+      return denganBuktiSegar(hasil.updated);
     });
   },
 };

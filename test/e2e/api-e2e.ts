@@ -1887,13 +1887,25 @@ const kasus: Kasus[] = [
     id: 'T6.20',
     nama: 'Tombol chat pesanan membuka satu tiket berisi ringkasan sewa',
     async fn({ adminToken }) {
-      const { customerToken, booking } = await siapkanPesanan(adminToken);
+      const belumLunas = await siapkanPesanan(adminToken);
+      const ditolakBelumLunas = await api(`/tickets/booking/${belumLunas.booking.id}`, {
+        method: 'POST',
+        token: belumLunas.customerToken,
+      });
+      pastikanDitolak(
+        ditolakBelumLunas,
+        409,
+        'BOOKING_NOT_PAID',
+        'tiket pesanan sebelum pembayaran diverifikasi lunas',
+      );
+
+      const { customerToken, booking } = await siapkanPesananTerbayar(adminToken);
 
       const pertama = await api(`/tickets/booking/${booking.id}`, {
         method: 'POST',
         token: customerToken,
       });
-      harapan(pertama, 201, 'buka tiket pesanan');
+      harapan(pertama, [200, 201], 'buka tiket pesanan');
 
       const tiket = pertama.body.data;
       if (tiket.bookingId !== booking.id) {
@@ -1942,7 +1954,7 @@ const kasus: Kasus[] = [
       pastikanDitolak(pesananOrangLain, 404, 'BOOKING_NOT_FOUND', 'tiket pesanan orang lain');
 
       /* Lewat tujuh hari sejak sewa berakhir, tombol bantuan pesanan ditutup. */
-      const pesananLama = await siapkanPesanan(adminToken);
+      const pesananLama = await siapkanPesananTerbayar(adminToken);
       await sqlUji(
         'UPDATE bookings SET endDateTime = UTC_TIMESTAMP(3) - INTERVAL 8 DAY WHERE id = ?',
         [pesananLama.booking.id],
@@ -1963,13 +1975,13 @@ const kasus: Kasus[] = [
     id: 'T6.24',
     nama: 'Tiket yang ditutup sistem bisa dibuka lagi oleh pesan pelanggan dalam tujuh hari',
     async fn({ adminToken }) {
-      const { customerToken, booking } = await siapkanPesanan(adminToken);
+      const { customerToken, booking } = await siapkanPesananTerbayar(adminToken);
 
       const dibuka = await api(`/tickets/booking/${booking.id}`, {
         method: 'POST',
         token: customerToken,
       });
-      harapan(dibuka, 201, 'buka tiket pesanan');
+      harapan(dibuka, [200, 201], 'buka tiket pesanan');
       const tiket = dibuka.body.data;
 
       /* Sistem menutup tiket yang tidak ada balasan selama 24 jam. */

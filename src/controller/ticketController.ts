@@ -1,9 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
-import { TicketCategory, TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
-import { ticketModel } from '../model/ticketModel.js';
+import { PaymentStatus, TicketCategory, TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
+import { susunPesanPembukaBantuan, ticketModel } from '../model/ticketModel.js';
 import { bookingModel } from '../model/bookingModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import { NOMOR_WHATSAPP_KANTOR, formatWaktuBantuan } from '../lib/kontak.js';
 
 /**
  * Controller customer care.
@@ -53,46 +52,6 @@ function validateTicketText(title: string, description: string): void {
       400,
     );
   }
-}
-
-/**
- * Menyusun pesan pembuka percakapan bantuan untuk satu pesanan.
- *
- * Isinya hanya data yang memang sudah tercatat di sistem. Sengaja tidak memuat
- * status pembayaran: status itu bisa berubah setelah pesan ini tersimpan, dan
- * pesan lama yang menyebut "sudah lunas" akan menyesatkan pembaca berikutnya.
- */
-function susunPesanPembukaBantuan(booking: {
-  bookingCode: string;
-  startDateTime: Date;
-  endDateTime: Date;
-  pickupLocation: string | null;
-  rentalType: string;
-  vehicle: { name: string; licensePlate: string };
-  driver: { fullName: string; phoneNumber: string | null } | null;
-}): string {
-  const baris = [
-    `Halo, ini percakapan bantuan untuk pesanan ${booking.bookingCode}.`,
-    '',
-    `Unit: ${booking.vehicle.name} (${booking.vehicle.licensePlate})`,
-    `Jadwal: ${formatWaktuBantuan(booking.startDateTime)} sampai ${formatWaktuBantuan(booking.endDateTime)}`,
-    `Titik jemput: ${booking.pickupLocation ?? 'Kantor MobilJuragan'}`,
-  ];
-
-  if (booking.rentalType === 'WITH_DRIVER') {
-    baris.push(
-      booking.driver
-        ? `Supir: ${booking.driver.fullName}${booking.driver.phoneNumber ? ` (${booking.driver.phoneNumber})` : ''}`
-        : 'Supir: belum ditugaskan',
-    );
-  }
-
-  baris.push(
-    '',
-    `Tulis kebutuhan Anda di sini. Bila perlu bicara langsung, kantor bisa dihubungi di ${NOMOR_WHATSAPP_KANTOR}.`,
-  );
-
-  return baris.join('\n');
 }
 
 const CATEGORY_MAP: Record<string, TicketCategory> = {
@@ -670,10 +629,12 @@ export const ticketController = {
         );
       }
 
-      const terbuka = await ticketModel.findOpenByBooking(booking.id, booking.customerId);
-      if (terbuka) {
-        sendSuccess(res, { ...terbuka, dipakaiUlang: true }, 200);
-        return;
+      if (booking.payment?.status !== PaymentStatus.PAID) {
+        throw new AppError(
+          'BOOKING_NOT_PAID',
+          'Percakapan bantuan khusus pesanan hanya tersedia setelah pembayaran pesanan diverifikasi lunas.',
+          409,
+        );
       }
 
       /* Bantuan lewat tiket hanya berguna selama sewa masih relevan. Setelah
@@ -688,6 +649,12 @@ export const ticketController = {
           'Masa bantuan untuk pesanan ini sudah lewat tujuh hari setelah sewa selesai. Silakan buat tiket bantuan baru.',
           409,
         );
+      }
+
+      const terbuka = await ticketModel.findOpenByBooking(booking.id, booking.customerId);
+      if (terbuka) {
+        sendSuccess(res, { ...terbuka, dipakaiUlang: true }, 200);
+        return;
       }
 
       const judul = `Bantuan pesanan ${booking.bookingCode}`.slice(0, MAKS_PANJANG_JUDUL);
