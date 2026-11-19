@@ -102,14 +102,13 @@ export const faqModel = {
     });
   },
 
-  /* --------------------------------------------------------------------------
+  /**
    * Kategori FAQ.
    *
-   * Kategori bukan tabel sendiri: ia hanya kolom teks pada FAQ. Karena itu
-   * "menghapus kategori" berarti memastikan tidak ada lagi FAQ yang memakainya —
-   * bukan menghapus baris. Mengganti nama kategori berarti mengganti kolom pada
-   * semua FAQ sekaligus, supaya tidak lahir dua kategori yang beda ejaan.
-   * ------------------------------------------------------------------------ */
+   * Kategori bukan tabel terpisah: hanya kolom teks pada tabel FAQ. Menghapus
+   * kategori berarti memastikan tidak ada lagi FAQ yang menggunakannya.
+   * Mengganti nama kategori memperbarui kolom pada seluruh FAQ terkait.
+   */
 
   /** Daftar kategori beserta jumlah FAQ-nya, diurutkan dari yang paling banyak. */
   async listCategories() {

@@ -185,17 +185,15 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       (a, b) => b.totalRevenue - a.totalRevenue || b.completedBookings - a.completedBookings
     );
 
-    /* ================= Data untuk grafik =================
-     *
-     * Query terpisah dari `bookings` di atas. `bookings` sudah disaring oleh
-     * parameter `range` yang dipakai tabel dan kartu, sedangkan grafik butuh
-     * rentang tetap 12 bulan dan 4 tahun. Kalau memakai `bookings` yang sama,
-     * grafik akan ikut mengecil begitu pengguna memilih "bulan ini".
-     *
-     * Yang dihitung hanya transaksi yang benar-benar lunas (PAID). Tanggal yang
-     * dipakai adalah waktu verifikasi pembayaran, karena di situlah uang masuk.
-     * Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
-     */
+    // Data untuk grafik
+    //
+    // Query terpisah dari `bookings` di atas. `bookings` sudah disaring oleh
+    // parameter `range` yang dipakai tabel dan kartu, sedangkan grafik butuh
+    // rentang tetap 12 bulan dan 4 tahun.
+    //
+    // Yang dihitung hanya transaksi yang benar-benar lunas (PAID). Tanggal yang
+    // dipakai adalah waktu verifikasi pembayaran, karena di situlah uang masuk.
+    // Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
     const BULAN_GRAFIK = jumlahBulan;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -242,7 +240,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       return 0;
     };
 
-    /* --- Grafik 1: 12 bulan terakhir, tiap bulan dipecah per minggu --- */
+    // Grafik 1: 12 bulan terakhir per minggu
     type BulanGrafik = {
       label: string;
       shortLabel: string;
@@ -267,12 +265,12 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         bulan: d.getMonth() + 1,
         revenue: 0,
         bookings: 0,
-        // Satu bulan paling banyak 5 minggu (31 hari → ceil(31/7) = 5).
+        // Satu bulan paling banyak 5 minggu (31 hari -> ceil(31/7) = 5).
         weekly: [0, 0, 0, 0, 0],
       });
     }
 
-    /* --- Grafik 2: tahun ke tahun, 4 tahun terakhir --- */
+    // Grafik 2: perbandingan tahunan (YoY) 4 tahun terakhir
     type TahunGrafik = { tahun: number; revenue: number; bookings: number };
     const tahunMap = new Map<number, TahunGrafik>();
     const urutanTahun: number[] = [];

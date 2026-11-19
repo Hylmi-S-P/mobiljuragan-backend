@@ -39,7 +39,7 @@ async function main() {
   const pembayaranDibersihkan: { bookingCode: string; mediaId: string }[] = [];
   const templateDimatikan: { kode: string; objectKey: string }[] = [];
 
-  // ---- 1. Dokumen pesanan -------------------------------------------------
+  // 1. Dokumen pesanan
   const dokumen = await db.bookingDocument.findMany({
     include: { booking: { select: { bookingCode: true } } },
   });
@@ -76,7 +76,7 @@ async function main() {
     }
   }
 
-  // ---- 2. Objek media (bukti transfer dsb.) ------------------------------
+  // 2. Objek media (bukti transfer dsb.)
   const media = await db.mediaObject.findMany();
   for (const objek of media) {
     if (await mediaStorage.ada(objek.objectKey)) continue;
@@ -96,7 +96,7 @@ async function main() {
     if (terapkan) await db.mediaObject.delete({ where: { id: objek.id } });
   }
 
-  // ---- 3. Template dokumen resmi -----------------------------------------
+  // 3. Template dokumen resmi
   const template = await db.documentTemplate.findMany();
   for (const t of template) {
     if (await mediaStorage.ada(t.berkasObjectKey)) continue;
@@ -109,7 +109,7 @@ async function main() {
     }
   }
 
-  // ---- Laporan ------------------------------------------------------------
+  // Ringkasan laporan
   console.log(`Mode: ${terapkan ? 'TERAPKAN' : 'COBA DULU (tanpa menulis)'}`);
   console.log(`Berkas yang objeknya hilang: ${hilang.length}`);
   for (const x of hilang) console.log(`  - ${x}`);
