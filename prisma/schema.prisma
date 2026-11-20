@@ -678,6 +678,11 @@ model KnowledgeCategory {
   @@map("knowledge_categories")
 }
 
+enum KnowledgeSourceType {
+  DOCUMENT
+  FAQ
+}
+
 model KnowledgeDocument {
   id        String   @id @default(uuid())
   title     String
@@ -686,6 +691,8 @@ model KnowledgeDocument {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  chunks KnowledgeChunk[]
 
   @@index([category])
   @@index([isActive])
@@ -703,6 +710,8 @@ model Faq {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  chunks KnowledgeChunk[]
 
   @@index([category])
   @@index([isActive])
@@ -928,4 +937,35 @@ model DocumentTemplate {
   @@index([kode, isActive])
   @@index([isActive])
   @@map("document_templates")
+}
+
+/// Potongan pengetahuan (chunk) beserta vektor embedding untuk Hybrid RAG (Cosine + BM25).
+model KnowledgeChunk {
+  id             String              @id @default(uuid())
+  sourceType     KnowledgeSourceType
+  documentId     String?
+  document       KnowledgeDocument?  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  faqId          String?
+  faq            Faq?                @relation(fields: [faqId], references: [id], onDelete: Cascade)
+  chunkIndex     Int
+  title          String              @db.VarChar(255)
+  category       String              @db.VarChar(100)
+  content        String              @db.Text
+  contentHash    String              @db.Char(64)
+  tokenCount     Int                 @default(0)
+  embeddingModel String?             @db.VarChar(120)
+  embeddingDims  Int                 @default(0)
+  embeddingJson  String?             @db.LongText
+  isActive       Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([documentId, chunkIndex])
+  @@unique([faqId, chunkIndex])
+  @@index([sourceType, isActive])
+  @@index([documentId])
+  @@index([faqId])
+  @@index([contentHash])
+  @@index([category])
+  @@map("knowledge_chunks")
 }

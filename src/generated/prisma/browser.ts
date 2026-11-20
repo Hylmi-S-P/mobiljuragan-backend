@@ -178,3 +178,8 @@ export type MediaObject = Prisma.MediaObjectModel
  * begitu dokumen yang sudah ditandatangani tetap bisa ditelusuri.
  */
 export type DocumentTemplate = Prisma.DocumentTemplateModel
+/**
+ * Model KnowledgeChunk
+ * Potongan pengetahuan (chunk) beserta vektor embedding untuk Hybrid RAG (Cosine + BM25).
+ */
+export type KnowledgeChunk = Prisma.KnowledgeChunkModel

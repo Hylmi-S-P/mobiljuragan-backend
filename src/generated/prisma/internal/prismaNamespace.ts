@@ -418,7 +418,8 @@ export const ModelName = {
   BookingRefund: 'BookingRefund',
   BookingDocument: 'BookingDocument',
   MediaObject: 'MediaObject',
-  DocumentTemplate: 'DocumentTemplate'
+  DocumentTemplate: 'DocumentTemplate',
+  KnowledgeChunk: 'KnowledgeChunk'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -434,7 +435,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "tariffSetting" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingRefund" | "bookingDocument" | "mediaObject" | "documentTemplate"
+    modelProps: "user" | "identityAudit" | "vehicle" | "driver" | "booking" | "bookingLineItem" | "bookingStatusHistory" | "otpVerification" | "phoneGuard" | "supportTicket" | "ticketMessage" | "auditLog" | "tariffSetting" | "aiSetting" | "knowledgeCategory" | "knowledgeDocument" | "faq" | "payment" | "bookingRefund" | "bookingDocument" | "mediaObject" | "documentTemplate" | "knowledgeChunk"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1890,6 +1891,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    KnowledgeChunk: {
+      payload: Prisma.$KnowledgeChunkPayload<ExtArgs>
+      fields: Prisma.KnowledgeChunkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KnowledgeChunkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KnowledgeChunkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        findFirst: {
+          args: Prisma.KnowledgeChunkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KnowledgeChunkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        findMany: {
+          args: Prisma.KnowledgeChunkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>[]
+        }
+        create: {
+          args: Prisma.KnowledgeChunkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        createMany: {
+          args: Prisma.KnowledgeChunkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.KnowledgeChunkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        update: {
+          args: Prisma.KnowledgeChunkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        deleteMany: {
+          args: Prisma.KnowledgeChunkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KnowledgeChunkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.KnowledgeChunkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+        }
+        aggregate: {
+          args: Prisma.KnowledgeChunkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKnowledgeChunk>
+        }
+        groupBy: {
+          args: Prisma.KnowledgeChunkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeChunkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KnowledgeChunkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KnowledgeChunkCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2322,6 +2389,28 @@ export const DocumentTemplateScalarFieldEnum = {
 export type DocumentTemplateScalarFieldEnum = (typeof DocumentTemplateScalarFieldEnum)[keyof typeof DocumentTemplateScalarFieldEnum]
 
 
+export const KnowledgeChunkScalarFieldEnum = {
+  id: 'id',
+  sourceType: 'sourceType',
+  documentId: 'documentId',
+  faqId: 'faqId',
+  chunkIndex: 'chunkIndex',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  contentHash: 'contentHash',
+  tokenCount: 'tokenCount',
+  embeddingModel: 'embeddingModel',
+  embeddingDims: 'embeddingDims',
+  embeddingJson: 'embeddingJson',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeChunkScalarFieldEnum = (typeof KnowledgeChunkScalarFieldEnum)[keyof typeof KnowledgeChunkScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2631,6 +2720,21 @@ export const DocumentTemplateOrderByRelevanceFieldEnum = {
 export type DocumentTemplateOrderByRelevanceFieldEnum = (typeof DocumentTemplateOrderByRelevanceFieldEnum)[keyof typeof DocumentTemplateOrderByRelevanceFieldEnum]
 
 
+export const KnowledgeChunkOrderByRelevanceFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  faqId: 'faqId',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  contentHash: 'contentHash',
+  embeddingModel: 'embeddingModel',
+  embeddingJson: 'embeddingJson'
+} as const
+
+export type KnowledgeChunkOrderByRelevanceFieldEnum = (typeof KnowledgeChunkOrderByRelevanceFieldEnum)[keyof typeof KnowledgeChunkOrderByRelevanceFieldEnum]
+
+
 
 /**
  * Field references
@@ -2818,6 +2922,13 @@ export type EnumRefundStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 export type EnumDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentStatus'>
     
 
+
+/**
+ * Reference to a field of type 'KnowledgeSourceType'
+ */
+export type EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeSourceType'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2991,6 +3102,7 @@ export type GlobalOmitConfig = {
   bookingDocument?: Prisma.BookingDocumentOmit
   mediaObject?: Prisma.MediaObjectOmit
   documentTemplate?: Prisma.DocumentTemplateOmit
+  knowledgeChunk?: Prisma.KnowledgeChunkOmit
 }
 
 /* Types for Logging */

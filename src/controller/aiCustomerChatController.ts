@@ -1,26 +1,19 @@
 import type { Request, Response } from 'express';
-import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { ticketModel } from '../model/ticketModel.js';
+import { NOMOR_WHATSAPP_KANTOR } from '../lib/kontak.js';
+import { runAssistantTurn } from '../lib/ai/chatOrchestrator.js';
 import { TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
-import {
-  generateConversationTraceId,
-  resolve9RouterConfig,
-  resolveClientNetworkAffinity,
-} from './aiConfigController.js';
-import * as crypto from 'node:crypto';
 
 /**
- * Controller Chat Pelanggan (Aplikasi Mobile & Web Pelanggan)
+ * Controller Chat Pelanggan (Aplikasi Mobile & Web Pelanggan).
+ * Mempertahankan seluruh pagar keamanan tiket sebelum memanggil AI Orchestrator.
  */
 export async function handleCustomerAiChat(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
   try {
     const rawPrompt = req.body?.message ?? req.body?.prompt;
     const history = req.body?.history;
-    /* Opsional. Kalau klien mengirim id tiket, percakapan ikut disimpan ke tiket
-       itu sehingga admin bisa membacanya setelah mengambil alih. Tanpa id tiket,
-       perilaku lama dipertahankan: hanya menjawab, tidak menyimpan. */
     const rawTicketId = req.body?.ticketId ?? req.body?.ticket_id;
 
     if (!rawPrompt || typeof rawPrompt !== 'string' || !rawPrompt.trim()) {
@@ -32,14 +25,9 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     }
 
     const prompt = rawPrompt.trim();
-
-    /* Tiket diperiksa lebih dulu. Kalau tiket sudah dipegang staf, asisten AI
-       harus berhenti menjawab supaya tidak ada dua pihak yang membalas hal yang
-       sama di satu ruangan. */
     const ticketId = typeof rawTicketId === 'string' && rawTicketId ? rawTicketId : undefined;
-    /* `tiket` dideklarasikan di luar blok supaya bisa dipakai lagi saat menyimpan
-       pesan dan saat menyelaraskan status tiket di bawah. */
     let tiket: Awaited<ReturnType<typeof ticketModel.findById>> = null;
+
     if (ticketId) {
       tiket = await ticketModel.findById(ticketId);
       if (!tiket) {
@@ -49,23 +37,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         });
         return;
       }
-      /* Menyentuh tiket HARUS terautentikasi, tanpa terkecuali.
-       *
-       * `optionalAuth` membuat `req.user` boleh kosong, dan tanpa aturan ini
-       * pemanggil anonim yang memperoleh sebuah id tiket bisa menulis ke tiket
-       * itu — pesannya tercatat, dan enam pesan terakhir tiket itu ikut dibaca ke
-       * konteks model. Riwayat orang lain tidak boleh terbaca lewat pintu yang
-       * tidak memeriksa siapa pemanggilnya.
-       *
-       * Dipilih MENOLAK tanpa token, bukan hanya memeriksa saat token ada,
-       * karena pemeriksaan bersyarat menyisakan celah: penyerang tinggal tidak
-       * mengirim token untuk melewatinya. Semua pemanggil sah sudah mengirim
-       * token setiap kali menyertakan `ticketId` (aplikasi mobile selalu memakai
-       * akun pelanggan yang login, dan suite E2E AI selalu mengirim
-       * `Authorization`), jadi aturan ini tidak memutus alur yang dipakai.
-       *
-       * Konsultasi umum TANPA `ticketId` tetap boleh anonim — di situlah letak
-       * gunanya `optionalAuth`. */
+
       if (!req.user) {
         res.status(401).json({
           status: 'error',
@@ -78,9 +50,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         return;
       }
 
-      /* Pemilik tiket diperiksa sebelum apa pun yang membocorkan informasi
-       * tentang tiketnya. Pemeriksaan status diturunkan SESUDAH ini supaya orang
-       * luar tidak bisa menebak status tiket dari beda kode galat. */
       if (req.user.role === UserRole.CUSTOMER && tiket.customerId !== req.user.userId) {
         res.status(403).json({
           status: 'error',
@@ -92,19 +61,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         return;
       }
 
-      /* Tiket yang sudah ditutup ditolak sebelum inferensi dijalankan.
-       *
-       * Dua alasan. Pertama, biaya: penolakan di sini terjadi sebelum panggilan
-       * ke gateway, jadi tidak ada token yang terbakar untuk percakapan yang
-       * sudah selesai. Kedua, kebenaran data: tanpa pemeriksaan ini asisten
-       * tetap menjawab dan `createAiMessage` tetap menulis balasannya ke tiket
-       * yang sudah tertutup, sehingga percakapan yang seharusnya berhenti
-       * berlanjut tanpa ada yang memantau.
-       *
-       * Diletakkan sebelum pemeriksaan `handledBy` karena status tertutup
-       * berlaku untuk tiket yang dipegang AI maupun staf. Tiket bisa berstatus
-       * CLOSED sambil masih `handledBy = AI` — itu justru yang dihasilkan
-       * autoCloseStaleAiSessions — dan sebelumnya jalur inilah yang lolos. */
       if (tiket.status === TicketStatus.CLOSED) {
         res.status(409).json({
           status: 'error',
@@ -118,8 +74,6 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       }
 
       if (tiket.handledBy === TicketHandler.HUMAN) {
-        /* Bentuk galat disamakan dengan handler galat aplikasi (`error.code`),
-           supaya klien cukup membaca satu bentuk untuk semua kegagalan. */
         res.status(409).json({
           status: 'error',
           error: {
@@ -132,238 +86,104 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       }
     }
 
-    // 1. Susun Konteks Pengetahuan Resmi (RAG)
-    const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const { gatewayUrl, apiKey, activeModel } = resolve9RouterConfig(config);
-    const enableRag = config?.enableRag ?? true;
-
-    const systemPromptBase =
-      config?.systemPrompt ||
-      'Anda adalah Asisten Virtual Resmi MobilJuragan (CV. Mobil Juragan Express Transport, Merauke).';
-
-    let ragContextText = '';
-    if (enableRag) {
-      const activeDocs = await db.knowledgeDocument.findMany({
-        where: { isActive: true },
-        orderBy: { category: 'asc' },
-      });
-
-      const activeFaqs = await db.faq.findMany({
-        where: { isActive: true },
-        orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }],
-      });
-
-      if (activeDocs.length > 0) {
-        ragContextText += '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG) ===\n';
-        for (const doc of activeDocs) {
-          ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
-        }
-        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\n';
-      }
-
-      if (activeFaqs.length > 0) {
-        ragContextText += '\n\n=== BASIS PENGETAHUAN FAQ RESMI MOBILJURAGAN ===\n';
-        for (const faq of activeFaqs) {
-          ragContextText += `\n[KATEGORI: ${faq.category}]\nTANYA: ${faq.question}\nJAWAB: ${faq.answer}\n`;
-        }
-        ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
-      }
-    }
-
-    const fullSystemPrompt = `${systemPromptBase}${ragContextText}\nJawab pertanyaan pelanggan secara ramah, akurat, dan sopan sesuai standar MobilJuragan Merauke.`;
-
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: fullSystemPrompt },
-    ];
-
-    if (Array.isArray(history)) {
-      for (const h of history.slice(-6)) {
-        if (h.role && h.content) {
-          messages.push({ role: h.role, content: h.content });
-        }
-      }
-    }
-
-    /* Kalau tiketnya diketahui, riwayat diambil dari database dan dipakai
-       menggantikan riwayat kiriman klien. Dua alasan: klien bisa mengirim riwayat
-       palsu, dan riwayat di database adalah satu-satunya yang juga dibaca admin.
-       Dengan begitu yang dijawab AI sama dengan yang dilihat admin. */
+    // Susun riwayat dari DB bila terikat tiket (sumber kebenaran tunggal),
+    // atau dari riwayat klien jika percakapan konsultasi umum tanpa tiket.
+    const historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     let isPromptAlreadyLastMessage = false;
+
     if (ticketId) {
       const riwayatDb = await ticketModel.listMessages(ticketId);
       if (riwayatDb.length > 0) {
-        messages.length = 1; // sisakan system prompt saja
-        for (const m of riwayatDb.slice(-6)) {
-          messages.push({
+        const lastMsg = riwayatDb[riwayatDb.length - 1];
+        if (lastMsg?.isCustomer && lastMsg.body.trim() === prompt) {
+          isPromptAlreadyLastMessage = true;
+        }
+
+        const contextSlice = isPromptAlreadyLastMessage
+          ? riwayatDb.slice(0, -1).slice(-6)
+          : riwayatDb.slice(-6);
+
+        for (const m of contextSlice) {
+          historyMessages.push({
             role: m.isCustomer ? 'user' : 'assistant',
             content: m.body,
           });
         }
-        const pesanTerakhir = riwayatDb[riwayatDb.length - 1];
-        if (pesanTerakhir?.isCustomer && pesanTerakhir.body.trim() === prompt.trim()) {
-          isPromptAlreadyLastMessage = true;
+      }
+
+      if (!isPromptAlreadyLastMessage) {
+        const senderId = req.user?.userId ?? tiket?.customerId;
+        if (senderId) {
+          await ticketModel.createMessage({
+            ticket: { connect: { id: ticketId } },
+            sender: { connect: { id: senderId } },
+            body: prompt,
+            isCustomer: true,
+          });
+        }
+
+        if (
+          tiket &&
+          (tiket.status === TicketStatus.WAITING_CUSTOMER ||
+            tiket.status === TicketStatus.RESOLVED)
+        ) {
+          await ticketModel.updateStatus(ticketId, TicketStatus.IN_PROGRESS);
+        }
+      }
+    } else if (Array.isArray(history)) {
+      for (const h of history.slice(-6)) {
+        if (
+          h &&
+          (h.role === 'user' || h.role === 'assistant') &&
+          typeof h.content === 'string' &&
+          h.content.trim()
+        ) {
+          historyMessages.push({ role: h.role, content: h.content.trim() });
         }
       }
     }
 
-    if (!isPromptAlreadyLastMessage) {
-      messages.push({ role: 'user', content: prompt });
+    const result = await runAssistantTurn({
+      userMessage: prompt,
+      historyMessages,
+      user: req.user ? { userId: req.user.userId, role: req.user.role } : null,
+      ticketId: ticketId ?? null,
+      bookingId: tiket?.bookingId ?? null,
+      isSandbox: false,
+    });
+
+    if (ticketId) {
+      await ticketModel.createAiMessage(ticketId, result.reply);
     }
 
-    /* Pesan pelanggan disimpan SEBELUM inferensi dijalankan. Kalau gateway gagal
-       atau waktu habis, pertanyaan pelanggan tetap tercatat sehingga admin bisa
-       melihat apa yang ditanyakan. Balasan AI menyusul setelah berhasil.
-
-       Pengirim memakai `req.user` kalau ada. Pemanggil tanpa token tetap boleh
-       menulis ke tiketnya sendiri lewat jalur ini, jadi pemilik tiket dipakai
-       sebagai pengirim pengganti supaya kolom `sender` tidak kosong. */
-    if (ticketId && !isPromptAlreadyLastMessage) {
-      const senderId = req.user?.userId ?? tiket?.customerId;
-      if (senderId) {
-        await ticketModel.createMessage({
-          ticket: { connect: { id: ticketId } },
-          sender: { connect: { id: senderId } },
-          body: prompt,
-          isCustomer: true,
-        });
-      }
-
-      /* Balasan pelanggan menghidupkan lagi tiket yang tadinya menunggu jawaban
-         atau sudah dijawab. Tanpa ini tiket tetap terlihat selesai padahal
-         percakapannya berlanjut. */
-      if (
-        tiket &&
-        (tiket.status === TicketStatus.WAITING_CUSTOMER ||
-          tiket.status === TicketStatus.RESOLVED)
-      ) {
-        await ticketModel.updateStatus(ticketId, TicketStatus.IN_PROGRESS);
-      }
-    }
-
-    // 2. Eksekusi Inferensi LLM melalui 9Router Gateway
-    const targetUrl = `${gatewayUrl}/chat/completions`;
-    const traceId = generateConversationTraceId();
-    const networkAffinity = resolveClientNetworkAffinity();
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Session-ID': traceId,
-      'X-Session-Affinity': traceId,
-      'X-Request-ID': `cust-${crypto.randomUUID()}`,
-      'X-Forwarded-For': networkAffinity,
-      'X-Real-IP': networkAffinity,
-    };
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
-
-    try {
-      const apiRes = await fetch(targetUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: activeModel,
-          messages,
-          temperature: config?.temperature ?? 0.7,
-          max_tokens: config?.maxTokens ?? 1200,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      const latencyMs = Date.now() - startTime;
-
-      if (!apiRes.ok) {
-        throw new Error(`Upstream gateway mengembalikan status HTTP ${apiRes.status}`);
-      }
-
-      const rawText = await apiRes.text();
-      let replyContent = '';
-
-      const trimmed = rawText.trim();
-      if (trimmed.startsWith('{')) {
-        try {
-          const json = JSON.parse(trimmed);
-          replyContent = json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
-        } catch {
-          // parse sebagai SSE
-        }
-      }
-
-      if (!replyContent) {
-        let accumulated = '';
-        for (const line of trimmed.split('\n')) {
-          const l = line.trim();
-          if (l.startsWith('data: ')) {
-            const dataStr = l.slice(6).trim();
-            if (dataStr === '[DONE]') continue;
-            try {
-              const chunk = JSON.parse(dataStr);
-              accumulated += chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
-            } catch {
-              // ignore
-            }
-          }
-        }
-        replyContent = accumulated.trim();
-      }
-
-      if (!replyContent) {
-        replyContent = 'Halo! Tim MobilJuragan Merauke siap melayani Anda. Silakan hubungi kami untuk informasi lebih lanjut.';
-      }
-
-      /* Balasan AI disimpan setelah isinya pasti, supaya yang tersimpan adalah
-         teks yang benar-benar dikirim ke pelanggan. */
-      if (ticketId) {
-        await ticketModel.createAiMessage(ticketId, replyContent);
-      }
-
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          reply: replyContent,
-          latencyMs,
-          ticketId: ticketId ?? null,
-        },
-      });
-    } catch (networkError) {
-      clearTimeout(timeout);
-      logger.warn(
-        { error: (networkError as Error).message },
-        'Gateway AI tidak merespons pada endpoint customer chat',
-      );
-
-      // Graceful fallback response khas rental MobilJuragan
-      const balasanCadangan = `Halo Sobat Juragan! Terima kasih telah menghubungi MobilJuragan Merauke.\n\nSaat ini sistem asisten virtual kami sedang melakukan sinkronisasi otomatis. Seluruh layanan rental mobil dalam kota Merauke, rute Sota, dan Boven Digoel tetap beroperasi normal dengan armada prima (Innova Reborn, Fortuner, Avanza, Hilux 4x4).\n\nUntuk informasi ketersediaan unit dan pemesanan cepat, silakan langsung hubungi customer service kami via WhatsApp di +62 812-4800-2910. Tim kami siap melayani Anda!`;
-
-      /* Balasan cadangan pun disimpan. Kalau tidak, riwayat di tiket akan terlihat
-         seperti pelanggan bicara sendiri tanpa pernah dijawab. */
-      if (ticketId) {
-        try {
-          await ticketModel.createAiMessage(ticketId, balasanCadangan);
-        } catch (simpanError) {
-          logger.error({ error: simpanError }, 'Gagal menyimpan balasan cadangan AI');
-        }
-      }
-
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          reply: balasanCadangan,
-          latencyMs: Date.now() - startTime,
-          ticketId: ticketId ?? null,
-          fallback: true,
-        },
-      });
-    }
+    res.status(200).json({
+      status: 'ok',
+      data: {
+        reply: result.reply,
+        latencyMs: result.latencyMs,
+        ticketId: ticketId ?? null,
+        fallback: result.fallbackUsed,
+        ragMode: result.rag.mode,
+        toolsUsed: result.toolsUsed.map((t) => t.name),
+        intentGuard: result.intentGuard,
+        ticketHandedOver: result.ticketHandedOver,
+      },
+    });
   } catch (error) {
-    logger.error({ error }, 'Galat fatal pada handleCustomerAiChat');
-    res.status(500).json({
-      status: 'error',
-      message: 'Gagal memproses percakapan asisten AI.',
+    logger.error({ error }, 'Terjadi galat pada endpoint customer AI chat');
+    const balasanCadangan = [
+      'Halo Sobat Juragan! Layanan asisten virtual kami sedang dalam pemeliharaan singkat.',
+      `Untuk pengecekan armada maupun bantuan pesanan cepat, silakan hubungi customer service kami via WhatsApp resmi ${NOMOR_WHATSAPP_KANTOR}.`,
+    ].join('\n\n');
+
+    res.status(200).json({
+      status: 'ok',
+      data: {
+        reply: balasanCadangan,
+        latencyMs: Date.now() - startTime,
+        ticketId: null,
+        fallback: true,
+      },
     });
   }
 }
