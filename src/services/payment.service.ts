@@ -494,6 +494,9 @@ export const paymentService = {
           senderAccount: params.senderAccount || payment.senderAccount,
           bankName: params.bankName || payment.bankName,
           status: PaymentStatus.PENDING_VERIFICATION,
+          verifiedAt: null,
+          verifiedBy: null,
+          notes: null,
         },
         include: {
           booking: {

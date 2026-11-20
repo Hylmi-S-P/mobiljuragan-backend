@@ -846,7 +846,10 @@ export const bookingModel = {
       if (booking.rentalType !== RentalType.WITH_DRIVER) {
         return { kind: 'not_with_driver' as const, booking };
       }
-      if (CLOSED_BOOKING_STATUSES.includes(booking.status)) {
+      if (
+        booking.status !== BookingStatus.CREATED &&
+        booking.status !== BookingStatus.PENDING_CONFIRMATION
+      ) {
         return { kind: 'not_assignable' as const, booking };
       }
 

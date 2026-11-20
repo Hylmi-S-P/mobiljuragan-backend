@@ -398,6 +398,9 @@ export const authController = {
       if (nama.length < 3) {
         throw new AppError('INVALID_INPUT', 'Nama lengkap minimal 3 karakter.', 400);
       }
+      if (nama.length > 60) {
+        throw new AppError('INVALID_INPUT', 'Nama lengkap maksimal 60 karakter.', 400);
+      }
 
       const user = await authModel.createVerifiedCustomer({
         phoneNumber,

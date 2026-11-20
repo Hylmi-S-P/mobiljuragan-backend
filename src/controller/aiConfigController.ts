@@ -232,10 +232,11 @@ export function resolve9RouterConfig(
     dbConfig?.apiKey?.trim() ||
     readLocal9RouterApiKey() ||
     '';
-  const activeModel =
+  const rawModel =
     process.env.NINEROUTER_MODEL?.trim() ||
     dbConfig?.activeModel?.trim() ||
-    'mj';
+    'MJ';
+  const activeModel = rawModel.toUpperCase() === 'MJ' ? 'MJ' : rawModel;
 
   return { gatewayUrl, apiKey, activeModel };
 }
@@ -336,6 +337,14 @@ export async function updateAiConfig(req: Request, res: Response): Promise<void>
     const resolvedDefault = resolve9RouterConfig(null);
     const hasNonEmptyString = (val: unknown): val is string =>
       typeof val === 'string' && val.trim().length > 0;
+
+    if (systemPrompt !== undefined && String(systemPrompt).length > 2000) {
+      res.status(400).json({
+        status: 'error',
+        message: 'System prompt maksimal 2000 karakter.',
+      });
+      return;
+    }
 
     const updated = await db.aiSetting.upsert({
       where: { id: 'default' },
@@ -515,11 +524,28 @@ export async function createKnowledgeDocument(req: Request, res: Response): Prom
       return;
     }
 
+    const judul = String(title).trim();
+    const isi = String(content).trim();
+    const kategori = category ? String(category).trim().toUpperCase() : 'GENERAL';
+
+    if (judul.length > 80) {
+      res.status(400).json({ status: 'error', message: 'Judul dokumen maksimal 80 karakter.' });
+      return;
+    }
+    if (kategori.length > 40) {
+      res.status(400).json({ status: 'error', message: 'Kategori maksimal 40 karakter.' });
+      return;
+    }
+    if (isi.length > 3000) {
+      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 3000 karakter.' });
+      return;
+    }
+
     const doc = await db.knowledgeDocument.create({
       data: {
-        title: String(title).trim(),
-        category: category ? String(category).trim().toUpperCase() : 'GENERAL',
-        content: String(content).trim(),
+        title: judul,
+        category: kategori,
+        content: isi,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
       },
     });
@@ -543,6 +569,19 @@ export async function updateKnowledgeDocument(req: Request, res: Response): Prom
     const existing = await db.knowledgeDocument.findUnique({ where: { id } });
     if (!existing) {
       res.status(404).json({ status: 'error', message: 'Dokumen pengetahuan tidak ditemukan.' });
+      return;
+    }
+
+    if (title !== undefined && String(title).trim().length > 80) {
+      res.status(400).json({ status: 'error', message: 'Judul dokumen maksimal 80 karakter.' });
+      return;
+    }
+    if (category !== undefined && String(category).trim().length > 40) {
+      res.status(400).json({ status: 'error', message: 'Kategori maksimal 40 karakter.' });
+      return;
+    }
+    if (content !== undefined && String(content).trim().length > 3000) {
+      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 3000 karakter.' });
       return;
     }
 
@@ -692,6 +731,16 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
 
     if (!prompt || typeof prompt !== 'string') {
       res.status(400).json({ status: 'error', message: 'Pertanyaan (prompt) tidak boleh kosong.' });
+      return;
+    }
+
+    if (prompt.trim().length > 300) {
+      res.status(400).json({ status: 'error', message: 'Pesan uji coba maksimal 300 karakter.' });
+      return;
+    }
+
+    if (reqPrompt !== undefined && String(reqPrompt).length > 2000) {
+      res.status(400).json({ status: 'error', message: 'System prompt maksimal 2000 karakter.' });
       return;
     }
 

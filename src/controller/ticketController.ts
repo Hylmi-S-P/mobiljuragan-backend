@@ -20,7 +20,7 @@ const CATEGORY_VALUES = Object.values(TicketCategory);
 /** Status tiket yang final: tidak menerima pesan baru lagi. */
 const TIKET_FINAL: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
 
-const MAKS_PANJANG_PESAN = 2000;
+const MAKS_PANJANG_PESAN = 500;
 
 /* Judul dan deskripsi tiket sebelumnya tidak dibatasi sama sekali: kiriman
    sepanjang apa pun diterima, lalu memecahkan tata letak kartu tiket di
@@ -33,9 +33,8 @@ const MAKS_PANJANG_JUDUL = 100;
  *  bantuan biasa. */
 const BATAS_HARI_BANTUAN_PESANAN = 7;
 
-/** Deskripsi dipakai sebagai pesan pertama percakapan, jadi tidak boleh lebih
-    panjang dari satu pesan biasa. */
-const MAKS_PANJANG_DESKRIPSI = MAKS_PANJANG_PESAN;
+/** Deskripsi dipakai sebagai pesan pertama percakapan dengan batas lebih ringkas. */
+const MAKS_PANJANG_DESKRIPSI = 1000;
 
 function validateTicketText(title: string, description: string): void {
   if (title.length > MAKS_PANJANG_JUDUL) {

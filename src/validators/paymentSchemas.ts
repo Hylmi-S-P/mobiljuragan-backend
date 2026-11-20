@@ -24,7 +24,7 @@ export const createPaymentSchema = z.object({
   /* Batas panjang bukan soal penyimpanan — MySQL sanggup menampungnya. Ini soal
      layar: catatan sepanjang ribuan karakter tidak terbaca di kartu verifikasi
      dan membuat tabel riwayat melar. */
-  notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
+  notes: z.string().trim().max(300, 'Catatan maksimal 300 karakter.').optional(),
 });
 
 /**
@@ -44,9 +44,9 @@ export const uploadPaymentProofSchema = z
     senderAccount: z
       .string()
       .trim()
-      .max(120, 'Nama pengirim maksimal 120 karakter.')
+      .max(60, 'Nama pengirim maksimal 60 karakter.')
       .optional(),
-    bankName: z.string().trim().max(60, 'Nama bank maksimal 60 karakter.').optional(),
+    bankName: z.string().trim().max(30, 'Nama bank maksimal 30 karakter.').optional(),
   })
   .refine((data) => Boolean(data.proofImageUrl || data.proofMediaId), {
     message: 'Bukti transfer wajib diunggah.',
@@ -56,7 +56,7 @@ export const uploadPaymentProofSchema = z
 export const adminVerifyPaymentSchema = z
   .object({
     action: z.enum(['APPROVE', 'REJECT']),
-    notes: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
+    notes: z.string().trim().max(300, 'Catatan maksimal 300 karakter.').optional(),
     /* Hanya berlaku untuk REJECT. `false` (bawaan) menolak bukti bayar tetapi
        membiarkan pesanan hidup supaya pelanggan bisa mengunggah ulang; `true`
        membatalkan pesanan sekaligus, dipakai saat ada indikasi penipuan. */
@@ -70,7 +70,7 @@ export const adminVerifyPaymentSchema = z
 export const listPaymentQuerySchema = z.object({
   status: z.nativeEnum(PaymentStatus).optional(),
   method: z.nativeEnum(PaymentMethod).optional(),
-  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
+  search: z.string().trim().max(50, 'Kata kunci maksimal 50 karakter.').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

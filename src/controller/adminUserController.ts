@@ -15,19 +15,44 @@ import { normalizePhoneNumber } from '../lib/phone.js';
  */
 
 export const createAdminSchema = z.object({
-  fullName: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.'),
-  phoneNumber: z.string().trim().min(8, 'Nomor telepon/kontak minimal 8 digit.'),
+  fullName: z
+    .string()
+    .trim()
+    .min(3, 'Nama lengkap minimal 3 karakter.')
+    .max(60, 'Nama lengkap maksimal 60 karakter.'),
+  phoneNumber: z
+    .string()
+    .trim()
+    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
+    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.'),
   role: z.enum(['ADMIN', 'STAFF'], {
     error: 'Peran harus bernilai ADMIN atau STAFF.',
   }),
-  password: z.string().min(8, 'Kata sandi minimal 8 karakter.'),
+  password: z
+    .string()
+    .min(8, 'Kata sandi minimal 8 karakter.')
+    .max(50, 'Kata sandi maksimal 50 karakter.'),
 });
 
 export const updateAdminSchema = z.object({
-  fullName: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.').optional(),
-  phoneNumber: z.string().trim().min(8, 'Nomor telepon/kontak minimal 8 digit.').optional(),
+  fullName: z
+    .string()
+    .trim()
+    .min(3, 'Nama lengkap minimal 3 karakter.')
+    .max(60, 'Nama lengkap maksimal 60 karakter.')
+    .optional(),
+  phoneNumber: z
+    .string()
+    .trim()
+    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
+    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.')
+    .optional(),
   role: z.enum(['ADMIN', 'STAFF']).optional(),
-  password: z.string().min(8, 'Kata sandi minimal 8 karakter.').optional(),
+  password: z
+    .string()
+    .min(8, 'Kata sandi minimal 8 karakter.')
+    .max(50, 'Kata sandi maksimal 50 karakter.')
+    .optional(),
   isActive: z.boolean().optional(),
 });
 

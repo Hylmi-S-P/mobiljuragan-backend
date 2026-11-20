@@ -48,31 +48,40 @@ const imageUrlSchema = z
   .optional();
 
 const createVehicleSchema = z.object({
-  name: z.string().trim().min(1, 'Nama armada wajib diisi.').max(120, 'Nama armada maksimal 120 karakter.'),
+  name: z.string().trim().min(1, 'Nama armada wajib diisi.').max(60, 'Nama armada maksimal 60 karakter.'),
   licensePlate: z
     .string()
     .trim()
     .min(1, 'Plat nomor wajib diisi.')
-    .max(20, 'Plat nomor maksimal 20 karakter.'),
-  category: z.string().trim().max(60, 'Kategori maksimal 60 karakter.').optional(),
-  transmission: z.string().trim().max(40, 'Transmisi maksimal 40 karakter.').optional(),
-  seatingCapacity: z.number().int().positive().optional(),
-  pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.'),
-  brand: z.string().trim().max(60, 'Merek maksimal 60 karakter.').optional(),
-  model: z.string().trim().max(60, 'Model maksimal 60 karakter.').optional(),
+    .max(15, 'Plat nomor maksimal 15 karakter.'),
+  category: z.string().trim().max(40, 'Kategori maksimal 40 karakter.').optional(),
+  transmission: z.string().trim().max(30, 'Transmisi maksimal 30 karakter.').optional(),
+  seatingCapacity: z.number().int().positive().max(50, 'Kapasitas kursi maksimal 50.').optional(),
+  pricePerDay: z
+    .number()
+    .int()
+    .positive('Tarif sewa per hari harus bernilai positif.')
+    .max(100_000_000, 'Tarif sewa per hari maksimal Rp 100.000.000.'),
+  brand: z.string().trim().max(40, 'Merek maksimal 40 karakter.').optional(),
+  model: z.string().trim().max(40, 'Model maksimal 40 karakter.').optional(),
   imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });
 
 const updateVehicleSchema = z.object({
-  name: z.string().trim().min(1).max(120, 'Nama armada maksimal 120 karakter.').optional(),
-  licensePlate: z.string().trim().min(1).max(20, 'Plat nomor maksimal 20 karakter.').optional(),
-  category: z.string().trim().max(60, 'Kategori maksimal 60 karakter.').optional(),
-  transmission: z.string().trim().max(40, 'Transmisi maksimal 40 karakter.').optional(),
-  seatingCapacity: z.number().int().positive().optional(),
-  pricePerDay: z.number().int().positive('Tarif sewa per hari harus bernilai positif.').optional(),
-  brand: z.string().trim().max(60, 'Merek maksimal 60 karakter.').optional(),
-  model: z.string().trim().max(60, 'Model maksimal 60 karakter.').optional(),
+  name: z.string().trim().min(1).max(60, 'Nama armada maksimal 60 karakter.').optional(),
+  licensePlate: z.string().trim().min(1).max(15, 'Plat nomor maksimal 15 karakter.').optional(),
+  category: z.string().trim().max(40, 'Kategori maksimal 40 karakter.').optional(),
+  transmission: z.string().trim().max(30, 'Transmisi maksimal 30 karakter.').optional(),
+  seatingCapacity: z.number().int().positive().max(50, 'Kapasitas kursi maksimal 50.').optional(),
+  pricePerDay: z
+    .number()
+    .int()
+    .positive('Tarif sewa per hari harus bernilai positif.')
+    .max(100_000_000, 'Tarif sewa per hari maksimal Rp 100.000.000.')
+    .optional(),
+  brand: z.string().trim().max(40, 'Merek maksimal 40 karakter.').optional(),
+  model: z.string().trim().max(40, 'Model maksimal 40 karakter.').optional(),
   imageUrl: imageUrlSchema,
   operationalStatus: z.nativeEnum(OperationalStatus).optional(),
 });
@@ -81,7 +90,7 @@ const updateVehicleStatusSchema = z.object({
   status: z.nativeEnum(OperationalStatus, {
     error: 'Status operasional tidak valid (pilih: AVAILABLE, BOOKED, MAINTENANCE, UNAVAILABLE).',
   }),
-  note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+  note: z.string().max(300, 'Catatan maksimal 300 karakter.').optional(),
 });
 
 // Menambah unit armada baru

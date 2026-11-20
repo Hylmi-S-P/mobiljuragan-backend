@@ -12,7 +12,7 @@ import { DriverLicenseType, DriverReadiness, DriverRoute } from '../generated/pr
 export const listQuerySchema = z.object({
   readiness: z.nativeEnum(DriverReadiness).optional(),
   routeScope: z.nativeEnum(DriverRoute).optional(),
-  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
+  search: z.string().trim().max(50, 'Kata kunci maksimal 50 karakter.').optional(),
   includeInactive: z.enum(['true', 'false']).optional(),
 });
 
@@ -66,7 +66,7 @@ export const createDriverSchema = z.object({
     .string()
     .trim()
     .min(3, 'Nama supir minimal 3 karakter.')
-    .max(80, 'Nama supir maksimal 80 karakter.'),
+    .max(60, 'Nama supir maksimal 60 karakter.'),
   phoneNumber: phoneSchema,
   licenseNumber: licenseSchema,
   /* Jenis SIM dipilih dari daftar, bukan diketik. Halimah meminta ini supaya
@@ -84,5 +84,5 @@ export const readinessSchema = z.object({
   readiness: z.nativeEnum(DriverReadiness, {
     error: 'Status kesiapan tidak valid (pilih: SIAGA, LIBUR, atau SEDANG_TUGAS).',
   }),
-  note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+  note: z.string().max(300, 'Catatan maksimal 300 karakter.').optional(),
 });

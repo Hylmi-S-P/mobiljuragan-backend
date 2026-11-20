@@ -5,8 +5,8 @@ import { z } from 'zod';
  */
 
 export const listFaqQuerySchema = z.object({
-  category: z.string().trim().max(100, 'Kategori maksimal 100 karakter.').optional(),
-  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
+  category: z.string().trim().max(40, 'Kategori maksimal 40 karakter.').optional(),
+  search: z.string().trim().max(50, 'Kata kunci maksimal 50 karakter.').optional(),
   isActive: z.enum(['true', 'false']).optional(),
 });
 
@@ -18,7 +18,7 @@ export const createFaqSchema = z.object({
     })
     .trim()
     .min(3, 'Pertanyaan minimal 3 karakter.')
-    .max(1000, 'Pertanyaan maksimal 1000 karakter.'),
+    .max(150, 'Pertanyaan maksimal 150 karakter.'),
   answer: z
     .string({
       error: (issue) =>
@@ -26,7 +26,7 @@ export const createFaqSchema = z.object({
     })
     .trim()
     .min(3, 'Jawaban minimal 3 karakter.')
-    .max(5000, 'Jawaban maksimal 5000 karakter.'),
+    .max(1000, 'Jawaban maksimal 1000 karakter.'),
   category: z
     .string({
       error: (issue) =>
@@ -34,7 +34,7 @@ export const createFaqSchema = z.object({
     })
     .trim()
     .min(1, 'Kategori wajib diisi.')
-    .max(100, 'Kategori maksimal 100 karakter.'),
+    .max(40, 'Kategori maksimal 40 karakter.'),
   orderIndex: z
     .number({
       error: (issue) =>

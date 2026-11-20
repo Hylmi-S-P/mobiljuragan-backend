@@ -78,18 +78,30 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     // Agregasi metrik
     let totalRevenue = 0;
+    let rentalRevenue = 0;
+    let cancellationFeeRevenue = 0;
+    let paidCount = 0;
+    let refundWithFeeCount = 0;
+    let refundFullCount = 0;
+    let pendingRefundCount = 0;
+    let unpaidCount = 0;
     let completedBookingsCount = 0;
     let confirmedOrActiveCount = 0;
 
     /* Omzet dan jumlah transaksi per model sewa.
      *
-     * Dihitung dari basis yang sama dengan omzet total, yaitu pembayaran yang
-     * sudah lunas. Kalau dihitung dari status pesanan COMPLETED, grafik bisa
-     * menampilkan angka yang tidak cocok dengan kartu omzet di atasnya. */
+     * `count` hanya menghitung transaksi sewa yang benar-benar lunas (PAID),
+     * sedangkan `feeCount` / `feeRevenue` mencatat potongan pembatalan dari
+     * refund yang sudah selesai. Keduanya dipisah agar jumlah transaksi
+     * sinkron dengan grafik Pemasukan Tahunan dan Tahun ke Tahun. */
     let tanpaSupirOmzet = 0;
     let tanpaSupirJumlah = 0;
+    let tanpaSupirFeeJumlah = 0;
+    let tanpaSupirFeeOmzet = 0;
     let denganSupirOmzet = 0;
     let denganSupirJumlah = 0;
+    let denganSupirFeeJumlah = 0;
+    let denganSupirFeeOmzet = 0;
 
     // Map omzet per armada
     const vehicleStatsMap = new Map<
@@ -130,6 +142,8 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         // Omzet kas masuk riil menggunakan finalAmount (atau payment.totalAmount / quotedAmount)
         const amount = Number(b.finalAmount ?? b.payment?.totalAmount ?? b.quotedAmount ?? 0);
         totalRevenue += amount;
+        rentalRevenue += amount;
+        paidCount += 1;
 
         if (b.rentalType === 'WITHOUT_DRIVER') {
           tanpaSupirOmzet += amount;
@@ -146,17 +160,29 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       } else if (refundFee > 0) {
         // Pendapatan dari biaya potongan pembatalan atas refund yang telah diselesaikan
         totalRevenue += refundFee;
+        cancellationFeeRevenue += refundFee;
+        refundWithFeeCount += 1;
 
         if (b.rentalType === 'WITHOUT_DRIVER') {
           tanpaSupirOmzet += refundFee;
+          tanpaSupirFeeJumlah += 1;
+          tanpaSupirFeeOmzet += refundFee;
         } else {
           denganSupirOmzet += refundFee;
+          denganSupirFeeJumlah += 1;
+          denganSupirFeeOmzet += refundFee;
         }
 
         const stat = vehicleStatsMap.get(b.vehicleId);
         if (stat) {
           stat.totalRevenue += refundFee;
         }
+      } else if (b.refund?.status === 'SELESAI') {
+        refundFullCount += 1;
+      } else if (b.refund?.status === 'MENUNGGU') {
+        pendingRefundCount += 1;
+      } else {
+        unpaidCount += 1;
       }
       /* Piutang berjalan tidak lagi dihitung. Kartunya sudah dihapus dari laporan
          keuangan sesuai keputusan pemilik proyek, jadi angkanya tidak dipakai
@@ -248,6 +274,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       bulan: number;
       revenue: number;
       bookings: number;
+      refundFeeCount: number;
       weekly: number[];
     };
 
@@ -265,31 +292,42 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         bulan: d.getMonth() + 1,
         revenue: 0,
         bookings: 0,
+        refundFeeCount: 0,
         // Satu bulan paling banyak 5 minggu (31 hari -> ceil(31/7) = 5).
         weekly: [0, 0, 0, 0, 0],
       });
     }
 
     // Grafik 2: perbandingan tahunan (YoY) 4 tahun terakhir
-    type TahunGrafik = { tahun: number; revenue: number; bookings: number };
+    type TahunGrafik = {
+      tahun: number;
+      revenue: number;
+      bookings: number;
+      refundFeeCount: number;
+    };
     const tahunMap = new Map<number, TahunGrafik>();
     const urutanTahun: number[] = [];
 
     for (let i = TAHUN_YOY - 1; i >= 0; i--) {
       const th = now.getFullYear() - i;
       urutanTahun.push(th);
-      tahunMap.set(th, { tahun: th, revenue: 0, bookings: 0 });
+      tahunMap.set(th, { tahun: th, revenue: 0, bookings: 0, refundFeeCount: 0 });
     }
 
     for (const b of transaksiLunas) {
       const d = tanggalMasuk(b);
       const nilai = nominal(b);
+      const isPaid = b.payment?.status === 'PAID';
 
       const keyBulan = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const bulan = bulanMap.get(keyBulan);
       if (bulan) {
         bulan.revenue += nilai;
-        bulan.bookings += 1;
+        if (isPaid) {
+          bulan.bookings += 1;
+        } else {
+          bulan.refundFeeCount += 1;
+        }
         // Minggu ke-1 = tanggal 1-7, ke-2 = 8-14, dan seterusnya.
         const indeksMinggu = Math.min(Math.floor((d.getDate() - 1) / 7), 4);
         bulan.weekly[indeksMinggu] += nilai;
@@ -298,7 +336,11 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       const tahun = tahunMap.get(d.getFullYear());
       if (tahun) {
         tahun.revenue += nilai;
-        tahun.bookings += 1;
+        if (isPaid) {
+          tahun.bookings += 1;
+        } else {
+          tahun.refundFeeCount += 1;
+        }
       }
     }
 
@@ -330,21 +372,34 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
         bulan: jumlahBulan,
         summary: {
           totalRevenue,
+          rentalRevenue,
+          cancellationFeeRevenue,
           completedBookingsCount,
           confirmedOrActiveCount,
           totalAllBookings: bookings.length,
+          bookingBreakdown: {
+            paidCount,
+            refundWithFeeCount,
+            refundFullCount,
+            pendingRefundCount,
+            unpaidCount,
+          },
         },
         /* Perbandingan model sewa. Dikirim lagi karena tab-nya dipakai untuk
            melihat mana yang lebih menguntungkan: lepas kunci atau dengan supir. */
         rentalTypes: {
           withoutDriver: {
             count: tanpaSupirJumlah,
+            feeCount: tanpaSupirFeeJumlah,
+            feeRevenue: tanpaSupirFeeOmzet,
             revenue: tanpaSupirOmzet,
             percentage:
               totalRevenue > 0 ? Math.round((tanpaSupirOmzet / totalRevenue) * 100) : 0,
           },
           withDriver: {
             count: denganSupirJumlah,
+            feeCount: denganSupirFeeJumlah,
+            feeRevenue: denganSupirFeeOmzet,
             revenue: denganSupirOmzet,
             percentage:
               totalRevenue > 0 ? Math.round((denganSupirOmzet / totalRevenue) * 100) : 0,

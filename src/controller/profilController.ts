@@ -92,8 +92,8 @@ export const profilController = {
       /* Batas atas juga diperiksa di sini, bukan hanya di rute: nama dipakai pada
          dokumen sewa dan daftar admin, dan nama sepanjang paragraf merusak
          keduanya. */
-      if (namaBaru.length > 100) {
-        throw new AppError('INVALID_INPUT', 'Nama lengkap maksimal 100 karakter.', 400);
+      if (namaBaru.length > 60) {
+        throw new AppError('INVALID_INPUT', 'Nama lengkap maksimal 60 karakter.', 400);
       }
 
       let updatedAtDiharapkan: Date | null = null;

@@ -18,14 +18,14 @@ const catatanSchema = z
   .string({ error: 'Catatan untuk pelanggan wajib diisi.' })
   .trim()
   .min(10, 'Catatan minimal 10 karakter supaya pelanggan tahu apa yang harus diperbaiki.')
-  .max(500, 'Catatan maksimal 500 karakter.');
+  .max(300, 'Catatan maksimal 300 karakter.');
 
 export const verifyDocumentsSchema = z
   .object({
     action: z.enum(['APPROVE', 'REJECT'], {
       error: 'Aksi verifikasi harus bernilai APPROVE atau REJECT.',
     }),
-    rejectionReason: z.string().trim().max(500, 'Catatan maksimal 500 karakter.').optional(),
+    rejectionReason: z.string().trim().max(300, 'Catatan maksimal 300 karakter.').optional(),
     targets: z.array(targetSchema).max(DOCUMENT_TARGETS.length).optional(),
   })
   .superRefine((data, ctx) => {

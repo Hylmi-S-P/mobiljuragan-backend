@@ -39,14 +39,14 @@ export const adminBookingQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   status: z.nativeEnum(BookingStatus).optional(),
-  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
+  search: z.string().trim().max(50, 'Kata kunci maksimal 50 karakter.').optional(),
 });
 
 export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus, {
     error: 'Status sewa tidak valid.',
   }),
-  note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+  note: z.string().max(300, 'Catatan maksimal 300 karakter.').optional(),
 });
 
 export const assignDriverSchema = z.object({
@@ -54,7 +54,7 @@ export const assignDriverSchema = z.object({
     .string()
     .trim()
     .min(1, 'driverId wajib diisi, boleh uuid supir atau externalId seperti markus-gebze.'),
-  note: z.string().max(500, 'Catatan maksimal 500 karakter.').optional(),
+  note: z.string().max(300, 'Catatan maksimal 300 karakter.').optional(),
 });
 
 /**
@@ -70,22 +70,22 @@ export const refundAccountSchema = z.object({
     .string()
     .trim()
     .min(2, 'Nama bank atau e-wallet wajib diisi.')
-    .max(60, 'Nama bank atau e-wallet maksimal 60 karakter.'),
+    .max(30, 'Nama bank atau e-wallet maksimal 30 karakter.'),
   accountNumber: z
     .string()
     .trim()
     .min(6, 'Nomor rekening minimal 6 digit.')
-    .max(30, 'Nomor rekening maksimal 30 karakter.')
+    .max(20, 'Nomor rekening maksimal 20 karakter.')
     .regex(/^[0-9]+$/, 'Nomor rekening hanya boleh berisi angka.'),
   accountHolderName: z
     .string()
     .trim()
     .min(2, 'Nama pemilik rekening wajib diisi.')
-    .max(120, 'Nama pemilik rekening maksimal 120 karakter.'),
+    .max(60, 'Nama pemilik rekening maksimal 60 karakter.'),
 });
 
 export const customerCancelBookingSchema = z.object({
-  reason: z.string().max(500, 'Alasan pembatalan maksimal 500 karakter.').optional(),
+  reason: z.string().max(300, 'Alasan pembatalan maksimal 300 karakter.').optional(),
   /** Opsional: hanya dikirim pelanggan yang pesanannya sudah dibayar. */
   refundAccount: refundAccountSchema.optional(),
 });
@@ -121,10 +121,11 @@ export const createLineItemSchema = z.object({
     .string()
     .trim()
     .min(1, 'Deskripsi penyesuaian wajib diisi.')
-    .max(200, 'Deskripsi maksimal 200 karakter.'),
+    .max(150, 'Deskripsi maksimal 150 karakter.'),
   nominal: z
     .number({ error: 'Nominal penyesuaian harus berupa angka.' })
-    .positive('Nominal penyesuaian harus lebih dari 0.'),
+    .positive('Nominal penyesuaian harus lebih dari 0.')
+    .max(100_000_000, 'Nominal penyesuaian maksimal Rp 100.000.000.'),
   arah: z.enum(['TAMBAH', 'KURANG'], {
     error: 'Arah penyesuaian harus TAMBAH atau KURANG.',
   }),
@@ -132,5 +133,5 @@ export const createLineItemSchema = z.object({
     .string()
     .trim()
     .min(1, 'Justifikasi wajib diisi untuk audit internal.')
-    .max(1000, 'Justifikasi maksimal 1000 karakter.'),
+    .max(300, 'Justifikasi maksimal 300 karakter.'),
 });

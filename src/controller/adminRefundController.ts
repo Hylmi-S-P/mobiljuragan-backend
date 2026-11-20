@@ -186,6 +186,18 @@ export const adminRefundController = {
       );
 
       if (body.status !== undefined && body.konfirmasiDana === undefined) {
+        if (
+          body.status === RefundStatus.SELESAI &&
+          !body.buktiMediaId &&
+          !refund.buktiMediaId &&
+          !body.catatan
+        ) {
+          throw new AppError(
+            'REFUND_PROOF_OR_NOTE_REQUIRED',
+            'Menutup pengembalian dana wajib menyertakan bukti transfer atau catatan penyelesaian.',
+            400,
+          );
+        }
         data.status = body.status;
         data.diselesaikanPada = body.status === RefundStatus.SELESAI ? new Date() : null;
       } else if (

@@ -131,6 +131,28 @@ export const bookingController = {
       const start = new Date(payload.startDateTime);
       const end = new Date(payload.endDateTime);
 
+      const nowMs = Date.now();
+      // Minimal 2 jam dari sekarang dengan kelonggaran 5 menit untuk proses tinjau pesanan.
+      const MIN_LEAD_MS = 115 * 60 * 1000;
+      // Maksimal 60 hari ke depan (+ 1 hari kelonggaran ujung hari / selisih zona waktu).
+      const MAX_ADVANCE_MS = 61 * 24 * 60 * 60 * 1000;
+
+      if (start.getTime() < nowMs + MIN_LEAD_MS) {
+        const message =
+          start.getTime() <= nowMs
+            ? 'Tanggal dan jam mulai sewa tidak boleh di masa lalu.'
+            : 'Jadwal penjemputan minimal 2 jam dari waktu sekarang.';
+        throw new AppError('BOOKING_INVALID_SCHEDULE', message, 400);
+      }
+
+      if (start.getTime() > nowMs + MAX_ADVANCE_MS) {
+        throw new AppError(
+          'BOOKING_SCHEDULE_TOO_FAR',
+          'Tanggal mulai sewa maksimal 60 hari ke depan.',
+          400,
+        );
+      }
+
       /* Satu nomor hanya boleh memegang sejumlah pesanan hidup. Setiap pesanan
          hidup menahan satu unit armada dari katalog, jadi nomor yang menumpuk
          pesanan tanpa membayar bisa mengosongkan katalog untuk pelanggan lain. */

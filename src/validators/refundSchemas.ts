@@ -3,7 +3,7 @@ import { RefundStatus } from '../generated/prisma/client.js';
 
 export const listRefundQuerySchema = z.object({
   status: z.nativeEnum(RefundStatus).optional(),
-  search: z.string().trim().max(120, 'Kata kunci maksimal 120 karakter.').optional(),
+  search: z.string().trim().max(50, 'Kata kunci maksimal 50 karakter.').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -16,27 +16,17 @@ export const listRefundQuerySchema = z.object({
  * Perubahan status SELESAI wajib menyertakan bukti atau catatan supaya antrean
  * tidak ditutup tanpa jejak.
  */
-export const updateRefundSchema = z
-  .object({
-    nominal: z.coerce.number().min(0).max(1_000_000_000).optional(),
-    namaBank: z.string().trim().max(80).optional(),
-    nomorRekening: z.string().trim().max(40).optional(),
-    namaPemilik: z.string().trim().max(120).optional(),
-    buktiMediaId: z.string().trim().max(120).optional(),
-    catatan: z.string().trim().max(500).optional(),
-    status: z.nativeEnum(RefundStatus).optional(),
-    /* Dipakai untuk pesanan yang ditutup saat bukti transfer belum diperiksa:
-       `true` = uangnya ada di mutasi bank, `false` = tidak ada. */
-    konfirmasiDana: z.boolean().optional(),
-  })
-  .refine(
-    (nilai) =>
-      nilai.status !== RefundStatus.SELESAI || Boolean(nilai.buktiMediaId || nilai.catatan),
-    {
-      message:
-        'Menutup pengembalian dana wajib menyertakan bukti transfer atau catatan penyelesaian.',
-      path: ['status'],
-    },
-  );
+export const updateRefundSchema = z.object({
+  nominal: z.coerce.number().min(0).max(100_000_000).optional(),
+  namaBank: z.string().trim().max(30).optional(),
+  nomorRekening: z.string().trim().max(20).optional(),
+  namaPemilik: z.string().trim().max(60).optional(),
+  buktiMediaId: z.string().trim().max(120).optional(),
+  catatan: z.string().trim().max(300).optional(),
+  status: z.nativeEnum(RefundStatus).optional(),
+  /* Dipakai untuk pesanan yang ditutup saat bukti transfer belum diperiksa:
+     `true` = uangnya ada di mutasi bank, `false` = tidak ada. */
+  konfirmasiDana: z.boolean().optional(),
+});
 
 export type UpdateRefundInput = z.infer<typeof updateRefundSchema>;

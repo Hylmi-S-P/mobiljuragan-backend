@@ -43,11 +43,12 @@ adminCustomerRouter.patch(
         .string()
         .trim()
         .min(3, 'Nama lengkap minimal 3 karakter.')
-        .max(100, 'Nama lengkap maksimal 100 karakter.'),
+        .max(60, 'Nama lengkap maksimal 60 karakter.'),
       reason: z
         .string()
         .trim()
-        .min(10, 'Alasan koreksi minimal 10 karakter.'),
+        .min(10, 'Alasan koreksi minimal 10 karakter.')
+        .max(300, 'Alasan koreksi maksimal 300 karakter.'),
     }),
   ),
   adminCustomerController.koreksiNama,
@@ -57,7 +58,7 @@ adminCustomerRouter.post(
   '/:id/unlock',
   validateBody(
     z.object({
-      reason: z.string().trim().max(500).optional(),
+      reason: z.string().trim().max(300).optional(),
     }),
   ),
   adminCustomerController.bukaKunci,
@@ -67,7 +68,7 @@ adminCustomerRouter.post(
   '/:id/revoke-sessions',
   validateBody(
     z.object({
-      reason: z.string().trim().max(500).optional(),
+      reason: z.string().trim().max(300).optional(),
     }),
   ),
   adminCustomerController.cabutSesi,
@@ -78,7 +79,7 @@ adminCustomerRouter.patch(
   validateBody(
     z.object({
       isActive: z.boolean({ error: 'isActive harus bernilai true atau false.' }),
-      reason: z.string().trim().max(500).optional(),
+      reason: z.string().trim().max(300).optional(),
     }),
   ),
   adminCustomerController.ubahAktif,
