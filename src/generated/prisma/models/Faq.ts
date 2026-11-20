@@ -241,6 +241,7 @@ export type FaqWhereInput = {
   isActive?: Prisma.BoolFilter<"Faq"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Faq"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Faq"> | Date | string
+  chunks?: Prisma.KnowledgeChunkListRelationFilter
 }
 
 export type FaqOrderByWithRelationInput = {
@@ -252,6 +253,7 @@ export type FaqOrderByWithRelationInput = {
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunks?: Prisma.KnowledgeChunkOrderByRelationAggregateInput
   _relevance?: Prisma.FaqOrderByRelevanceInput
 }
 
@@ -267,6 +269,7 @@ export type FaqWhereUniqueInput = Prisma.AtLeast<{
   isActive?: Prisma.BoolFilter<"Faq"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Faq"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Faq"> | Date | string
+  chunks?: Prisma.KnowledgeChunkListRelationFilter
 }, "id">
 
 export type FaqOrderByWithAggregationInput = {
@@ -308,6 +311,7 @@ export type FaqCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  chunks?: Prisma.KnowledgeChunkCreateNestedManyWithoutFaqInput
 }
 
 export type FaqUncheckedCreateInput = {
@@ -319,6 +323,7 @@ export type FaqUncheckedCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  chunks?: Prisma.KnowledgeChunkUncheckedCreateNestedManyWithoutFaqInput
 }
 
 export type FaqUpdateInput = {
@@ -330,6 +335,7 @@ export type FaqUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunks?: Prisma.KnowledgeChunkUpdateManyWithoutFaqNestedInput
 }
 
 export type FaqUncheckedUpdateInput = {
@@ -341,6 +347,7 @@ export type FaqUncheckedUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunks?: Prisma.KnowledgeChunkUncheckedUpdateManyWithoutFaqNestedInput
 }
 
 export type FaqCreateManyInput = {
@@ -423,6 +430,116 @@ export type FaqSumOrderByAggregateInput = {
   orderIndex?: Prisma.SortOrder
 }
 
+export type FaqNullableScalarRelationFilter = {
+  is?: Prisma.FaqWhereInput | null
+  isNot?: Prisma.FaqWhereInput | null
+}
+
+export type FaqCreateNestedOneWithoutChunksInput = {
+  create?: Prisma.XOR<Prisma.FaqCreateWithoutChunksInput, Prisma.FaqUncheckedCreateWithoutChunksInput>
+  connectOrCreate?: Prisma.FaqCreateOrConnectWithoutChunksInput
+  connect?: Prisma.FaqWhereUniqueInput
+}
+
+export type FaqUpdateOneWithoutChunksNestedInput = {
+  create?: Prisma.XOR<Prisma.FaqCreateWithoutChunksInput, Prisma.FaqUncheckedCreateWithoutChunksInput>
+  connectOrCreate?: Prisma.FaqCreateOrConnectWithoutChunksInput
+  upsert?: Prisma.FaqUpsertWithoutChunksInput
+  disconnect?: Prisma.FaqWhereInput | boolean
+  delete?: Prisma.FaqWhereInput | boolean
+  connect?: Prisma.FaqWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FaqUpdateToOneWithWhereWithoutChunksInput, Prisma.FaqUpdateWithoutChunksInput>, Prisma.FaqUncheckedUpdateWithoutChunksInput>
+}
+
+export type FaqCreateWithoutChunksInput = {
+  id?: string
+  question: string
+  answer: string
+  category: string
+  orderIndex?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FaqUncheckedCreateWithoutChunksInput = {
+  id?: string
+  question: string
+  answer: string
+  category: string
+  orderIndex?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FaqCreateOrConnectWithoutChunksInput = {
+  where: Prisma.FaqWhereUniqueInput
+  create: Prisma.XOR<Prisma.FaqCreateWithoutChunksInput, Prisma.FaqUncheckedCreateWithoutChunksInput>
+}
+
+export type FaqUpsertWithoutChunksInput = {
+  update: Prisma.XOR<Prisma.FaqUpdateWithoutChunksInput, Prisma.FaqUncheckedUpdateWithoutChunksInput>
+  create: Prisma.XOR<Prisma.FaqCreateWithoutChunksInput, Prisma.FaqUncheckedCreateWithoutChunksInput>
+  where?: Prisma.FaqWhereInput
+}
+
+export type FaqUpdateToOneWithWhereWithoutChunksInput = {
+  where?: Prisma.FaqWhereInput
+  data: Prisma.XOR<Prisma.FaqUpdateWithoutChunksInput, Prisma.FaqUncheckedUpdateWithoutChunksInput>
+}
+
+export type FaqUpdateWithoutChunksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  question?: Prisma.StringFieldUpdateOperationsInput | string
+  answer?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type FaqUncheckedUpdateWithoutChunksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  question?: Prisma.StringFieldUpdateOperationsInput | string
+  answer?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+
+/**
+ * Count Type FaqCountOutputType
+ */
+
+export type FaqCountOutputType = {
+  chunks: number
+}
+
+export type FaqCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  chunks?: boolean | FaqCountOutputTypeCountChunksArgs
+}
+
+/**
+ * FaqCountOutputType without action
+ */
+export type FaqCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FaqCountOutputType
+   */
+  select?: Prisma.FaqCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * FaqCountOutputType without action
+ */
+export type FaqCountOutputTypeCountChunksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KnowledgeChunkWhereInput
+}
 
 
 export type FaqSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -434,6 +551,8 @@ export type FaqSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
   isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  chunks?: boolean | Prisma.Faq$chunksArgs<ExtArgs>
+  _count?: boolean | Prisma.FaqCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["faq"]>
 
 
@@ -450,10 +569,16 @@ export type FaqSelectScalar = {
 }
 
 export type FaqOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "question" | "answer" | "category" | "orderIndex" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["faq"]>
+export type FaqInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  chunks?: boolean | Prisma.Faq$chunksArgs<ExtArgs>
+  _count?: boolean | Prisma.FaqCountOutputTypeDefaultArgs<ExtArgs>
+}
 
 export type $FaqPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Faq"
-  objects: {}
+  objects: {
+    chunks: Prisma.$KnowledgeChunkPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     question: string
@@ -803,6 +928,7 @@ readonly fields: FaqFieldRefs;
  */
 export interface Prisma__FaqClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  chunks<T extends Prisma.Faq$chunksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Faq$chunksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -857,6 +983,10 @@ export type FaqFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * Filter, which Faq to fetch.
    */
   where: Prisma.FaqWhereUniqueInput
@@ -875,6 +1005,10 @@ export type FaqFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * Filter, which Faq to fetch.
    */
   where: Prisma.FaqWhereUniqueInput
@@ -892,6 +1026,10 @@ export type FaqFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Faq
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
   /**
    * Filter, which Faq to fetch.
    */
@@ -941,6 +1079,10 @@ export type FaqFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * Filter, which Faq to fetch.
    */
   where?: Prisma.FaqWhereInput
@@ -988,6 +1130,10 @@ export type FaqFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    * Omit specific fields from the Faq
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
   /**
    * Filter, which Faqs to fetch.
    */
@@ -1037,6 +1183,10 @@ export type FaqCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * The data needed to create a Faq.
    */
   data: Prisma.XOR<Prisma.FaqCreateInput, Prisma.FaqUncheckedCreateInput>
@@ -1065,6 +1215,10 @@ export type FaqUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    * Omit specific fields from the Faq
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
   /**
    * The data needed to update a Faq.
    */
@@ -1106,6 +1260,10 @@ export type FaqUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * The filter to search for the Faq to update in case it exists.
    */
   where: Prisma.FaqWhereUniqueInput
@@ -1132,6 +1290,10 @@ export type FaqDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
+  /**
    * Filter which Faq to delete.
    */
   where: Prisma.FaqWhereUniqueInput
@@ -1152,6 +1314,30 @@ export type FaqDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 }
 
 /**
+ * Faq.chunks
+ */
+export type Faq$chunksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KnowledgeChunk
+   */
+  select?: Prisma.KnowledgeChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KnowledgeChunk
+   */
+  omit?: Prisma.KnowledgeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KnowledgeChunkInclude<ExtArgs> | null
+  where?: Prisma.KnowledgeChunkWhereInput
+  orderBy?: Prisma.KnowledgeChunkOrderByWithRelationInput | Prisma.KnowledgeChunkOrderByWithRelationInput[]
+  cursor?: Prisma.KnowledgeChunkWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KnowledgeChunkScalarFieldEnum | Prisma.KnowledgeChunkScalarFieldEnum[]
+}
+
+/**
  * Faq without action
  */
 export type FaqDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1163,4 +1349,8 @@ export type FaqDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    * Omit specific fields from the Faq
    */
   omit?: Prisma.FaqOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FaqInclude<ExtArgs> | null
 }

@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { logger } from '../logger.js';
+import { ensureIndexPopulated } from '../lib/rag/indexer.js';
 
 export async function ensureAiDefaults(): Promise<void> {
   try {
@@ -109,6 +110,10 @@ Tiket chat akan otomatis beralih status menjadi WAITING_HUMAN dan notifikasi dik
       }
       logger.info('4 Dokumen Konteks Pengetahuan (RAG) awal berhasil di-seed.');
     }
+
+    await ensureIndexPopulated().catch((idxErr) => {
+      logger.warn({ err: idxErr }, 'Peringatan sinkronisasi indeks awal RAG');
+    });
   } catch (err) {
     logger.warn({ err }, 'Peringatan saat inisialisasi default AI settings / Knowledge documents');
   }

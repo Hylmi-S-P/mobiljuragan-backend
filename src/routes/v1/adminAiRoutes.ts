@@ -11,6 +11,7 @@ import {
   getAiGatewayLogs,
   clearAiGatewayLogs,
   parseKnowledgeFile,
+  reindexRagKnowledge,
   getKnowledgeCategories,
   createKnowledgeCategory,
   updateKnowledgeCategory,
@@ -37,6 +38,7 @@ adminAiRouter.delete('/logs', clearAiGatewayLogs);
 adminAiRouter.get('/documents', getKnowledgeDocuments);
 adminAiRouter.post('/documents', createKnowledgeDocument);
 adminAiRouter.post('/documents/parse-file', parseKnowledgeFile);
+adminAiRouter.post('/rag/reindex', reindexRagKnowledge);
 adminAiRouter.put('/documents/:id', updateKnowledgeDocument);
 adminAiRouter.delete('/documents/:id', deleteKnowledgeDocument);
 

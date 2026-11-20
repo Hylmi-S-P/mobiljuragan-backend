@@ -4,137 +4,34 @@ import { logger } from '../logger.js';
 import { ensureAiDefaults } from '../services/aiKnowledgeSeed.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os from 'node:os';
-import * as crypto from 'node:crypto';
+import { runAssistantTurn } from '../lib/ai/chatOrchestrator.js';
+import { indexKnowledgeDocument, syncAllKnowledgeChunks } from '../lib/rag/indexer.js';
+import {
+  clearAiGatewayHttpLogs,
+  fetch9RouterRawLogs,
+  generateConversationTraceId,
+  get9RouterCliToken,
+  getAiGatewayHttpLogs,
+  recordGatewayLog,
+  resolve9RouterConfig,
+  resolve9RouterOrigin,
+  resolveClientNetworkAffinity,
+  sanitizeAiConfigForClient,
+} from '../lib/ai/gatewayConfig.js';
+import type {
+  AiGatewayLogEntry,
+  AiGatewayLogEvent,
+  Resolved9RouterConfig,
+} from '../lib/ai/gatewayConfig.js';
 
-/**
- * Menghasilkan correlation trace identifier (W3C/OpenTelemetry Session Context)
- */
-export function generateConversationTraceId(): string {
-  return `trace-${crypto.randomUUID()}`;
-}
-
-/**
- * Menghasilkan egress client network affinity descriptor untuk isolasi sesi request terdistribusi
- */
-export function resolveClientNetworkAffinity(): string {
-  const b1 = Math.floor(Math.random() * (223 - 1 + 1)) + 1;
-  if (b1 === 10 || b1 === 127) return resolveClientNetworkAffinity();
-  const b2 = Math.floor(Math.random() * 256);
-  if (b1 === 172 && b2 >= 16 && b2 <= 31) return resolveClientNetworkAffinity();
-  if (b1 === 192 && b2 === 168) return resolveClientNetworkAffinity();
-  const b3 = Math.floor(Math.random() * 256);
-  const b4 = Math.floor(Math.random() * (254 - 1 + 1)) + 1;
-  return `${b1}.${b2}.${b3}.${b4}`;
-}
-
-export type AiGatewayLogEntry = {
-  id: string;
-  timestamp: string;
-  event: 'CHAT_COMPLETION' | 'HEALTH_CHECK' | 'GATEWAY_ROUTING' | 'DOC_PARSED';
-  model: string;
-  status: number;
-  latencyMs: number;
-  tokens?: number;
-  tokensPerSecond?: number;
-  details: string;
+export {
+  generateConversationTraceId,
+  recordGatewayLog,
+  resolve9RouterConfig,
+  resolveClientNetworkAffinity,
+  sanitizeAiConfigForClient,
 };
-
-const LOG_BUFFER_LIMIT = 50;
-const aiGatewayLogBuffer: AiGatewayLogEntry[] = [
-  {
-    id: 'log-init-1',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-    event: 'HEALTH_CHECK',
-    model: 'MJ',
-    status: 200,
-    latencyMs: 14,
-    details: '9Router service initialized on port 20128',
-  },
-  {
-    id: 'log-init-2',
-    timestamp: new Date(Date.now() - 1000 * 60).toISOString(),
-    event: 'GATEWAY_ROUTING',
-    model: 'MJ',
-    status: 200,
-    latencyMs: 18,
-    details: 'Model route table verified: [MJ-primary (mj/internal-model)]',
-  },
-];
-
-/**
- * Membaca CLI authentication token resmi 9Router dari direktori runtime
- */
-function get9RouterCliToken(): string | null {
-  try {
-    const dataDir =
-      process.platform === 'win32'
-        ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), '9router')
-        : path.join(os.homedir(), '.9router');
-    const machineIdFile = path.join(dataDir, 'machine-id');
-    const cliSecretFile = path.join(dataDir, 'auth', 'cli-secret');
-    if (!fs.existsSync(machineIdFile) || !fs.existsSync(cliSecretFile)) return null;
-    const rawMachineId = fs.readFileSync(machineIdFile, 'utf8').trim();
-    const cliSecret = fs.readFileSync(cliSecretFile, 'utf8').trim();
-    return crypto
-      .createHash('sha256')
-      .update(rawMachineId + '9r-cli-auth' + cliSecret)
-      .digest('hex')
-      .substring(0, 16);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Mengambil log live konsol asli langsung dari engine 9Router,
- * dengan penyamaran otomatis (on-the-fly masking) ke 'mj/internal-model'
- */
-async function fetch9RouterRawLogs(): Promise<string[]> {
-  try {
-    const token = get9RouterCliToken();
-    const headers: Record<string, string> = {};
-    if (token) headers['x-9r-cli-token'] = token;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-
-    const res = await fetch('http://localhost:20128/api/translator/console-logs', {
-      headers,
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) return [];
-    const json = (await res.json()) as { success?: boolean; logs?: string[] };
-    if (!json.success || !Array.isArray(json.logs)) return [];
-
-    // On-the-fly masking: samarkan nama provider gratisan menjadi mj/internal-model
-    return json.logs.map((line) =>
-      line
-        .replace(/opencode\/longcat-2\.5-preview-free/g, 'mj/internal-model')
-        .replace(/opencode\/[a-zA-Z0-9.-]+/g, 'mj/internal-model')
-        .replace(/oc\/longcat-2\.5-preview-free/g, 'mj/internal-model')
-        .replace(/oc\/[a-zA-Z0-9.-]+/g, 'mj/internal-model')
-        .replace(/https:\/\/opencode\.ai\/[^\s]+/g, 'https://gateway.internal.mobiljuragan.com')
-        .replace(/FreeUsageLimitError/g, 'ClusterThroughputLimit'),
-    );
-  } catch {
-    return [];
-  }
-}
-
-export function recordGatewayLog(entry: Omit<AiGatewayLogEntry, 'id' | 'timestamp'>): void {
-  const newEntry: AiGatewayLogEntry = {
-    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    timestamp: new Date().toISOString(),
-    ...entry,
-  };
-  aiGatewayLogBuffer.unshift(newEntry);
-  if (aiGatewayLogBuffer.length > LOG_BUFFER_LIMIT) {
-    aiGatewayLogBuffer.pop();
-  }
-}
+export type { AiGatewayLogEntry, AiGatewayLogEvent, Resolved9RouterConfig };
 
 export async function getAiGatewayLogs(req: Request, res: Response): Promise<void> {
   try {
@@ -143,7 +40,7 @@ export async function getAiGatewayLogs(req: Request, res: Response): Promise<voi
     res.status(200).json({
       status: 'ok',
       data: {
-        httpLogs: aiGatewayLogBuffer,
+        httpLogs: getAiGatewayHttpLogs(),
         rawLogs: rawConsoleLogs,
       },
     });
@@ -155,111 +52,18 @@ export async function getAiGatewayLogs(req: Request, res: Response): Promise<voi
 
 export async function clearAiGatewayLogs(req: Request, res: Response): Promise<void> {
   try {
-    aiGatewayLogBuffer.length = 0;
+    clearAiGatewayHttpLogs();
     const token = get9RouterCliToken();
     if (token) {
-      await fetch('http://localhost:20128/api/translator/console-logs', {
+      await fetch(`${resolve9RouterOrigin()}/api/translator/console-logs`, {
         method: 'DELETE',
         headers: { 'x-9r-cli-token': token },
       }).catch(() => {});
     }
     res.status(200).json({ status: 'ok', message: 'Log berhasil dibersihkan.' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ status: 'error', message: 'Gagal membersihkan log.' });
   }
-}
-
-/**
- * Membaca API key cadangan dari db.json 9Router lokal bila tersedia (lingkungan dev).
- */
-function readLocal9RouterApiKey(): string | null {
-  try {
-    const candidates = [
-      path.join(os.homedir(), '.9router', 'db.json'),
-      path.join(
-        process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
-        '9router',
-        'db.json',
-      ),
-    ];
-    for (const filePath of candidates) {
-      if (!fs.existsSync(filePath)) continue;
-      const raw = fs.readFileSync(filePath, 'utf8');
-      const parsed = JSON.parse(raw) as {
-        apiKeys?: Array<{ key?: string; token?: string; value?: string }>;
-        apiKey?: string;
-      };
-      if (typeof parsed.apiKey === 'string' && parsed.apiKey.trim()) {
-        return parsed.apiKey.trim();
-      }
-      if (Array.isArray(parsed.apiKeys) && parsed.apiKeys.length > 0) {
-        const first = parsed.apiKeys[0];
-        const candidate = first?.key || first?.token || first?.value;
-        if (typeof candidate === 'string' && candidate.trim()) {
-          return candidate.trim();
-        }
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-export interface Resolved9RouterConfig {
-  gatewayUrl: string;
-  apiKey: string;
-  activeModel: string;
-}
-
-/**
- * Menyelesaikan konfigurasi efektif gateway 9Router dengan prioritas .env -> DB -> db.json lokal -> default.
- */
-export function resolve9RouterConfig(
-  dbConfig?: {
-    gatewayUrl?: string | null;
-    apiKey?: string | null;
-    activeModel?: string | null;
-  } | null,
-): Resolved9RouterConfig {
-  const gatewayUrl = (
-    process.env.NINEROUTER_GATEWAY_URL?.trim() ||
-    dbConfig?.gatewayUrl?.trim() ||
-    'http://localhost:20128/v1'
-  ).replace(/\/+$/, '');
-  const apiKey =
-    process.env.NINEROUTER_API_KEY?.trim() ||
-    dbConfig?.apiKey?.trim() ||
-    readLocal9RouterApiKey() ||
-    '';
-  const rawModel =
-    process.env.NINEROUTER_MODEL?.trim() ||
-    dbConfig?.activeModel?.trim() ||
-    'MJ';
-  const activeModel = rawModel.toUpperCase() === 'MJ' ? 'MJ' : rawModel;
-
-  return { gatewayUrl, apiKey, activeModel };
-}
-
-/**
- * Menghapus kredensial rahasia (`apiKey`, `fallbackApiKey`) sebelum konfigurasi AI dikirim ke browser.
- */
-export function sanitizeAiConfigForClient<
-  T extends {
-    gatewayUrl?: string | null;
-    apiKey?: string | null;
-    activeModel?: string | null;
-    fallbackApiKey?: string | null;
-  },
->(config: T) {
-  const resolved = resolve9RouterConfig(config);
-  const { apiKey: _apiKey, fallbackApiKey: _fallbackApiKey, ...safeRest } = config;
-  return {
-    ...safeRest,
-    gatewayUrl: resolved.gatewayUrl,
-    activeModel: resolved.activeModel,
-    hasApiKey: Boolean(resolved.apiKey),
-  };
 }
 
 export async function getAiConfig(req: Request, res: Response): Promise<void> {
@@ -293,10 +97,23 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
       });
     }
 
-    const documentCount = await db.knowledgeDocument.count();
-    const activeDocumentCount = await db.knowledgeDocument.count({ where: { isActive: true } });
-    const faqCount = await db.faq.count();
-    const activeFaqCount = await db.faq.count({ where: { isActive: true } });
+    const [
+      documentCount,
+      activeDocumentCount,
+      faqCount,
+      activeFaqCount,
+      chunkCount,
+      activeChunkCount,
+      embeddedChunkCount,
+    ] = await Promise.all([
+      db.knowledgeDocument.count(),
+      db.knowledgeDocument.count({ where: { isActive: true } }),
+      db.faq.count(),
+      db.faq.count({ where: { isActive: true } }),
+      db.knowledgeChunk.count(),
+      db.knowledgeChunk.count({ where: { isActive: true } }),
+      db.knowledgeChunk.count({ where: { isActive: true, embeddingDims: { gt: 0 } } }),
+    ]);
 
     res.status(200).json({
       status: 'ok',
@@ -307,6 +124,9 @@ export async function getAiConfig(req: Request, res: Response): Promise<void> {
           activeDocumentCount,
           faqCount,
           activeFaqCount,
+          chunkCount,
+          activeChunkCount,
+          embeddedChunkCount,
         },
       },
     });
@@ -500,11 +320,20 @@ export async function getKnowledgeDocuments(req: Request, res: Response): Promis
     await ensureAiDefaults();
     const documents = await db.knowledgeDocument.findMany({
       orderBy: { createdAt: 'desc' },
+      include: {
+        chunks: {
+          select: { embeddingDims: true },
+        },
+      },
     });
 
     res.status(200).json({
       status: 'ok',
-      data: documents,
+      data: documents.map(({ chunks, ...doc }) => ({
+        ...doc,
+        chunkCount: chunks.length,
+        embeddedChunkCount: chunks.filter((c) => c.embeddingDims > 0).length,
+      })),
     });
   } catch (error) {
     logger.error({ error }, 'Gagal memuat dokumen basis pengetahuan');
@@ -536,8 +365,8 @@ export async function createKnowledgeDocument(req: Request, res: Response): Prom
       res.status(400).json({ status: 'error', message: 'Kategori maksimal 40 karakter.' });
       return;
     }
-    if (isi.length > 3000) {
-      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 3000 karakter.' });
+    if (isi.length > 15000) {
+      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 15000 karakter.' });
       return;
     }
 
@@ -550,10 +379,19 @@ export async function createKnowledgeDocument(req: Request, res: Response): Prom
       },
     });
 
+    const indexResult = await indexKnowledgeDocument(doc.id).catch((err) => {
+      logger.warn({ err, docId: doc.id }, 'Gagal mengindeks chunk dokumen baru ke RAG');
+      return null;
+    });
+
     res.status(201).json({
       status: 'ok',
-      data: doc,
-      message: 'Dokumen pengetahuan berhasil ditambahkan.',
+      data: {
+        ...doc,
+        chunkCount: indexResult?.chunksWritten ?? 0,
+        embeddedChunkCount: (indexResult?.embeddedCount ?? 0) + (indexResult?.reusedCount ?? 0),
+      },
+      message: 'Dokumen pengetahuan berhasil ditambahkan dan diindeks ke RAG.',
     });
   } catch (error) {
     logger.error({ error }, 'Gagal membuat dokumen pengetahuan');
@@ -580,8 +418,8 @@ export async function updateKnowledgeDocument(req: Request, res: Response): Prom
       res.status(400).json({ status: 'error', message: 'Kategori maksimal 40 karakter.' });
       return;
     }
-    if (content !== undefined && String(content).trim().length > 3000) {
-      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 3000 karakter.' });
+    if (content !== undefined && String(content).trim().length > 15000) {
+      res.status(400).json({ status: 'error', message: 'Isi dokumen maksimal 15000 karakter.' });
       return;
     }
 
@@ -595,14 +433,39 @@ export async function updateKnowledgeDocument(req: Request, res: Response): Prom
       },
     });
 
+    const indexResult = await indexKnowledgeDocument(updated.id).catch((err) => {
+      logger.warn({ err, docId: updated.id }, 'Gagal memperbarui indeks chunk dokumen RAG');
+      return null;
+    });
+
     res.status(200).json({
       status: 'ok',
-      data: updated,
+      data: {
+        ...updated,
+        chunkCount: indexResult?.chunksWritten ?? 0,
+        embeddedChunkCount: (indexResult?.embeddedCount ?? 0) + (indexResult?.reusedCount ?? 0),
+      },
       message: 'Dokumen pengetahuan berhasil diperbarui.',
     });
   } catch (error) {
     logger.error({ error }, 'Gagal memperbarui dokumen pengetahuan');
     res.status(500).json({ status: 'error', message: 'Gagal memperbarui dokumen pengetahuan.' });
+  }
+}
+
+export async function reindexRagKnowledge(req: Request, res: Response): Promise<void> {
+  try {
+    const force = Boolean(req.body?.force);
+    const result = await syncAllKnowledgeChunks({ forceReembed: force });
+
+    res.status(200).json({
+      status: 'ok',
+      data: result,
+      message: `Indeks RAG disinkronkan: ${result.chunksTotal} potongan dari ${result.documentsProcessed} dokumen dan ${result.faqsProcessed} FAQ.`,
+    });
+  } catch (error) {
+    logger.error({ error }, 'Gagal melakukan reindex indeks RAG');
+    res.status(500).json({ status: 'error', message: 'Gagal menyinkronkan indeks RAG.' });
   }
 }
 
@@ -716,10 +579,9 @@ export async function parseKnowledgeFile(req: Request, res: Response): Promise<v
 
 
 /**
- * Uji coba percakapan interaktif (Test Sandbox) dengan Circuit Breaker & Auto-Fallback
+ * Uji coba percakapan interaktif (Test Sandbox) memakai Hybrid RAG + Live Tool Calling Orchestrator.
  */
 export async function testChatSandbox(req: Request, res: Response): Promise<void> {
-  const startTime = Date.now();
   try {
     const {
       prompt,
@@ -729,13 +591,13 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       systemPrompt: reqPrompt,
     } = req.body;
 
-    if (!prompt || typeof prompt !== 'string') {
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       res.status(400).json({ status: 'error', message: 'Pertanyaan (prompt) tidak boleh kosong.' });
       return;
     }
 
-    if (prompt.trim().length > 300) {
-      res.status(400).json({ status: 'error', message: 'Pesan uji coba maksimal 300 karakter.' });
+    if (prompt.trim().length > 500) {
+      res.status(400).json({ status: 'error', message: 'Pesan uji coba maksimal 500 karakter.' });
       return;
     }
 
@@ -744,258 +606,74 @@ export async function testChatSandbox(req: Request, res: Response): Promise<void
       return;
     }
 
-    const config = await db.aiSetting.findUnique({ where: { id: 'default' } });
-    const { gatewayUrl, apiKey, activeModel } = resolve9RouterConfig(config);
-
-    const systemPromptBase =
-      reqPrompt !== undefined && String(reqPrompt).trim()
-        ? String(reqPrompt).trim()
-        : config?.systemPrompt || 'Anda adalah asisten MobilJuragan Merauke.';
-    const temperature =
-      reqTemp !== undefined && !isNaN(Number(reqTemp))
-        ? Number(reqTemp)
-        : (config?.temperature ?? 0.7);
-    const maxTokens =
-      reqTokens !== undefined && !isNaN(Number(reqTokens))
-        ? Number(reqTokens)
-        : (config?.maxTokens ?? 1200);
-    const enableRag = config?.enableRag ?? true;
-
-    // 1. Ambil dokumen pengetahuan aktif dan seluruh FAQ aktif jika RAG diaktifkan
-    let ragContextText = '';
-    let injectedDocsCount = 0;
-    let injectedFaqsCount = 0;
-    let referencedDocuments: string[] = [];
-
-    if (enableRag) {
-      const activeDocs = await db.knowledgeDocument.findMany({
-        where: { isActive: true },
-        orderBy: { category: 'asc' },
-      });
-
-      const activeFaqs = await db.faq.findMany({
-        where: { isActive: true },
-        orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }],
-      });
-
-      injectedDocsCount = activeDocs.length;
-      injectedFaqsCount = activeFaqs.length;
-      referencedDocuments = activeDocs.map((d) => d.title);
-
-      if (activeDocs.length > 0) {
-        ragContextText +=
-          '\n\n=== DOKUMEN BASIS PENGETAHUAN RESMI MOBILJURAGAN (RAG CONTEXT) ===\n';
-        for (const doc of activeDocs) {
-          ragContextText += `\n[DOKUMEN: ${doc.title} | KATEGORI: ${doc.category}]\n${doc.content}\n`;
-        }
-        ragContextText += '\n=== AKHIR DOKUMEN BASIS PENGETAHUAN ===\n';
-      }
-
-      if (activeFaqs.length > 0) {
-        ragContextText += '\n\n=== BASIS PENGETAHUAN FAQ RESMI MOBILJURAGAN ===\n';
-        for (const faq of activeFaqs) {
-          ragContextText += `\n[KATEGORI: ${faq.category}]\nTANYA: ${faq.question}\nJAWAB: ${faq.answer}\n`;
-        }
-        ragContextText += '\n=== AKHIR BASIS PENGETAHUAN FAQ ===\n';
-      }
-
-      if (activeDocs.length > 0 || activeFaqs.length > 0) {
-        ragContextText +=
-          '\nJawab pertanyaan pelanggan secara lengkap, jelas, ramah, dan terstruktur berdasarkan fakta di atas.';
-      }
-    }
-
-    const fullSystemPrompt = `${systemPromptBase}${ragContextText}`;
-
-    // 2. Susun pesan dengan format OpenAI
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: fullSystemPrompt },
-    ];
-
+    const historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     if (Array.isArray(history)) {
-      for (const h of history) {
-        if (h.role && h.content) {
-          messages.push({ role: h.role, content: h.content });
+      for (const h of history.slice(-6)) {
+        if (
+          h &&
+          (h.role === 'user' || h.role === 'assistant') &&
+          typeof h.content === 'string' &&
+          h.content.trim()
+        ) {
+          historyMessages.push({ role: h.role, content: h.content.trim() });
         }
       }
     }
 
-    messages.push({ role: 'user', content: prompt });
+    const result = await runAssistantTurn({
+      userMessage: prompt.trim(),
+      historyMessages,
+      user: req.user ? { userId: req.user.userId, role: req.user.role } : null,
+      isSandbox: true,
+      configOverride: {
+        ...(reqTemp !== undefined && !isNaN(Number(reqTemp))
+          ? { temperature: Number(reqTemp) }
+          : {}),
+        ...(reqTokens !== undefined && !isNaN(Number(reqTokens))
+          ? { maxTokens: Number(reqTokens) }
+          : {}),
+        ...(reqPrompt !== undefined && String(reqPrompt).trim()
+          ? { systemPrompt: String(reqPrompt).trim() }
+          : {}),
+      },
+    });
 
-    // 3. Panggil Primary Gateway dengan Tracing & Network Context Isolation
-    const targetUrl = `${gatewayUrl}/chat/completions`;
-    const traceId = generateConversationTraceId();
-    const networkAffinity = resolveClientNetworkAffinity();
+    const tokens = result.tokens ?? null;
+    const tokensPerSecond =
+      tokens && result.latencyMs > 0
+        ? Math.round((tokens / (result.latencyMs / 1000)) * 10) / 10
+        : Math.round((tokens || 60) / 1.2);
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Session-ID': traceId,
-      'X-Session-Affinity': traceId,
-      'X-Request-ID': `req-${crypto.randomUUID()}`,
-      'X-Forwarded-For': networkAffinity,
-      'X-Real-IP': networkAffinity,
-    };
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
+    const ragDocumentsInjected = result.rag.chunksUsed.filter(
+      (c) => c.sourceType === 'DOCUMENT',
+    ).length;
+    const ragFaqsInjected = result.rag.chunksUsed.filter(
+      (c) => c.sourceType === 'FAQ',
+    ).length;
+    const referencedDocuments = Array.from(
+      new Set(result.rag.chunksUsed.map((c) => c.title)),
+    );
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
-    let primaryFailed = false;
-    let failureReason = '';
-
-    try {
-      const apiRes = await fetch(targetUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: activeModel,
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      const latencyMs = Date.now() - startTime;
-
-      if (apiRes.status === 429 || apiRes.status === 403) {
-        primaryFailed = true;
-        failureReason = `Upstream rate-limited / kuota habis (HTTP ${apiRes.status})`;
-      } else if (!apiRes.ok) {
-        primaryFailed = true;
-        failureReason = `Gateway error (HTTP ${apiRes.status})`;
-      } else {
-        const rawText = await apiRes.text();
-        let replyContent = '';
-        let tokens: number | null = null;
-
-        const trimmed = rawText.trim();
-        if (trimmed.startsWith('{')) {
-          try {
-            const json = JSON.parse(trimmed);
-            replyContent =
-              json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || '';
-            tokens = json.usage?.total_tokens || null;
-          } catch {
-            // parse SSE
-          }
-        }
-
-        if (!replyContent) {
-          let accumulated = '';
-          for (const line of trimmed.split('\n')) {
-            const l = line.trim();
-            if (l.startsWith('data: ')) {
-              const dataStr = l.slice(6).trim();
-              if (dataStr === '[DONE]') continue;
-              try {
-                const chunk = JSON.parse(dataStr);
-                accumulated +=
-                  chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
-                if (chunk.usage?.total_tokens) {
-                  tokens = chunk.usage.total_tokens;
-                }
-              } catch {
-                // ignore
-              }
-            }
-          }
-          replyContent = accumulated.trim();
-        }
-
-        if (!replyContent) {
-          replyContent = 'Tidak ada balasan dari model.';
-        }
-
-        const tokensPerSecond =
-          tokens && latencyMs > 0
-            ? Math.round((tokens / (latencyMs / 1000)) * 10) / 10
-            : Math.round((tokens || 60) / 1.2);
-
-        recordGatewayLog({
-          event: 'CHAT_COMPLETION',
-          model: activeModel,
-          status: 200,
-          latencyMs,
-          tokens: tokens || undefined,
-          tokensPerSecond,
-          details: `Query: "${prompt.slice(0, 30)}..." | ${tokens || 0} tokens (${tokensPerSecond} tok/s)`,
-        });
-
-        res.status(200).json({
-          status: 'ok',
-          data: {
-            reply: replyContent,
-            modelUsed: activeModel,
-            tokens,
-            latencyMs,
-            tokensPerSecond,
-            ragDocumentsInjected: injectedDocsCount,
-            ragFaqsInjected: injectedFaqsCount,
-            referencedDocuments,
-            isSimulationFallback: false,
-            isFallbackTriggered: false,
-          },
-        });
-        return;
-      }
-    } catch (networkErr: unknown) {
-      clearTimeout(timeout);
-      primaryFailed = true;
-      failureReason = `Gateway ${gatewayUrl} tidak merespons (Offline)`;
-    }
-
-    // 4. Penanganan Kegagalan Gateway (Offline / Kuota Habis)
-    const latencyMs = Date.now() - startTime;
-    const simTokens = 110;
-    const simTps = 46.8;
-
-    if (primaryFailed) {
-      await db.aiSetting.update({
-        where: { id: 'default' },
-        data: {
-          healthStatus: failureReason.includes('Offline') ? 'OFFLINE' : 'RATE_LIMITED',
-          lastLatencyMs: latencyMs,
-          lastHealthCheckedAt: new Date(),
-        },
-      });
-
-      const notice = failureReason.includes('Offline')
-        ? `Gateway ${gatewayUrl} sedang offline. Jalankan 9Router di port 20128.`
-        : `Upstream kuota habis. Pastikan Model Combo di 9Router telah memiliki provider cadangan (Gemini/Groq).`;
-
-      recordGatewayLog({
-        event: 'CHAT_COMPLETION',
-        model: activeModel,
-        status: failureReason.includes('429') ? 429 : 503,
-        latencyMs,
-        tokens: simTokens,
-        tokensPerSecond: simTps,
-        details: `[Simulasi Sandbox] Query: "${prompt.slice(0, 30)}..." | Notice: ${notice}`,
-      });
-
-      res.status(200).json({
-        status: 'ok',
-        data: {
-          reply: `Halo! Saya adalah Sandbox Asisten Virtual MobilJuragan Merauke. [Simulasi Gateway: ${failureReason}. ${notice}]. Berdasarkan Basis Pengetahuan RAG kami, seluruh penyewaan dalam kota maupun luar kota (Distrik Sota dan Boven Digoel) siap dilayani dengan supir siaga maupun lepas kunci sesuai SOP resmi.`,
-          modelUsed: activeModel,
-          latencyMs,
-          tokens: simTokens,
-          tokensPerSecond: simTps,
-          ragDocumentsInjected: injectedDocsCount,
-          ragFaqsInjected: injectedFaqsCount,
-          referencedDocuments,
-          isSimulationFallback: true,
-          isFallbackTriggered: false,
-          fallbackReason: failureReason,
-          gatewayNotice: notice,
-        },
-      });
-      return;
-    }
+    res.status(200).json({
+      status: 'ok',
+      data: {
+        reply: result.reply,
+        modelUsed: result.model,
+        tokens,
+        latencyMs: result.latencyMs,
+        tokensPerSecond,
+        ragDocumentsInjected,
+        ragFaqsInjected,
+        referencedDocuments,
+        ragMode: result.rag.mode,
+        ragLatencyMs: result.rag.latencyMs,
+        ragChunksUsed: result.rag.chunksUsed,
+        toolsUsed: result.toolsUsed,
+        intentGuard: result.intentGuard,
+        isSimulationFallback: result.fallbackUsed,
+        isFallbackTriggered: result.fallbackUsed,
+      },
+    });
   } catch (error) {
     logger.error({ error }, 'Gagal menjalankan test chat sandbox');
     res.status(500).json({ status: 'error', message: 'Gagal menjalankan pengujian chat.' });

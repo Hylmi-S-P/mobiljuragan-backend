@@ -1,7 +1,21 @@
 import type { NextFunction, Request, Response } from 'express';
 import { faqModel } from '../model/faqModel.js';
+import { logger } from '../logger.js';
+import { indexFaq, syncAllKnowledgeChunks } from '../lib/rag/indexer.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import type { CreateFaqInput, ListFaqQuery, UpdateFaqInput } from '../validators/faqSchemas.js';
+
+async function syncFaqIndexSafely(faqId: string): Promise<void> {
+  await indexFaq(faqId).catch((err) => {
+    logger.warn({ err, faqId }, 'Gagal memperbarui indeks chunk RAG untuk FAQ');
+  });
+}
+
+async function syncAllFaqChunksSafely(): Promise<void> {
+  await syncAllKnowledgeChunks({ forceReembed: false }).catch((err) => {
+    logger.warn({ err }, 'Gagal menyinkronkan ulang indeks chunk RAG setelah ubah kategori FAQ');
+  });
+}
 
 /**
  * Controller untuk mengelola FAQ dinamis MobilJuragan Merauke.
@@ -81,6 +95,8 @@ export const faqController = {
         isActive: body.isActive ?? true,
       });
 
+      await syncFaqIndexSafely(created.id);
+
       sendSuccess(res, created, 201);
     } catch (error) {
       next(error);
@@ -109,6 +125,8 @@ export const faqController = {
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
       });
 
+      await syncFaqIndexSafely(updated.id);
+
       sendSuccess(res, updated);
     } catch (error) {
       next(error);
@@ -127,6 +145,8 @@ export const faqController = {
       if (!toggled) {
         throw new AppError('FAQ_NOT_FOUND', `FAQ dengan ID '${id}' tidak ditemukan.`, 404);
       }
+
+      await syncFaqIndexSafely(toggled.id);
 
       sendSuccess(res, toggled);
     } catch (error) {
@@ -196,6 +216,7 @@ export const faqController = {
       }
 
       const diubah = await faqModel.renameCategory(lama, baru);
+      await syncAllFaqChunksSafely();
       sendSuccess(res, { dari: lama, ke: baru, jumlah: diubah });
     } catch (error) {
       next(error);
@@ -244,6 +265,7 @@ export const faqController = {
       }
 
       const dipindahkan = await faqModel.renameCategory(nama, pindahkanKe);
+      await syncAllFaqChunksSafely();
       sendSuccess(res, { dihapus: nama, pindahkanKe, jumlah: dipindahkan });
     } catch (error) {
       next(error);

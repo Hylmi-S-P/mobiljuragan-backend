@@ -2,6 +2,7 @@ import { app } from './app.js';
 import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startBookingLifecycleJob } from './jobs/bookingLifecycleJob.js';
 import { documentTemplateService } from './lib/documentTemplateService.js';
+import { ensureAiDefaults } from './services/aiKnowledgeSeed.js';
 import { logger } from './logger.js';
 
 const port = Number(process.env.PORT ?? 4000);
@@ -35,6 +36,10 @@ const server = app.listen(port, host, () => {
    */
   documentTemplateService.pastikanTemplateBawaan().catch((error: unknown) => {
     logger.error({ error }, 'Gagal menyiapkan template dokumen bawaan');
+  });
+
+  ensureAiDefaults().catch((error: unknown) => {
+    logger.error({ error }, 'Gagal menyiapkan basis pengetahuan RAG');
   });
 });
 

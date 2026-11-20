@@ -214,7 +214,7 @@ async function tungguServerSiap(): Promise<void> {
   );
 }
 
-async function spawnServer(): Promise<void> {
+async function spawnServer(envOverrides?: Record<string, string>): Promise<void> {
   const fd = fs.openSync(FILE_LOG_SERVER, 'a');
   fdLogServer = fd;
   catatLog(`\n=== ${new Date().toISOString()} mulai server uji di port ${PORT_UJI} ===\n`);
@@ -253,6 +253,12 @@ async function spawnServer(): Promise<void> {
        * dan mengirim pesan ke nomor palsu.
        */
       WA_PROVIDER: 'off',
+      /*
+       * Suite E2E utama tidak memanggil endpoint embedding eksternal secara default;
+       * suite AI dapat menyalakannya ulang via envOverrides menuju mock gateway.
+       */
+      RAG_EMBEDDINGS_DISABLED: 'true',
+      ...envOverrides,
     },
     /*
      * stdout/stderr diarahkan ke berkas, bukan pipe. Di lingkungan ini pipe
@@ -281,13 +287,14 @@ export async function sqlUji<T = unknown>(perintah: string, params: unknown[] = 
   }
 }
 
-/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */ export async function startHarness(): Promise<void> {
+/** Memulai seluruh rangkaian: database, migrasi, bersih-bersih, seed, server. */
+export async function startHarness(envOverrides?: Record<string, string>): Promise<void> {
   console.log(`Database uji: ${TEST_DATABASE_URL}`);
   await siapkanDatabaseUji();
   await jalankanMigrasi();
   await kosongkanTabel();
   await jalankanSeed();
-  await spawnServer();
+  await spawnServer(envOverrides);
   await tungguServerSiap();
 }
 

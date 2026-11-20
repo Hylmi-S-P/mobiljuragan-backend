@@ -72,7 +72,8 @@ export const ModelName = {
   BookingRefund: 'BookingRefund',
   BookingDocument: 'BookingDocument',
   MediaObject: 'MediaObject',
-  DocumentTemplate: 'DocumentTemplate'
+  DocumentTemplate: 'DocumentTemplate',
+  KnowledgeChunk: 'KnowledgeChunk'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -484,6 +485,28 @@ export const DocumentTemplateScalarFieldEnum = {
 export type DocumentTemplateScalarFieldEnum = (typeof DocumentTemplateScalarFieldEnum)[keyof typeof DocumentTemplateScalarFieldEnum]
 
 
+export const KnowledgeChunkScalarFieldEnum = {
+  id: 'id',
+  sourceType: 'sourceType',
+  documentId: 'documentId',
+  faqId: 'faqId',
+  chunkIndex: 'chunkIndex',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  contentHash: 'contentHash',
+  tokenCount: 'tokenCount',
+  embeddingModel: 'embeddingModel',
+  embeddingDims: 'embeddingDims',
+  embeddingJson: 'embeddingJson',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeChunkScalarFieldEnum = (typeof KnowledgeChunkScalarFieldEnum)[keyof typeof KnowledgeChunkScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -791,4 +814,19 @@ export const DocumentTemplateOrderByRelevanceFieldEnum = {
 } as const
 
 export type DocumentTemplateOrderByRelevanceFieldEnum = (typeof DocumentTemplateOrderByRelevanceFieldEnum)[keyof typeof DocumentTemplateOrderByRelevanceFieldEnum]
+
+
+export const KnowledgeChunkOrderByRelevanceFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  faqId: 'faqId',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  contentHash: 'contentHash',
+  embeddingModel: 'embeddingModel',
+  embeddingJson: 'embeddingJson'
+} as const
+
+export type KnowledgeChunkOrderByRelevanceFieldEnum = (typeof KnowledgeChunkOrderByRelevanceFieldEnum)[keyof typeof KnowledgeChunkOrderByRelevanceFieldEnum]
 

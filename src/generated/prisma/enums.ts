@@ -173,6 +173,14 @@ export const TicketHandler = {
 export type TicketHandler = (typeof TicketHandler)[keyof typeof TicketHandler]
 
 
+export const KnowledgeSourceType = {
+  DOCUMENT: 'DOCUMENT',
+  FAQ: 'FAQ'
+} as const
+
+export type KnowledgeSourceType = (typeof KnowledgeSourceType)[keyof typeof KnowledgeSourceType]
+
+
 export const RefundStatus = {
   MENUNGGU: 'MENUNGGU',
   DIPROSES: 'DIPROSES',
