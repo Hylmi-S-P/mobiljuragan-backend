@@ -1,6 +1,9 @@
 import 'dotenv/config';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { db } from '../src/db.js';
+import { simpanMedia, tautanStabil } from '../src/lib/mediaService.js';
 import {
   DriverReadiness,
   DriverRoute,
@@ -70,7 +73,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'MANUAL',
     category: 'MPV',
-    imageUrl: null,
+    photoFile: 'avanza-g-putih.jpg',
     pricePerDay: 400000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -83,21 +86,22 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'AUTOMATIC',
     category: 'SUV',
-    imageUrl: null,
+    photoFile: 'fortuner-vrz-trd-hitam.jpg',
     pricePerDay: 900000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
-    externalId: 'hilux-g-hitam-pa8593gz',
-    name: 'HILUX G HITAM',
+    externalId: 'ertiga-gl-all-new-hitam',
+    legacyExternalId: 'hilux-g-hitam-pa8593gz',
+    name: 'ERTIGA GL ALL NEW HITAM',
     licensePlate: 'PA8593GZ',
-    brand: 'Toyota',
-    model: 'Hilux G',
-    seatingCapacity: 5,
-    transmission: 'MANUAL',
-    category: 'PICKUP',
-    imageUrl: null,
-    pricePerDay: 850000,
+    brand: 'Suzuki',
+    model: 'Ertiga GL All New',
+    seatingCapacity: 7,
+    transmission: 'AUTOMATIC',
+    category: 'MPV',
+    photoFile: 'ertiga-gl-all-new-hitam.jpg',
+    pricePerDay: 450000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
   {
@@ -109,7 +113,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'AUTOMATIC',
     category: 'MPV',
-    imageUrl: null,
+    photoFile: 'innova-reborn-g-hitam.jpg',
     pricePerDay: 600000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -122,7 +126,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 3,
     transmission: 'MANUAL',
     category: 'COMMERCIAL',
-    imageUrl: null,
+    photoFile: 'pickup-suzuki-carry-hitam.jpg',
     pricePerDay: 350000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -135,7 +139,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'MANUAL',
     category: 'SUV',
-    imageUrl: null,
+    photoFile: 'rush-g-all-new-coklat.jpg',
     pricePerDay: 500000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -148,7 +152,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'AUTOMATIC',
     category: 'SUV',
-    imageUrl: null,
+    photoFile: 'terios-x-hijau-matic.jpg',
     pricePerDay: 500000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -161,7 +165,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'AUTOMATIC',
     category: 'MPV',
-    imageUrl: null,
+    photoFile: 'veloz-merah.jpg',
     pricePerDay: 450000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -174,7 +178,7 @@ const OFFICIAL_FLEET = [
     seatingCapacity: 7,
     transmission: 'AUTOMATIC',
     category: 'MPV',
-    imageUrl: null,
+    photoFile: 'xpander-exceed-hitam.jpg',
     pricePerDay: 550000,
     operationalStatus: OperationalStatus.AVAILABLE,
   },
@@ -282,24 +286,61 @@ async function main(): Promise<void> {
     console.log('  - Akun sudah ada; kata sandinya tidak diubah.');
   }
 
-  console.log('\nMenyiapkan 9 armada resmi...');
+  console.log('\nMenyiapkan 9 armada resmi & mengunggah foto...');
+  const folderFoto = path.resolve(process.cwd(), 'prisma', 'seed-assets', 'vehicles');
   for (const vehicle of OFFICIAL_FLEET) {
-    const record = await db.vehicle.upsert({
-      where: { externalId: vehicle.externalId },
-      update: {
-        name: vehicle.name,
-        licensePlate: vehicle.licensePlate,
-        brand: vehicle.brand,
-        model: vehicle.model,
-        seatingCapacity: vehicle.seatingCapacity,
-        transmission: vehicle.transmission,
-        category: vehicle.category,
-        pricePerDay: vehicle.pricePerDay,
-        operationalStatus: vehicle.operationalStatus,
-      },
-      create: vehicle,
+    let imageUrl: string | null = null;
+    try {
+      const buffer = await fs.readFile(path.join(folderFoto, vehicle.photoFile));
+      const media = await simpanMedia({
+        file: { buffer } as Express.Multer.File,
+        kategori: 'FLEET_PHOTO',
+        ownerUserId: admin.id,
+      });
+      imageUrl = tautanStabil(media.id);
+    } catch (err) {
+      console.warn(`  ! Gagal memuat foto ${vehicle.photoFile}:`, err);
+    }
+
+    const pencarianId = vehicle.legacyExternalId
+      ? [vehicle.externalId, vehicle.legacyExternalId]
+      : [vehicle.externalId];
+    const existingVehicle = await db.vehicle.findFirst({
+      where: { externalId: { in: pencarianId } },
     });
-    console.log(`  - Tersimpan: ${record.name} (${record.licensePlate})`);
+
+    const record = existingVehicle
+      ? await db.vehicle.update({
+          where: { id: existingVehicle.id },
+          data: {
+            externalId: vehicle.externalId,
+            name: vehicle.name,
+            licensePlate: vehicle.licensePlate,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            seatingCapacity: vehicle.seatingCapacity,
+            transmission: vehicle.transmission,
+            category: vehicle.category,
+            pricePerDay: vehicle.pricePerDay,
+            ...(imageUrl ? { imageUrl } : {}),
+          },
+        })
+      : await db.vehicle.create({
+          data: {
+            externalId: vehicle.externalId,
+            name: vehicle.name,
+            licensePlate: vehicle.licensePlate,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            seatingCapacity: vehicle.seatingCapacity,
+            transmission: vehicle.transmission,
+            category: vehicle.category,
+            imageUrl,
+            pricePerDay: vehicle.pricePerDay,
+            operationalStatus: vehicle.operationalStatus,
+          },
+        });
+    console.log(`  - Tersimpan: ${record.name} (${record.licensePlate}) -> ${record.imageUrl ?? 'tanpa foto'}`);
   }
 
   console.log('\nMenyiapkan roster supir...');
