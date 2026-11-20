@@ -247,6 +247,20 @@ bisa dibandingkan dengan pesan yang masuk. Kode itu tidak disimpan di database.
 Pesan teks bebas (pemberitahuan perubahan identitas) tetap lewat `gowa`, karena
 endpoint OTP WaPi.io hanya mengirim template, bukan teks yang kita susun.
 
+### Layanan Wajib vs Opsional untuk Uji Coba Lokal
+
+- **Wajib:** Node.js, MariaDB/MySQL (port `3306`).
+- **Opsional (tidak wajib untuk alur dasar):**
+  - **MinIO (`:9000`)**: hanya dibutuhkan bila `MEDIA_DRIVER=s3`. Untuk coba cepat di satu laptop, biarkan `MEDIA_DRIVER=lokal` (berkas tersimpan di `storage/media`).
+  - **WhatsApp OTP Gateway (WaPi.io / GOWA)**: jika belum punya API key untuk pengembangan lokal, aktifkan `ALLOW_DEV_OTP_BYPASS=true` di `.env` (berlaku saat `NODE_ENV` bukan `production`). Pelanggan dapat login dengan kode OTP `123456`.
+  - **AI Gateway / 9Router (`:20128`)**: opsional, hanya dibutuhkan jika ingin mengetes fitur **Bot / Asisten AI** (Playground AI di dashboard maupun balasan AI pada tiket bantuan). Isi variabel berikut di `.env`:
+    ```env
+    NINEROUTER_GATEWAY_URL=http://localhost:20128/v1
+    NINEROUTER_API_KEY=isi_api_key_anda
+    NINEROUTER_MODEL=mj
+    ```
+    Jika layanan ini tidak dijalankan atau API key kosong, seluruh fitur rental/booking/pembayaran tetap berjalan normal dan hanya respons bot AI yang tidak tersedia.
+
 ### Langkah 3: Menyiapkan MariaDB Lokal
 Pastikan service database MariaDB telah berjalan:
 - Jika menggunakan **FlyEnv**: pastikan modul MariaDB berstatus *Running* di port `3306`.
