@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { AppError } from './response.js';
 import { adaS3, aliranS3, bacaS3, hapusS3, simpanS3 } from './mediaStorageS3.js';
@@ -36,7 +36,8 @@ function pastikanJalurAmanDi(akar: string, objectKey: string): string {
   }
 
   const penuh = resolve(akar, objectKey);
-  const akarDenganPemisah = akar.endsWith('\\') || akar.endsWith('/') ? akar : akar + '\\';
+  const akarDenganPemisah =
+    akar.endsWith(sep) || akar.endsWith('/') || akar.endsWith('\\') ? akar : akar + sep;
 
   if (!penuh.startsWith(akarDenganPemisah)) {
     throw new AppError(
