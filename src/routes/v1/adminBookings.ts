@@ -15,9 +15,9 @@ import {
  */
 export const adminBookingRouter: Router = Router();
 
-// Seluruh endpoint admin booking dibatasi khusus role STAFF dan ADMIN
+// Seluruh endpoint booking portal dibatasi khusus role ADMIN dan SUPER_ADMIN
 adminBookingRouter.use(requireAuth);
-adminBookingRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminBookingRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminBookingRouter.get('/', validateQuery(adminBookingQuerySchema), adminBookingController.list);
 adminBookingRouter.get('/:id', adminBookingController.detail);

@@ -46,7 +46,7 @@ type WhatsAppIntentSource = Pick<
 
 /** Menyusun draf pesan konfirmasi beserta tautan WhatsApp yang dikirim staf ke pelanggan. */
 function buildWhatsAppIntent(booking: WhatsAppIntentSource): { message: string; url: string } {
-  const phone = toInternationalPhone(booking.customer.phoneNumber);
+  const phone = booking.customer.phoneNumber ? toInternationalPhone(booking.customer.phoneNumber) : '';
   const startStr = booking.startDateTime.toISOString().slice(0, 10);
   const endStr = booking.endDateTime.toISOString().slice(0, 10);
   const tarifStr =
@@ -71,7 +71,7 @@ function buildWhatsAppIntent(booking: WhatsAppIntentSource): { message: string; 
 
 /** Penulis riwayat status memakai peran pelaku, bukan peran tetap. */
 function actorOf(role: string): BookingStatusActor {
-  return role === UserRole.ADMIN ? BookingStatusActor.ADMIN : BookingStatusActor.STAFF;
+  return role === UserRole.SUPER_ADMIN ? BookingStatusActor.SUPER_ADMIN : BookingStatusActor.ADMIN;
 }
 
 /**

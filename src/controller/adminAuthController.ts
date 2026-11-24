@@ -2,19 +2,18 @@ import type { NextFunction, Request, Response } from 'express';
 import { userModel } from '../model/userModel.js';
 import { verifyPassword, signAuthToken } from '../lib/auth.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import { normalizePhoneNumber } from '../lib/phone.js';
 import { logger } from '../logger.js';
 import { UserRole } from '../generated/prisma/client.js';
 import { db } from '../db.js';
 
 /**
- * Controller autentikasi staf dan admin.
+ * Controller autentikasi admin dan super admin.
  *
  * Menangani login portal dan pengambilan sesi yang sedang aktif.
  * Semua kegagalan diteruskan lewat `next(error)` supaya ditangani satu kali
  * oleh errorHandler global.
  *
- * Model yang dipakai adalah `userModel` yang sama dengan modul akun staf,
+ * Model yang dipakai adalah `userModel` yang sama dengan modul manajemen akun,
  * karena tabelnya memang satu; tidak ada model terpisah hanya untuk login.
  */
 
@@ -27,9 +26,8 @@ const MENIT_KUNCI = Number(process.env.LOGIN_LOCK_MINUTES ?? 15);
 /**
  * Hash tiruan untuk menyamakan waktu proses saat akun tidak ditemukan.
  *
- * Tanpa ini, permintaan dengan nomor tidak terdaftar dijawab jauh lebih cepat
- * daripada nomor terdaftar dengan password salah, sehingga penyerang bisa
- * memetakan nomor mana yang punya akun hanya dari lama respons.
+ * Tanpa ini, permintaan dengan username tidak terdaftar dijawab jauh lebih cepat
+ * daripada username terdaftar dengan password salah.
  */
 const HASH_TIRUAN = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8DrsdOSTGjSTZSXBzHiQvNnCz1r7Ie';
 
@@ -38,40 +36,25 @@ async function samakanWaktu(password: string): Promise<void> {
 }
 
 /** Pesan yang sama untuk semua kegagalan, supaya tidak membocorkan penyebabnya. */
-const PESAN_GAGAL = 'Nomor telepon/username atau password salah.';
+const PESAN_GAGAL = 'Username atau kata sandi salah.';
 
 export const adminAuthController = {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { phoneNumber: rawPhone, username: rawUsername, password, rememberMe } = req.body;
-      const identifier = (rawPhone || rawUsername || '').trim();
+      const { username: rawUsername, password, rememberMe } = req.body as {
+        username: string;
+        password: string;
+        rememberMe?: boolean;
+      };
+      const username = rawUsername.trim().toLowerCase();
 
-      let user = null;
-      // Dianggap nomor telepon kalau isinya hanya angka dan pemisah umum
-      // (spasi, tanda hubung, tanda plus), lalu punya cukup digit.
-      // Bentuk `+62 812-3456-7890` ikut tertangkap, bukan jatuh ke pencarian nama.
-      const digitCount = identifier.replace(/\D/g, '').length;
-      const looksLikePhone = /^[0-9+\-\s()]+$/.test(identifier) && digitCount >= 8;
-      if (looksLikePhone) {
-        const phoneNumber = normalizePhoneNumber(identifier);
-        user = await userModel.findByPhoneNumber(phoneNumber);
-      } else {
-        // Alias username standar atau pencarian berdasarkan nama staf
-        const lower = identifier.toLowerCase();
-        if (lower === 'admin' || lower === 'admin.mobiljuragan') {
-          user = await userModel.findByPhoneNumber('081234567890');
-        } else if (lower === 'staf' || lower === 'staf.operasional') {
-          user = await userModel.findByPhoneNumber('081234567899');
-        } else {
-          user = await userModel.findFirstByNameOrPhone(identifier);
-        }
-      }
+      const user = await userModel.findStaffOrAdminByUsername(username);
 
-      // Validasi user, status aktif, dan role
+      // Validasi user, status aktif, dan role (hanya SUPER_ADMIN / ADMIN via username)
       if (
         !user ||
         !user.isActive ||
-        (user.role !== UserRole.ADMIN && user.role !== UserRole.STAFF)
+        (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN)
       ) {
         // Tetap jalankan pemeriksaan hash supaya waktu respons setara.
         await samakanWaktu(password);
@@ -142,6 +125,7 @@ export const adminAuthController = {
       const token = signAuthToken(
         {
           userId: user.id,
+          username: user.username,
           phoneNumber: user.phoneNumber,
           role: user.role,
           ver: user.tokenVersion ?? 0,
@@ -161,6 +145,7 @@ export const adminAuthController = {
           user: {
             id: user.id,
             fullName: user.fullName,
+            username: user.username,
             phoneNumber: user.phoneNumber,
             role: user.role,
           },

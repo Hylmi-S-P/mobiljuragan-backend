@@ -1492,7 +1492,7 @@ const kasus: Kasus[] = [
       });
       harapan(await handoverTiket(adminToken, tiket.id), 200, 'serahkan tiket ke staf');
 
-      const adminKedua = await buatAdminBaru(adminToken, 'ADMIN', 'Admin Uji Balapan');
+      const adminKedua = await buatAdminBaru(adminToken, 'SUPER_ADMIN', 'Admin Uji Balapan');
 
       const kirim = (token: string) =>
         api(`/admin/tickets/${tiket.id}/messages`, {
@@ -1534,14 +1534,14 @@ const kasus: Kasus[] = [
         description: 'Tiket ini dibuat masih ditangani asisten AI.',
       });
 
-      const staff = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Ambil Alih');
+      const adminBiasa = await buatAdminBaru(adminToken, 'ADMIN', 'Admin Uji Ambil Alih');
 
-      /* STAFF tidak boleh merebut tiket milik orang lain. */
-      const olehStaff = await api(`/admin/tickets/${tiket.id}/takeover`, {
+      /* ADMIN biasa tidak boleh merebut tiket milik orang lain. */
+      const olehAdminBiasa = await api(`/admin/tickets/${tiket.id}/takeover`, {
         method: 'POST',
-        token: staff.token,
+        token: adminBiasa.token,
       });
-      harapan(olehStaff, 403, 'staff tidak boleh mengambil alih');
+      harapan(olehAdminBiasa, 403, 'admin biasa tidak boleh mengambil alih');
 
       const pertama = await api(`/admin/tickets/${tiket.id}/takeover`, {
         method: 'POST',
@@ -1628,26 +1628,26 @@ const kasus: Kasus[] = [
         description: 'Staf akan mencoba menutup tiket ini secara manual.',
       });
 
-      const staff = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Penutupan');
+      const adminBiasa = await buatAdminBaru(adminToken, 'ADMIN', 'Admin Uji Penutupan');
       await handoverTiket(adminToken, tiket.id);
 
       for (const status of ['RESOLVED', 'CLOSED']) {
         const coba = await api(`/admin/tickets/${tiket.id}/status`, {
           method: 'PATCH',
-          token: staff.token,
+          token: adminBiasa.token,
           body: { status },
         });
         if (coba.status !== 409 || coba.body.error?.code !== 'TICKET_CLOSE_BY_SYSTEM') {
           throw new Error(
-            `staf tidak boleh menutup tiket; status ${status} menerima ${coba.status} ${coba.body.error?.code ?? ''}`,
+            `admin biasa tidak boleh menutup tiket; status ${status} menerima ${coba.status} ${coba.body.error?.code ?? ''}`,
           );
         }
       }
 
-      /* Status bukan akhir tetap boleh diubah staf. */
+      /* Status bukan akhir tetap boleh diubah admin biasa. */
       const boleh = await api(`/admin/tickets/${tiket.id}/status`, {
         method: 'PATCH',
-        token: staff.token,
+        token: adminBiasa.token,
         body: { status: 'WAITING_CUSTOMER' },
       });
       harapan(boleh, 200, 'staf tetap boleh mengubah status bukan akhir');
@@ -1722,9 +1722,9 @@ const kasus: Kasus[] = [
   },
   {
     id: 'T5.8',
-    nama: 'Staf tidak bisa menyentuh jalur khusus admin',
+    nama: 'Admin biasa tidak bisa menyentuh jalur khusus Super Admin',
     async fn({ adminToken }) {
-      const staf = await buatAdminBaru(adminToken, 'STAFF', 'Staf Uji Peran');
+      const adminBiasa = await buatAdminBaru(adminToken, 'ADMIN', 'Admin Uji Peran');
       const pelanggan = await loginCustomer();
 
       const daftarPelanggan = await api(
@@ -1735,45 +1735,52 @@ const kasus: Kasus[] = [
       const barisPelanggan = (daftarPelanggan.body.data?.items ??
         daftarPelanggan.body.data) as Array<{ id: string; phoneNumber: string }>;
       const pelangganId = barisPelanggan.find((p) => p.phoneNumber === pelanggan.phone)?.id;
-      if (!pelangganId) throw new Error('pelanggan uji tidak ditemukan di daftar admin');
+      if (!pelangganId) throw new Error('pelanggan uji tidak ditemukan di daftar super admin');
 
-      /* Daftar akun pengelola: staf tidak perlu melihat daftar admin lain,
+      /* Daftar akun pengelola: admin biasa tidak perlu melihat daftar akun lain,
          apalagi mengganti sandinya. */
-      const daftarStaf = await api('/admin/users', { token: staf.token });
-      if (daftarStaf.status !== 403) {
-        throw new Error(`staf membuka daftar admin harus 403, menerima ${daftarStaf.status}`);
+      const daftarAdmin = await api('/admin/users', { token: adminBiasa.token });
+      if (daftarAdmin.status !== 403) {
+        throw new Error(`admin biasa membuka daftar akun harus 403, menerima ${daftarAdmin.status}`);
       }
 
-      /* Koreksi nama pelanggan menyentuh data identitas yang dipakai dokumen
-         sewa, jadi hanya ADMIN. */
+      /* Akun pelanggan & jejak identitas hanya untuk SUPER_ADMIN. */
       const koreksiNama = await api(`/admin/customers/${pelangganId}/name`, {
         method: 'PATCH',
-        token: staf.token,
-        body: { fullName: 'Nama Diubah Staf', reason: 'Pengujian kewenangan staf.' },
+        token: adminBiasa.token,
+        body: { fullName: 'Nama Diubah Admin', reason: 'Pengujian kewenangan peran.' },
       });
       if (koreksiNama.status !== 403) {
-        throw new Error(`staf mengoreksi nama pelanggan harus 403, menerima ${koreksiNama.status}`);
+        throw new Error(`admin biasa mengoreksi nama pelanggan harus 403, menerima ${koreksiNama.status}`);
       }
 
-      /* Yang memang menjadi tugas staf harus tetap jalan. */
       const bukaKunci = await api(`/admin/customers/${pelangganId}/unlock`, {
         method: 'POST',
-        token: staf.token,
-        body: { reason: 'Pengujian kewenangan staf.' },
+        token: adminBiasa.token,
+        body: { reason: 'Pengujian kewenangan peran.' },
       });
-      harapan(bukaKunci, 200, 'staf tetap boleh membuka kunci akun pelanggan');
+      if (bukaKunci.status !== 403) {
+        throw new Error(`admin biasa membuka kunci pelanggan harus 403, menerima ${bukaKunci.status}`);
+      }
+
+      const bukaKunciSuperAdmin = await api(`/admin/customers/${pelangganId}/unlock`, {
+        method: 'POST',
+        token: adminToken,
+        body: { reason: 'Pengujian kewenangan super admin.' },
+      });
+      harapan(bukaKunciSuperAdmin, 200, 'super admin boleh membuka kunci akun pelanggan');
 
       const ubahTarif = await api('/admin/fleet/tariff-settings', {
         method: 'PATCH',
-        token: staf.token,
+        token: adminBiasa.token,
         body: { driverDailyRate: 150000 },
       });
       if (ubahTarif.status !== 403) {
-        throw new Error(`staf mengubah tarif global harus 403, menerima ${ubahTarif.status}`);
+        throw new Error(`admin biasa mengubah tarif global harus 403, menerima ${ubahTarif.status}`);
       }
 
-      const bacaTarif = await api('/admin/fleet/tariff-settings', { token: staf.token });
-      harapan(bacaTarif, 200, 'staf tetap boleh membaca tarif global');
+      const bacaTarif = await api('/admin/fleet/tariff-settings', { token: adminBiasa.token });
+      harapan(bacaTarif, 200, 'admin biasa tetap boleh membaca tarif global');
     },
   },
   {

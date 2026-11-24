@@ -31,7 +31,8 @@ const OTP_SALT = ambilRahasia('OTP_SALT', 'mobiljuragan-otp-salt-key');
 
 export interface AuthTokenPayload {
   userId: string;
-  phoneNumber: string;
+  phoneNumber?: string | null;
+  username?: string | null;
   role: UserRole;
   /**
    * Versi token akun saat token ini diterbitkan.

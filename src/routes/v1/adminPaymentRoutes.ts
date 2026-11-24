@@ -8,9 +8,9 @@ import { UserRole } from '../../generated/prisma/client.js';
  */
 export const adminPaymentRouter: Router = Router();
 
-// Seluruh endpoint admin pembayaran dibatasi khusus role STAFF dan ADMIN
+// Seluruh endpoint pembayaran portal dibatasi khusus role ADMIN dan SUPER_ADMIN
 adminPaymentRouter.use(requireAuth);
-adminPaymentRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminPaymentRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 // 1. Antrean Verifikasi Pembayaran (Tabs: ALL, PENDING_VERIFICATION, PAID, FAILED)
 adminPaymentRouter.get('/', paymentController.adminListPayments);

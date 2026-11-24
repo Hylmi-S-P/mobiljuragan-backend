@@ -11,8 +11,8 @@
 
 export const UserRole = {
   CUSTOMER: 'CUSTOMER',
-  STAFF: 'STAFF',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
@@ -33,8 +33,8 @@ export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus]
 
 export const BookingStatusActor = {
   CUSTOMER: 'CUSTOMER',
-  STAFF: 'STAFF',
   ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN',
   SYSTEM: 'SYSTEM'
 } as const
 

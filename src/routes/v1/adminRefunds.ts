@@ -10,7 +10,7 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
  */
 export const adminRefundRouter: Router = Router();
 
-adminRefundRouter.use(requireAuth, requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminRefundRouter.use(requireAuth, requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminRefundRouter.get('/', adminRefundController.list);
 adminRefundRouter.get('/summary', adminRefundController.summary);

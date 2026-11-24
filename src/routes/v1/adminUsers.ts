@@ -9,17 +9,15 @@ import { validateBody } from '../../middleware/validate.js';
 import { UserRole } from '../../generated/prisma/client.js';
 
 /**
- * Manajemen akun staf & admin: /api/v1/admin/users/*
+ * Manajemen akun admin & super admin: /api/v1/admin/users/*
  *
- * Rute ini sengaja dibatasi ADMIN saja. Sebelumnya STAFF ikut diizinkan, sehingga
- * staf operasional dapat mengganti sandi maupun peran akun admin lain — termasuk
- * menurunkan seluruh admin aktif. Staf tetap dapat mengelola FAQ, armada, supir,
- * dan tiket lewat router masing-masing.
+ * Rute ini sengaja dibatasi SUPER_ADMIN saja. Sebelumnya ADMIN operasional ikut
+ * diizinkan, padahal manajemen akun bisa mengganti sandi maupun hak akses akun lain.
  */
 export const adminUserRouter: Router = Router();
 
 adminUserRouter.use(requireAuth);
-adminUserRouter.use(requireRole(UserRole.ADMIN));
+adminUserRouter.use(requireRole(UserRole.SUPER_ADMIN));
 
 adminUserRouter.get('/', adminUserController.list);
 adminUserRouter.get('/:id', adminUserController.detail);

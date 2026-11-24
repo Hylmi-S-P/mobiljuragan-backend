@@ -62,22 +62,22 @@ documentRouter.post(
 // Pengambilan berkas dokumen (ber-otorisasi; bukan static publik).
 documentRouter.get('/documents/file/:bookingId/:name', requireAuth, documentController.getStoredFile);
 
-// Verifikasi dokumen hanya untuk staf dan admin.
+// Verifikasi dokumen untuk admin dan super admin.
 documentRouter.patch(
   '/admin/bookings/:id/documents/verify',
   requireAuth,
-  requireRole(UserRole.ADMIN, UserRole.STAFF),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   documentController.adminVerifyDocuments,
 );
 
 /*
- * Permintaan unggah ulang berkas. Dipisah dari verifikasi supaya staf punya
+ * Permintaan unggah ulang berkas. Dipisah dari verifikasi supaya admin punya
  * satu tindakan yang jelas: "minta perbaikan", bukan "tolak" yang terdengar
  * seperti keputusan akhir atas pesanan.
  */
 documentRouter.post(
   '/admin/bookings/:id/documents/request-revision',
   requireAuth,
-  requireRole(UserRole.ADMIN, UserRole.STAFF),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   documentController.requestDocumentRevision,
 );

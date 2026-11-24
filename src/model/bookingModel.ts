@@ -423,8 +423,8 @@ export const bookingModel = {
       if (
         (input.nextStatus === BookingStatus.CANCELLED ||
           input.nextStatus === BookingStatus.REJECTED) &&
-        (input.actor === BookingStatusActor.ADMIN ||
-          input.actor === BookingStatusActor.STAFF) &&
+        (input.actor === BookingStatusActor.SUPER_ADMIN ||
+          input.actor === BookingStatusActor.ADMIN) &&
         booking.payment?.status === PaymentStatus.PENDING_VERIFICATION
       ) {
         throw new AppError(

@@ -156,9 +156,9 @@ export const bookingController = {
       /* Satu nomor hanya boleh memegang sejumlah pesanan hidup. Setiap pesanan
          hidup menahan satu unit armada dari katalog, jadi nomor yang menumpuk
          pesanan tanpa membayar bisa mengosongkan katalog untuk pelanggan lain. */
-      const pesananAktif = await bookingModel.countActiveBookingsByPhone(
-        req.user!.phoneNumber,
-      );
+      const pesananAktif = req.user!.phoneNumber
+        ? await bookingModel.countActiveBookingsByPhone(req.user!.phoneNumber)
+        : 0;
       if (pesananAktif >= MAKS_PESANAN_AKTIF_PER_NOMOR) {
         throw new AppError(
           'BOOKING_ACTIVE_LIMIT_REACHED',
@@ -232,7 +232,7 @@ export const bookingController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const actor = req.user!;
-      const isStaffOrAdmin = actor.role === UserRole.STAFF || actor.role === UserRole.ADMIN;
+      const isStaffOrAdmin = actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
 
       const bookings = await bookingModel.listForActor({
         customerId: actor.userId,
@@ -256,7 +256,7 @@ export const bookingController = {
     try {
       const { id } = req.params;
       const actor = req.user!;
-      const isStaffOrAdmin = actor.role === UserRole.STAFF || actor.role === UserRole.ADMIN;
+      const isStaffOrAdmin = actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
 
       const booking = await bookingModel.findStatusTimeline({
         id,
@@ -297,7 +297,7 @@ export const bookingController = {
     try {
       const { id } = req.params;
       const actor = req.user!;
-      const isStaffOrAdmin = actor.role === UserRole.STAFF || actor.role === UserRole.ADMIN;
+      const isStaffOrAdmin = actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
 
       const booking = await bookingModel.findCustomerDetail({
         id,
@@ -328,7 +328,7 @@ export const bookingController = {
       const { id } = req.params;
       const { reason, refundAccount } = (req.body ?? {}) as z.infer<typeof customerCancelBookingSchema>;
       const customer = req.user!;
-      const isStaffOrAdmin = customer.role === UserRole.STAFF || customer.role === UserRole.ADMIN;
+      const isStaffOrAdmin = customer.role === UserRole.ADMIN || customer.role === UserRole.SUPER_ADMIN;
 
       const booking = await bookingModel.findCustomerDetail({
         id,
@@ -417,7 +417,7 @@ export const bookingController = {
       const { id } = req.params;
       const { refundAccount } = (req.body ?? {}) as z.infer<typeof updateRefundAccountSchema>;
       const customer = req.user!;
-      const isStaffOrAdmin = customer.role === UserRole.STAFF || customer.role === UserRole.ADMIN;
+      const isStaffOrAdmin = customer.role === UserRole.ADMIN || customer.role === UserRole.SUPER_ADMIN;
 
       const booking = await bookingModel.findCustomerDetail({
         id,

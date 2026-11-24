@@ -12,6 +12,7 @@ import { UserRole, type Prisma } from '../generated/prisma/client.js';
 const PUBLIC_FIELDS = {
   id: true,
   fullName: true,
+  username: true,
   phoneNumber: true,
   role: true,
   isActive: true,
@@ -19,23 +20,27 @@ const PUBLIC_FIELDS = {
   updatedAt: true,
 } as const;
 
-/** Peran yang dikelola lewat portal: admin dan staf operasional, bukan pelanggan. */
-const STAFF_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.STAFF];
+/** Peran yang dikelola lewat portal: super admin dan admin operasional, bukan pelanggan. */
+const INTERNAL_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN];
 
 export const userModel = {
   listStaffAndAdmin() {
     return db.user.findMany({
-      where: { role: { in: STAFF_ROLES } },
-      orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
+      where: { role: { in: INTERNAL_ROLES } },
+      orderBy: [{ role: 'desc' }, { fullName: 'asc' }],
       select: PUBLIC_FIELDS,
     });
   },
 
   findStaffOrAdminById(id: string) {
     return db.user.findFirst({
-      where: { id, role: { in: STAFF_ROLES } },
+      where: { id, role: { in: INTERNAL_ROLES } },
       select: PUBLIC_FIELDS,
     });
+  },
+
+  findByUsername(username: string) {
+    return db.user.findUnique({ where: { username } });
   },
 
   findByPhoneNumber(phoneNumber: string) {
@@ -46,26 +51,13 @@ export const userModel = {
     return db.user.findUnique({ where: { id } });
   },
 
-  /** Login portal hanya mencari akun staf/admin dengan prioritas kecocokan eksak. */
-  async findFirstByNameOrPhone(identifier: string) {
-    const exactMatch = await db.user.findFirst({
-      where: {
-        role: { in: STAFF_ROLES },
-        OR: [{ phoneNumber: identifier }, { fullName: identifier }],
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (exactMatch) {
-      return exactMatch;
-    }
-
+  /** Login portal hanya mencari akun internal berdasarkan username yang persis cocok. */
+  findStaffOrAdminByUsername(username: string) {
     return db.user.findFirst({
       where: {
-        role: { in: STAFF_ROLES },
-        fullName: { contains: identifier },
+        role: { in: INTERNAL_ROLES },
+        username,
       },
-      orderBy: { createdAt: 'asc' },
     });
   },
 
@@ -79,6 +71,7 @@ export const userModel = {
       select: {
         id: true,
         fullName: true,
+        username: true,
         phoneNumber: true,
         role: true,
         isActive: true,
@@ -88,8 +81,8 @@ export const userModel = {
     });
   },
 
-  countActiveAdmins() {
-    return db.user.count({ where: { role: UserRole.ADMIN, isActive: true } });
+  countActiveSuperAdmins() {
+    return db.user.count({ where: { role: UserRole.SUPER_ADMIN, isActive: true } });
   },
 
   create(data: Prisma.UserCreateInput) {
@@ -123,7 +116,7 @@ export const userModel = {
           entityId: created.id,
           metadata: {
             fullName: created.fullName,
-            phoneNumber: created.phoneNumber,
+            username: created.username,
             role: created.role,
           },
         },

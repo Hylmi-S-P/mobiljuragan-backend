@@ -11,9 +11,9 @@ import { OperationalStatus, UserRole } from '../../generated/prisma/client.js';
  */
 export const adminVehicleRouter: Router = Router();
 
-// Endpoint khusus role STAFF dan ADMIN
+// Endpoint khusus role ADMIN dan SUPER_ADMIN
 adminVehicleRouter.use(requireAuth);
-adminVehicleRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminVehicleRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 /**
  * Foto armada bisa dikirim dengan dua cara.

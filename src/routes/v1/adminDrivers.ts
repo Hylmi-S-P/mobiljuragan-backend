@@ -16,7 +16,7 @@ import {
 export const adminDriverRouter: Router = Router();
 
 adminDriverRouter.use(requireAuth);
-adminDriverRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminDriverRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminDriverRouter.get('/', validateQuery(listQuerySchema), adminDriverController.list);
 adminDriverRouter.post('/', validateBody(createDriverSchema), adminDriverController.create);

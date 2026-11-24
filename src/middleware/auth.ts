@@ -67,6 +67,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       userId: user.id,
       id: user.id,
       fullName: user.fullName,
+      username: user.username,
       phoneNumber: user.phoneNumber,
       role: user.role,
     };
@@ -116,6 +117,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
         userId: user.id,
         id: user.id,
         fullName: user.fullName,
+        username: user.username,
         phoneNumber: user.phoneNumber,
         role: user.role,
       };

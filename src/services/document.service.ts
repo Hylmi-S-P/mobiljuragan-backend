@@ -95,7 +95,7 @@ async function selesaikanDokumen(
  * pemesanannya ada.
  */
 function pastikanBolehAkses(customerId: string, actor: DocumentActor): void {
-  const staf = actor.role === UserRole.ADMIN || actor.role === UserRole.STAFF;
+  const staf = actor.role === UserRole.SUPER_ADMIN || actor.role === UserRole.ADMIN;
   if (staf) return;
 
   if (customerId !== actor.userId) {
