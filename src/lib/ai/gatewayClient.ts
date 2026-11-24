@@ -216,7 +216,7 @@ export async function callGatewayCompletion(input: {
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Accept: 'text/event-stream, application/json',
+      Accept: 'application/json',
       'X-Correlation-Id': traceId,
       'X-Forwarded-For': resolveClientNetworkAffinity(),
     };
@@ -226,6 +226,7 @@ export async function callGatewayCompletion(input: {
 
     const bodyPayload: Record<string, unknown> = {
       model: input.model,
+      stream: false,
       messages: input.messages,
       temperature: input.temperature,
       max_tokens: input.maxTokens,
