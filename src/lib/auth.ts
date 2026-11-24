@@ -87,12 +87,14 @@ export function verifyOtpHash(otp: string, storedHash: string): boolean {
  * nilai hash (`$2b$11$...`).
  */
 export const BIAYA_BCRYPT_PELANGGAN = 11;
+export const BIAYA_BCRYPT_ADMIN = 11;
 
 /**
- * Hash password untuk staf/admin menggunakan bcrypt.
+ * Hash password untuk admin dan super admin menggunakan bcrypt (cost 11).
+ * Hash lama dengan cost 10 tetap kompatibel saat verifikasi.
  */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(BIAYA_BCRYPT_ADMIN);
   return bcrypt.hash(password, salt);
 }
 

@@ -12,6 +12,7 @@ import {
   ATURAN_KATA_SANDI,
   BATAS_BYTE,
   PANJANG_MINIMAL,
+  passwordPolicyZodSchema,
 } from '../../lib/passwordPolicy.js';
 
 /**
@@ -63,21 +64,7 @@ const otpVerifySchema = z.object({
  * karena memerlukan data permintaan lain. Di sini hanya bentuk dasarnya, supaya
  * permintaan yang jelas salah tidak sampai menyentuh database.
  */
-const passwordZodSchema = z
-  .string({
-    error: 'Kata sandi wajib diisi.',
-  })
-  .min(
-    PANJANG_MINIMAL,
-    `Kata sandi minimal ${PANJANG_MINIMAL} karakter.`,
-  )
-  .refine((val) => Buffer.byteLength(val, 'utf8') <= BATAS_BYTE, {
-    message: `Kata sandi maksimal ${BATAS_BYTE} byte.`,
-  })
-  .refine((val) => /[A-Z]/.test(val), { message: 'Kata sandi harus memuat huruf besar.' })
-  .refine((val) => /[a-z]/.test(val), { message: 'Kata sandi harus memuat huruf kecil.' })
-  .refine((val) => /[0-9]/.test(val), { message: 'Kata sandi harus memuat angka.' })
-  .refine((val) => /[^A-Za-z0-9]/.test(val), { message: 'Kata sandi harus memuat simbol.' });
+const passwordZodSchema = passwordPolicyZodSchema;
 
 const passwordLoginSchema = z.object({
   phoneNumber: phoneZodSchema,

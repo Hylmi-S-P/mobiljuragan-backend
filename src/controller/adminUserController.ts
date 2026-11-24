@@ -1,9 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { UserRole, type Prisma } from '../generated/prisma/client.js';
 import { userModel } from '../model/userModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
+import { hashPassword } from '../lib/auth.js';
+import {
+  adminUsernameZodSchema,
+  passwordPolicyZodSchema,
+} from '../lib/passwordPolicy.js';
 
 /**
  * Controller manajemen akun admin dan super admin.
@@ -13,30 +17,17 @@ import { AppError, sendSuccess } from '../lib/response.js';
  * satu kali, bukan diulang di setiap blok catch.
  */
 
-const usernameRegex = /^[a-z0-9._-]+$/i;
-
 export const createAdminSchema = z.object({
   fullName: z
     .string()
     .trim()
     .min(3, 'Nama lengkap minimal 3 karakter.')
     .max(60, 'Nama lengkap maksimal 60 karakter.'),
-  username: z
-    .string()
-    .trim()
-    .min(3, 'Username minimal 3 karakter.')
-    .max(30, 'Username maksimal 30 karakter.')
-    .regex(
-      usernameRegex,
-      'Username hanya boleh berisi huruf, angka, titik, underscore, atau tanda hubung.',
-    ),
+  username: adminUsernameZodSchema,
   role: z.enum(['ADMIN', 'SUPER_ADMIN'], {
     error: 'Hak akses harus bernilai ADMIN atau SUPER_ADMIN.',
   }),
-  password: z
-    .string()
-    .min(8, 'Kata sandi minimal 8 karakter.')
-    .max(50, 'Kata sandi maksimal 50 karakter.'),
+  password: passwordPolicyZodSchema,
 });
 
 export const updateAdminSchema = z.object({
@@ -46,12 +37,9 @@ export const updateAdminSchema = z.object({
     .min(3, 'Nama lengkap minimal 3 karakter.')
     .max(60, 'Nama lengkap maksimal 60 karakter.')
     .optional(),
+  username: adminUsernameZodSchema.optional(),
   role: z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
-  password: z
-    .string()
-    .min(8, 'Kata sandi minimal 8 karakter.')
-    .max(50, 'Kata sandi maksimal 50 karakter.')
-    .optional(),
+  password: passwordPolicyZodSchema.optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -100,7 +88,7 @@ export const adminUserController = {
         );
       }
 
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await hashPassword(password);
 
       const newUser = await userModel.createWithAudit(
         {
@@ -123,8 +111,9 @@ export const adminUserController = {
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { fullName, role, password, isActive } = req.body as {
+      const { fullName, username: rawUsername, role, password, isActive } = req.body as {
         fullName?: string;
+        username?: string;
         role?: 'ADMIN' | 'SUPER_ADMIN';
         password?: string;
         isActive?: boolean;
@@ -134,6 +123,20 @@ export const adminUserController = {
       const existing = await userModel.findById(id);
       if (!existing) {
         throw new AppError('USER_NOT_FOUND', `Akun dengan ID '${id}' tidak ditemukan.`, 404);
+      }
+
+      const nextUsername = rawUsername ? rawUsername.trim().toLowerCase() : undefined;
+      const usernameChanged = Boolean(nextUsername && nextUsername !== existing.username);
+
+      if (usernameChanged && nextUsername) {
+        const duplicate = await userModel.findByUsername(nextUsername);
+        if (duplicate && duplicate.id !== existing.id) {
+          throw new AppError(
+            'USERNAME_EXISTS',
+            'Username ini sudah dipakai akun lain.',
+            409,
+          );
+        }
       }
 
       // Akun yang sedang dipakai tidak boleh menurunkan perannya sendiri.
@@ -176,14 +179,16 @@ export const adminUserController = {
 
       const updateData: Prisma.UserUpdateInput = {};
       if (fullName) updateData.fullName = fullName;
+      if (usernameChanged && nextUsername) updateData.username = nextUsername;
       if (role) updateData.role = role as UserRole;
       if (typeof isActive === 'boolean') updateData.isActive = isActive;
       if (password) {
-        updateData.passwordHash = await bcrypt.hash(password, 10);
+        updateData.passwordHash = await hashPassword(password);
       }
 
       const perluCabutSesi =
         Boolean(password) ||
+        usernameChanged ||
         (Boolean(role) && role !== existing.role) ||
         isActive === false;
 
