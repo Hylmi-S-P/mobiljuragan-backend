@@ -14,6 +14,13 @@ import { normalizePhoneNumber } from '../lib/phone.js';
  * satu kali, bukan diulang di setiap blok catch.
  */
 
+const phoneRegex = /^[0-9+\-\s()]+$/;
+
+function hasValidPhoneDigitCount(val: string): boolean {
+  const digits = val.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15;
+}
+
 export const createAdminSchema = z.object({
   fullName: z
     .string()
@@ -23,8 +30,11 @@ export const createAdminSchema = z.object({
   phoneNumber: z
     .string()
     .trim()
-    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
-    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.'),
+    .min(8, 'Nomor telepon wajib berisi 8 hingga 15 digit angka.')
+    .max(20, 'Nomor telepon maksimal 20 karakter.')
+    .refine((val) => phoneRegex.test(val) && hasValidPhoneDigitCount(val), {
+      message: 'Nomor telepon wajib berisi 8 hingga 15 digit angka.',
+    }),
   role: z.enum(['ADMIN', 'STAFF'], {
     error: 'Peran harus bernilai ADMIN atau STAFF.',
   }),
@@ -44,8 +54,11 @@ export const updateAdminSchema = z.object({
   phoneNumber: z
     .string()
     .trim()
-    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
-    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.')
+    .min(8, 'Nomor telepon wajib berisi 8 hingga 15 digit angka.')
+    .max(20, 'Nomor telepon maksimal 20 karakter.')
+    .refine((val) => phoneRegex.test(val) && hasValidPhoneDigitCount(val), {
+      message: 'Nomor telepon wajib berisi 8 hingga 15 digit angka.',
+    })
     .optional(),
   role: z.enum(['ADMIN', 'STAFF']).optional(),
   password: z
@@ -85,6 +98,11 @@ export const adminUserController = {
     try {
       const { fullName, phoneNumber: rawPhone, role, password } = req.body;
       const phoneNumber = normalizePhoneNumber(rawPhone);
+      if (!hasValidPhoneDigitCount(phoneNumber)) {
+        throw new AppError('VALIDATION_ERROR', 'Format data tidak valid.', 400, {
+          phoneNumber: ['Nomor telepon wajib berisi 8 hingga 15 digit angka.'],
+        });
+      }
       const actorUser = req.user!;
 
       const existing = await userModel.findByPhoneNumber(phoneNumber);
@@ -174,6 +192,11 @@ export const adminUserController = {
 
       if (rawPhone) {
         const phoneNumber = normalizePhoneNumber(rawPhone);
+        if (!hasValidPhoneDigitCount(phoneNumber)) {
+          throw new AppError('VALIDATION_ERROR', 'Format data tidak valid.', 400, {
+            phoneNumber: ['Nomor telepon wajib berisi 8 hingga 15 digit angka.'],
+          });
+        }
         if (phoneNumber !== existing.phoneNumber) {
           const phoneCheck = await userModel.findByPhoneNumber(phoneNumber);
           if (phoneCheck) {

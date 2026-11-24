@@ -46,12 +46,26 @@ export const userModel = {
     return db.user.findUnique({ where: { id } });
   },
 
-  /** Login portal boleh memakai nama staf, bukan hanya nomor telepon. */
-  findFirstByNameOrPhone(identifier: string) {
+  /** Login portal hanya mencari akun staf/admin dengan prioritas kecocokan eksak. */
+  async findFirstByNameOrPhone(identifier: string) {
+    const exactMatch = await db.user.findFirst({
+      where: {
+        role: { in: STAFF_ROLES },
+        OR: [{ phoneNumber: identifier }, { fullName: identifier }],
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
     return db.user.findFirst({
       where: {
-        OR: [{ phoneNumber: identifier }, { fullName: { contains: identifier } }],
+        role: { in: STAFF_ROLES },
+        fullName: { contains: identifier },
       },
+      orderBy: { createdAt: 'asc' },
     });
   },
 
