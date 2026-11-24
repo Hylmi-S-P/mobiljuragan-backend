@@ -64,16 +64,28 @@ function extractTicketId(data: { ticket?: unknown }): string | undefined {
  */
 export const ticketModel = {
   /** Daftar tiket beserta jumlah pesan, diurutkan dari yang paling baru diperbarui. */
-  listWithCounts(filter?: { status?: TicketStatus }) {
+  listWithCounts(filter?: { status?: TicketStatus; visibleToAdminId?: string }) {
+    const where: Prisma.SupportTicketWhereInput = {
+      ...(filter?.status ? { status: filter.status } : {}),
+      ...(filter?.visibleToAdminId
+        ? {
+            OR: [
+              { assignedAdminId: null },
+              { assignedAdminId: filter.visibleToAdminId },
+            ],
+          }
+        : {}),
+    };
+
     return db.supportTicket.findMany({
-      where: filter?.status ? { status: filter.status } : undefined,
+      where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { updatedAt: 'desc' },
       include: {
         /* Nama penjawab supaya daftar bisa menandai tiket yang sedang dipegang
            admin lain. Hanya nama: tampilan tidak butuh data lain. */
         assignedAdmin: { select: { id: true, fullName: true } },
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
-        /* Kode pesanan supaya staf tahu tiket ini soal sewa yang mana tanpa
+        /* Kode pesanan supaya admin tahu tiket ini soal sewa yang mana tanpa
            harus membuka percakapannya lebih dulu. */
         booking: { select: { id: true, bookingCode: true, status: true } },
         _count: { select: { messages: true } },

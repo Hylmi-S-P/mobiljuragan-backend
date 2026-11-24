@@ -45,6 +45,18 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
     return;
   }
 
+  if (
+    actor.role === 'ADMIN' &&
+    tiket.assignedAdminId &&
+    tiket.assignedAdminId !== actor.userId
+  ) {
+    res.status(403).json({
+      status: 'error',
+      error: { code: 'FORBIDDEN', message: 'Tiket ini sedang ditangani oleh admin lain.' },
+    });
+    return;
+  }
+
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');

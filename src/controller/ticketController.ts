@@ -96,14 +96,18 @@ export const ticketController = {
         );
       }
 
+      const actor = req.user!;
+      /* Tiket yang sudah diambil admin hanya boleh dilihat pemiliknya dan SUPER_ADMIN.
+         Admin lain tidak melihat tiket itu baik di daftar aktif maupun arsip. */
       const tickets = await ticketModel.listWithCounts({
         status: rawStatus as TicketStatus | undefined,
+        visibleToAdminId: actor.role === UserRole.ADMIN ? actor.userId : undefined,
       });
 
       /* isMine dihitung di server: klien tidak menyimpan identitas admin, hanya
          token. Menambahkannya di sini menghindari satu permintaan tambahan pada
          setiap muat halaman, dan nilainya tidak bisa dipalsukan dari peramban. */
-      const actorId = req.user!.userId;
+      const actorId = actor.userId;
       sendSuccess(
         res,
         tickets.map((t) => ({
@@ -119,13 +123,26 @@ export const ticketController = {
   async detail(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
+      const actor = req.user!;
       const ticket = await ticketModel.findById(id);
 
       if (!ticket) {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      sendSuccess(res, { ...ticket, isMine: ticket.assignedAdminId === req.user!.userId });
+      if (
+        actor.role === UserRole.ADMIN &&
+        ticket.assignedAdminId &&
+        ticket.assignedAdminId !== actor.userId
+      ) {
+        throw new AppError(
+          'FORBIDDEN',
+          'Tiket ini sedang ditangani oleh admin lain.',
+          403,
+        );
+      }
+
+      sendSuccess(res, { ...ticket, isMine: ticket.assignedAdminId === actor.userId });
     } catch (error) {
       next(error);
     }
@@ -217,19 +234,6 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      /* Selama tiket masih dipegang asisten AI, admin hanya boleh membaca.
-         Pemeriksaan ini ada di backend, bukan hanya di tampilan, supaya tidak bisa
-         dilewati dengan memanggil API langsung. Penyerahan ke admin terjadi saat
-         asisten AI memberi flag handover, dan itu mengubah handledBy menjadi HUMAN
-         sekaligus mengisi handoverAt. */
-      if (existing.handledBy === TicketHandler.AI) {
-        throw new AppError(
-          'TICKET_STILL_WITH_AI',
-          'Tiket ini masih ditangani asisten AI. Admin baru bisa membalas setelah AI menyerahkannya.',
-          409,
-        );
-      }
-
       /* Tiket yang sudah selesai (RESOLVED) maupun ditutup (CLOSED) tidak
        * menerima pesan baru.
        *
@@ -245,31 +249,24 @@ export const ticketController = {
         );
       }
 
-      /* A15.1 — tiket yang sedang dipegang admin lain tidak boleh dijawab.
+      /* Tiket yang sedang dipegang admin lain tidak boleh dijawab (termasuk oleh
+       * SUPER_ADMIN yang hanya memantau lewat label "Dipegang oleh ...").
        *
-       * Tanpa pemeriksaan ini, dua admin bisa menjawab pelanggan yang sama tanpa
-       * saling tahu, dan pelanggan menerima dua jawaban berbeda untuk satu
-       * pertanyaan. Pemeriksaan ditaruh di sini, bukan hanya di tampilan, supaya
-       * tidak bisa dilewati dengan memanggil API langsung. */
+       * Pemeriksaan ditaruh di backend, bukan hanya di tampilan, supaya tidak bisa
+       * dilewati dengan memanggil API langsung. */
       if (
         existing.assignedAdminId &&
         existing.assignedAdminId !== actor.userId
       ) {
         throw new AppError(
           'TICKET_ASSIGNED_TO_OTHER',
-          'Tiket ini sedang dipegang admin lain. Ambil alih dulu kalau memang perlu Anda tangani.',
+          'Tiket ini sedang dipegang admin lain.',
           409,
         );
       }
 
-      /* Kalau tiket belum dipegang siapa pun, balasan pertama otomatis mengklaimnya.
-       * Admin tidak perlu menekan dua tombol untuk hal yang jelas: membalas
-       * berarti mengerjakan.
-       *
-       * Klaimnya lewat update bersyarat, dan hasilnya diperiksa. Tanpa pemeriksaan
-       * ini dua admin yang menekan kirim hampir bersamaan sama-sama membaca
-       * "belum ada pemegang", sama-sama mengirim balasan, lalu yang kalah tetap
-       * menjawab pelanggan padahal tiketnya sudah dipegang orang lain. */
+      /* Jika tiket belum dipegang siapa pun, balasan pertama dari Admin/Super Admin
+       * otomatis mengklaim kepemilikan tiket sekaligus mengalihkannya dari AI. */
       if (!existing.assignedAdminId) {
         const klaim = await ticketModel.assignTo(id, actor.userId);
         if (!klaim.berhasil) {
@@ -279,6 +276,10 @@ export const ticketController = {
             409,
           );
         }
+      }
+
+      if (existing.handledBy === TicketHandler.AI) {
+        await ticketModel.handoverToHuman(id, new Date());
       }
 
       const message = await ticketModel.createMessage({
@@ -358,10 +359,10 @@ export const ticketController = {
       const { id } = req.params;
       const actor = req.user!;
 
-      if (actor.role !== 'ADMIN') {
+      if (actor.role !== UserRole.SUPER_ADMIN) {
         throw new AppError(
           'FORBIDDEN',
-          'Hanya admin yang boleh mengambil alih tiket milik admin lain.',
+          'Hanya super admin yang boleh mengambil alih tiket milik admin lain.',
           403,
         );
       }
@@ -446,10 +447,14 @@ export const ticketController = {
         throw new AppError('TICKET_NOT_FOUND', `Tiket dengan ID '${id}' tidak ditemukan.`, 404);
       }
 
-      if (existing.assignedAdminId && existing.assignedAdminId !== actor.userId && actor.role !== 'ADMIN') {
+      if (
+        existing.assignedAdminId &&
+        existing.assignedAdminId !== actor.userId &&
+        actor.role !== UserRole.SUPER_ADMIN
+      ) {
         throw new AppError(
           'FORBIDDEN',
-          'Tiket ini dipegang admin lain. Hanya admin yang boleh melepasnya.',
+          'Tiket ini dipegang admin lain. Hanya super admin yang boleh melepasnya.',
           403,
         );
       }
