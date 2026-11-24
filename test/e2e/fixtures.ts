@@ -497,13 +497,13 @@ export async function buatAdminBaru(
   const dibuat = await api('/admin/users', {
     method: 'POST',
     token: adminToken,
-    body: { fullName: nama, username, role, password: 'Admin123!' },
+    body: { fullName: nama, username, role, password: 'JuraganUji#92' },
   });
   harapan(dibuat, 201, `buat akun ${role}`);
 
   const masuk = await api('/admin/auth/login', {
     method: 'POST',
-    body: { username, password: 'Admin123!' },
+    body: { username, password: 'JuraganUji#92' },
   });
   harapan(masuk, 200, `login akun ${role} baru`);
   return { token: masuk.body.data.token as string, username };
