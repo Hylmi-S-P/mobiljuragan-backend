@@ -24,8 +24,16 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       return;
     }
 
-    const prompt = rawPrompt.trim();
+    const rawTrimmed = rawPrompt.trim();
     const ticketId = typeof rawTicketId === 'string' && rawTicketId ? rawTicketId : undefined;
+    // Aplikasi mobile lama mengirim konteks sistem "Tiket #TKT-... Keluhan pelanggan: <isi>"
+    // saat inisialisasi tiket baru. Ekstrak keluhan aslinya agar wrapper sistem tidak bocor
+    // sebagai bubble pesan pelanggan dan tidak memicu balasan AI ganda.
+    const wrapperMatch = rawTrimmed.match(
+      /^Tiket\s+#[A-Za-z0-9-]+:[\s\S]*?Keluhan pelanggan:\s*([\s\S]+)$/i,
+    );
+    const isTicketInitWrapper = Boolean(wrapperMatch);
+    const prompt = wrapperMatch ? wrapperMatch[1].trim() : rawTrimmed;
     let tiket: Awaited<ReturnType<typeof ticketModel.findById>> = null;
 
     if (ticketId) {
@@ -93,9 +101,27 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
 
     if (ticketId) {
       const riwayatDb = await ticketModel.listMessages(ticketId);
+      if (isTicketInitWrapper) {
+        const existingAiMsg = riwayatDb.find((m) => m.isAi);
+        if (existingAiMsg) {
+          res.status(200).json({
+            status: 'ok',
+            data: {
+              reply: existingAiMsg.body,
+              model: 'cached',
+              latencyMs: Date.now() - startTime,
+              ragMode: 'NONE',
+              toolsUsed: [],
+              ticketHandedOver: false,
+            },
+          });
+          return;
+        }
+      }
+
       if (riwayatDb.length > 0) {
         const lastMsg = riwayatDb[riwayatDb.length - 1];
-        if (lastMsg?.isCustomer && lastMsg.body.trim() === prompt) {
+        if (lastMsg?.isCustomer && (lastMsg.body.trim() === prompt || isTicketInitWrapper)) {
           isPromptAlreadyLastMessage = true;
         }
 
@@ -111,7 +137,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         }
       }
 
-      if (!isPromptAlreadyLastMessage) {
+      if (!isPromptAlreadyLastMessage && !isTicketInitWrapper) {
         const senderId = req.user?.userId ?? tiket?.customerId;
         if (senderId) {
           await ticketModel.createMessage({
