@@ -750,33 +750,44 @@ export const bookingModel = {
         const now = new Date();
         const serviceExpectedDoneAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
-        /* Kalau masih ada pesanan aktif lain yang mulai sebelum masa in-service
-           berakhir, armada tetap dianggap terpakai, bukan masuk pemeriksaan. */
-        const upcomingBooking = await tx.booking.count({
-          where: {
-            id: { not: booking.id },
-            vehicleId: booking.vehicleId,
-            status: { in: ACTIVE_BOOKING_STATUSES },
-            startDateTime: { lte: serviceExpectedDoneAt },
-            endDateTime: { gte: now },
-          },
+        const vehicleState = await tx.vehicle.findUnique({
+          where: { id: booking.vehicleId },
+          select: { operationalStatus: true },
         });
 
-        await tx.vehicle.update({
-          where: { id: booking.vehicleId },
-          data:
-            upcomingBooking > 0
-              ? {
-                  operationalStatus: OperationalStatus.BOOKED,
-                  serviceStartedAt: null,
-                  serviceExpectedDoneAt: null,
-                }
-              : {
-                  operationalStatus: OperationalStatus.IN_SERVICE,
-                  serviceStartedAt: now,
-                  serviceExpectedDoneAt,
-                },
-        });
+        const bolehDiubahSistem =
+          vehicleState?.operationalStatus !== OperationalStatus.MAINTENANCE &&
+          vehicleState?.operationalStatus !== OperationalStatus.UNAVAILABLE;
+
+        if (bolehDiubahSistem) {
+          /* Kalau masih ada pesanan aktif lain yang mulai sebelum masa in-service
+             berakhir, armada tetap dianggap terpakai, bukan masuk pemeriksaan. */
+          const upcomingBooking = await tx.booking.count({
+            where: {
+              id: { not: booking.id },
+              vehicleId: booking.vehicleId,
+              status: { in: ACTIVE_BOOKING_STATUSES },
+              startDateTime: { lte: serviceExpectedDoneAt },
+              endDateTime: { gte: now },
+            },
+          });
+
+          await tx.vehicle.update({
+            where: { id: booking.vehicleId },
+            data:
+              upcomingBooking > 0
+                ? {
+                    operationalStatus: OperationalStatus.BOOKED,
+                    serviceStartedAt: null,
+                    serviceExpectedDoneAt: null,
+                  }
+                : {
+                    operationalStatus: OperationalStatus.IN_SERVICE,
+                    serviceStartedAt: now,
+                    serviceExpectedDoneAt,
+                  },
+          });
+        }
       }
 
       /* Pengembalian armada ke AVAILABLE saat pesanan dibatalkan/ditolak hanya
