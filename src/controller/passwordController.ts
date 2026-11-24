@@ -58,7 +58,7 @@ function kirimSesi(
   user: {
     id: string;
     fullName: string;
-    phoneNumber: string;
+    phoneNumber: string | null;
     role: string;
     phoneVerifiedAt?: Date | null;
     passwordUpdatedAt?: Date | null;
@@ -69,7 +69,7 @@ function kirimSesi(
 ): void {
   const token = signAuthToken({
     userId: user.id,
-    phoneNumber: user.phoneNumber,
+    phoneNumber: user.phoneNumber ?? undefined,
     role: user.role as never,
     ver: tokenVersion,
   });
@@ -145,11 +145,11 @@ export const passwordController = {
       }
 
       if (!user.isActive) {
-        // Tetap jalankan bcrypt agar waktunya seragam, lalu jawab seperti salah sandi.
-        await verifyPassword(password, user.passwordHash ?? (await siapkanHashTiruan())).catch(
-          () => false,
+        throw new AppError(
+          'ACCOUNT_INACTIVE',
+          'Akun Anda sedang dinonaktifkan oleh admin. Hubungi admin untuk bantuan.',
+          403,
         );
-        throw new AppError('INVALID_CREDENTIALS', 'Nomor atau kata sandi tidak sesuai.', 401);
       }
 
       /* `PASSWORD_NOT_SET` hanya untuk akun yang terbukti ada dan aktif, supaya
@@ -263,7 +263,7 @@ export const passwordController = {
       if (!pelanggan.isActive) {
         throw new AppError(
           'ACCOUNT_INACTIVE',
-          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          'Akun Anda sedang dinonaktifkan oleh admin. Hubungi admin untuk bantuan.',
           403,
         );
       }
@@ -409,7 +409,7 @@ export const passwordController = {
       if (!pelanggan.isActive) {
         throw new AppError(
           'ACCOUNT_INACTIVE',
-          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          'Akun Anda sedang dinonaktifkan oleh admin. Hubungi admin untuk bantuan.',
           403,
         );
       }

@@ -30,7 +30,7 @@ export type PaymentActor = { userId: string; role: UserRole };
  * Pelanggan hanya boleh menyentuh pembayaran milik pemesanannya sendiri.
  */
 function pastikanBolehAkses(customerId: string, actor: PaymentActor): void {
-  const staf = actor.role === UserRole.ADMIN || actor.role === UserRole.STAFF;
+  const staf = actor.role === UserRole.SUPER_ADMIN || actor.role === UserRole.ADMIN;
   if (staf) return;
 
   if (customerId !== actor.userId) {

@@ -24,14 +24,14 @@ import {
  * membersihkan datanya sendiri.
  *
  * Nilai bawaan bisa diganti lewat environment:
- *   SEED_ADMIN_PHONE     nomor login admin
- *   SEED_ADMIN_PASSWORD  kata sandi admin
+ *   SEED_ADMIN_USERNAME  username login super admin (default: superadmin)
+ *   SEED_ADMIN_PASSWORD  kata sandi super admin
  *   SEED_ADMIN_NAME      nama yang tampil di dashboard
  */
 
-const NOMOR_ADMIN = process.env.SEED_ADMIN_PHONE ?? '081234567890';
+const USERNAME_ADMIN = (process.env.SEED_ADMIN_USERNAME ?? 'superadmin').trim().toLowerCase();
 const SANDI_ADMIN = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
-const NAMA_ADMIN = process.env.SEED_ADMIN_NAME ?? 'Admin MobilJuragan';
+const NAMA_ADMIN = process.env.SEED_ADMIN_NAME ?? 'Super Admin MobilJuragan';
 
 /*
  * Apakah kata sandi boleh ditimpa.
@@ -242,29 +242,30 @@ const INITIAL_FAQS = [
 ];
 
 async function main(): Promise<void> {
-  console.log('Menyiapkan akun admin...');
+  console.log('Menyiapkan akun super admin...');
 
-  const sudahAda = await db.user.findUnique({ where: { phoneNumber: NOMOR_ADMIN } });
+  const sudahAda = await db.user.findUnique({ where: { username: USERNAME_ADMIN } });
   const hashBaru = await bcrypt.hash(SANDI_ADMIN, 10);
 
   const admin = await db.user.upsert({
-    where: { phoneNumber: NOMOR_ADMIN },
+    where: { username: USERNAME_ADMIN },
     update: {
       fullName: NAMA_ADMIN,
-      role: UserRole.ADMIN,
+      role: UserRole.SUPER_ADMIN,
       isActive: true,
       ...(TIMPA_SANDI ? { passwordHash: hashBaru } : {}),
     },
     create: {
-      phoneNumber: NOMOR_ADMIN,
+      username: USERNAME_ADMIN,
+      phoneNumber: null,
       fullName: NAMA_ADMIN,
-      role: UserRole.ADMIN,
+      role: UserRole.SUPER_ADMIN,
       passwordHash: hashBaru,
       isActive: true,
     },
   });
 
-  console.log(`  - Admin siap: ${admin.fullName} (${admin.phoneNumber})`);
+  console.log(`  - Super Admin siap: ${admin.fullName} (username: ${admin.username})`);
 
   if (!sudahAda) {
     /*

@@ -16,7 +16,7 @@ import {
 export const adminFaqRouter: Router = Router();
 
 adminFaqRouter.use(requireAuth);
-adminFaqRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminFaqRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminFaqRouter.get('/', validateQuery(listFaqQuerySchema), faqController.listAdmin);
 adminFaqRouter.post('/', validateBody(createFaqSchema), faqController.create);

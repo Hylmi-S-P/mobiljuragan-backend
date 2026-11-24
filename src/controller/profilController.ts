@@ -14,14 +14,18 @@ import { whatsappOtpService } from '../services/whatsappOtp.service.js';
  * autentikasi (OTP) sengaja tidak menyentuh nama sama sekali.
  */
 
-function ambilIdentitas(req: Request): { userId: string; phoneNumber: string; role: string } {
+function ambilIdentitas(req: Request): {
+  userId: string;
+  phoneNumber: string | null;
+  role: string;
+} {
   const user = req.user;
   if (!user) {
     throw new AppError('UNAUTHORIZED', 'Autentikasi diperlukan.', 401);
   }
   return {
     userId: user.userId,
-    phoneNumber: user.phoneNumber,
+    phoneNumber: user.phoneNumber ?? null,
     role: String(user.role),
   };
 }
@@ -30,7 +34,7 @@ function ambilIdentitas(req: Request): { userId: string; phoneNumber: string; ro
 function bentukProfil(user: {
   id: string;
   fullName: string;
-  phoneNumber: string;
+  phoneNumber: string | null;
   role: string;
   isActive: boolean;
   phoneVerifiedAt: Date | null;
@@ -137,19 +141,21 @@ export const profilController = {
         /* Pemberitahuan ke pemilik nomor. Dikirim tanpa menunggu, karena
            kegagalan WhatsApp tidak boleh menggagalkan perubahan yang sudah sah. */
         const konteks = konteksDari(req);
-        whatsappOtpService
-          .sendIdentityChanged({
-            phoneNumber: req.user!.phoneNumber,
-            nama: namaBaru,
-            perubahan: `Nama akun diubah dari "${hasil.sebelum ?? '-'}" menjadi "${namaBaru}"`,
-            waktu: new Date(),
-          })
-          .catch((err) => {
-            logger.error(
-              { err, userId, ip: konteks.ipAddress },
-              '[PROFIL] Gagal mengirim notifikasi perubahan nama.',
-            );
-          });
+        if (req.user?.phoneNumber) {
+          whatsappOtpService
+            .sendIdentityChanged({
+              phoneNumber: req.user.phoneNumber,
+              nama: namaBaru,
+              perubahan: `Nama akun diubah dari "${hasil.sebelum ?? '-'}" menjadi "${namaBaru}"`,
+              waktu: new Date(),
+            })
+            .catch((err) => {
+              logger.error(
+                { err, userId, ip: konteks.ipAddress },
+                '[PROFIL] Gagal mengirim notifikasi perubahan nama.',
+              );
+            });
+        }
       }
 
       const user = await profilModel.ambilPublik(userId);

@@ -5,8 +5,8 @@ import { UserRole } from '../../generated/prisma/client.js';
 
 export const adminFinanceRouter: Router = Router();
 
-// Seluruh endpoint laporan keuangan dibatasi khusus role STAFF dan ADMIN
+// Seluruh endpoint laporan keuangan dibatasi khusus role ADMIN dan SUPER_ADMIN
 adminFinanceRouter.use(requireAuth);
-adminFinanceRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminFinanceRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminFinanceRouter.get('/summary', getFinanceSummary);

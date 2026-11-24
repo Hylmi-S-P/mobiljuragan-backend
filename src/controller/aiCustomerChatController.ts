@@ -6,6 +6,12 @@ import { runAssistantTurn } from '../lib/ai/chatOrchestrator.js';
 import { TicketHandler, TicketStatus, UserRole } from '../generated/prisma/client.js';
 
 /**
+ * Penjaga sementara di memori agar inisiasi balasan AI pertama pada tiket yang
+ * sama tidak dijalankan dua kali secara bersamaan oleh permintaan paralel.
+ */
+const inFlightInitialAiTickets = new Set<string>();
+
+/**
  * Controller Chat Pelanggan (Aplikasi Mobile & Web Pelanggan).
  * Mempertahankan seluruh pagar keamanan tiket sebelum memanggil AI Orchestrator.
  */
@@ -98,6 +104,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     // atau dari riwayat klien jika percakapan konsultasi umum tanpa tiket.
     const historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     let isPromptAlreadyLastMessage = false;
+    let shouldTrackInitialLock = false;
 
     if (ticketId) {
       const riwayatDb = await ticketModel.listMessages(ticketId);
@@ -119,10 +126,53 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         }
       }
 
+      const hasExistingAiReply = riwayatDb.some((m) => m.isAi);
+      const normalizedPrompt = prompt.trim();
+      const extractedComplaint = normalizedPrompt.includes('Keluhan pelanggan:')
+        ? normalizedPrompt.split('Keluhan pelanggan:').pop()!.trim()
+        : normalizedPrompt;
+
       if (riwayatDb.length > 0) {
         const lastMsg = riwayatDb[riwayatDb.length - 1];
-        if (lastMsg?.isCustomer && (lastMsg.body.trim() === prompt || isTicketInitWrapper)) {
+        if (
+          lastMsg?.isCustomer &&
+          !lastMsg.isAi &&
+          (lastMsg.body.trim() === normalizedPrompt ||
+            isTicketInitWrapper ||
+            (extractedComplaint.length > 0 && lastMsg.body.trim() === extractedComplaint))
+        ) {
           isPromptAlreadyLastMessage = true;
+        }
+
+        const isDuplicateOldClientInit =
+          hasExistingAiReply &&
+          normalizedPrompt.startsWith('Tiket #') &&
+          normalizedPrompt.includes('Keluhan pelanggan:') &&
+          riwayatDb.some(
+            (m) => m.isCustomer && !m.isAi && m.body.trim() === extractedComplaint,
+          );
+
+        if (
+          isDuplicateOldClientInit ||
+          (!hasExistingAiReply &&
+            isPromptAlreadyLastMessage &&
+            inFlightInitialAiTickets.has(ticketId))
+        ) {
+          res.status(200).json({
+            status: 'ok',
+            data: {
+              reply: '',
+              duplicateSkipped: true,
+              latencyMs: Date.now() - startTime,
+              ticketId,
+            },
+          });
+          return;
+        }
+
+        if (!hasExistingAiReply && isPromptAlreadyLastMessage) {
+          shouldTrackInitialLock = true;
+          inFlightInitialAiTickets.add(ticketId);
         }
 
         const contextSlice = isPromptAlreadyLastMessage
@@ -169,32 +219,38 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       }
     }
 
-    const result = await runAssistantTurn({
-      userMessage: prompt,
-      historyMessages,
-      user: req.user ? { userId: req.user.userId, role: req.user.role } : null,
-      ticketId: ticketId ?? null,
-      bookingId: tiket?.bookingId ?? null,
-      isSandbox: false,
-    });
-
-    if (ticketId) {
-      await ticketModel.createAiMessage(ticketId, result.reply);
-    }
-
-    res.status(200).json({
-      status: 'ok',
-      data: {
-        reply: result.reply,
-        latencyMs: result.latencyMs,
+    try {
+      const result = await runAssistantTurn({
+        userMessage: prompt,
+        historyMessages,
+        user: req.user ? { userId: req.user.userId, role: req.user.role } : null,
         ticketId: ticketId ?? null,
-        fallback: result.fallbackUsed,
-        ragMode: result.rag.mode,
-        toolsUsed: result.toolsUsed.map((t) => t.name),
-        intentGuard: result.intentGuard,
-        ticketHandedOver: result.ticketHandedOver,
-      },
-    });
+        bookingId: tiket?.bookingId ?? null,
+        isSandbox: false,
+      });
+
+      if (ticketId) {
+        await ticketModel.createAiMessage(ticketId, result.reply);
+      }
+
+      res.status(200).json({
+        status: 'ok',
+        data: {
+          reply: result.reply,
+          latencyMs: result.latencyMs,
+          ticketId: ticketId ?? null,
+          fallback: result.fallbackUsed,
+          ragMode: result.rag.mode,
+          toolsUsed: result.toolsUsed.map((t) => t.name),
+          intentGuard: result.intentGuard,
+          ticketHandedOver: result.ticketHandedOver,
+        },
+      });
+    } finally {
+      if (shouldTrackInitialLock && ticketId) {
+        inFlightInitialAiTickets.delete(ticketId);
+      }
+    }
   } catch (error) {
     logger.error({ error }, 'Terjadi galat pada endpoint customer AI chat');
     const balasanCadangan = [

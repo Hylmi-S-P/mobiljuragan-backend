@@ -4,15 +4,16 @@ import { z } from 'zod';
 import { UserRole, type Prisma } from '../generated/prisma/client.js';
 import { userModel } from '../model/userModel.js';
 import { AppError, sendSuccess } from '../lib/response.js';
-import { normalizePhoneNumber } from '../lib/phone.js';
 
 /**
- * Controller manajemen akun staf dan admin.
+ * Controller manajemen akun admin dan super admin.
  *
  * Membaca request, menjalankan aturan bisnis, memanggil model, lalu mengirim respons.
  * Semua kegagalan diteruskan lewat `next(error)` agar ditangani errorHandler global
  * satu kali, bukan diulang di setiap blok catch.
  */
+
+const usernameRegex = /^[a-z0-9._-]+$/i;
 
 export const createAdminSchema = z.object({
   fullName: z
@@ -20,13 +21,17 @@ export const createAdminSchema = z.object({
     .trim()
     .min(3, 'Nama lengkap minimal 3 karakter.')
     .max(60, 'Nama lengkap maksimal 60 karakter.'),
-  phoneNumber: z
+  username: z
     .string()
     .trim()
-    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
-    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.'),
-  role: z.enum(['ADMIN', 'STAFF'], {
-    error: 'Peran harus bernilai ADMIN atau STAFF.',
+    .min(3, 'Username minimal 3 karakter.')
+    .max(30, 'Username maksimal 30 karakter.')
+    .regex(
+      usernameRegex,
+      'Username hanya boleh berisi huruf, angka, titik, underscore, atau tanda hubung.',
+    ),
+  role: z.enum(['ADMIN', 'SUPER_ADMIN'], {
+    error: 'Hak akses harus bernilai ADMIN atau SUPER_ADMIN.',
   }),
   password: z
     .string()
@@ -41,13 +46,7 @@ export const updateAdminSchema = z.object({
     .min(3, 'Nama lengkap minimal 3 karakter.')
     .max(60, 'Nama lengkap maksimal 60 karakter.')
     .optional(),
-  phoneNumber: z
-    .string()
-    .trim()
-    .min(8, 'Nomor telepon/kontak minimal 8 digit.')
-    .max(20, 'Nomor telepon/kontak maksimal 20 karakter.')
-    .optional(),
-  role: z.enum(['ADMIN', 'STAFF']).optional(),
+  role: z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
   password: z
     .string()
     .min(8, 'Kata sandi minimal 8 karakter.')
@@ -83,15 +82,20 @@ export const adminUserController = {
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { fullName, phoneNumber: rawPhone, role, password } = req.body;
-      const phoneNumber = normalizePhoneNumber(rawPhone);
+      const { fullName, username: rawUsername, role, password } = req.body as {
+        fullName: string;
+        username: string;
+        role: 'ADMIN' | 'SUPER_ADMIN';
+        password: string;
+      };
+      const username = rawUsername.trim().toLowerCase();
       const actorUser = req.user!;
 
-      const existing = await userModel.findByPhoneNumber(phoneNumber);
+      const existing = await userModel.findByUsername(username);
       if (existing) {
         throw new AppError(
-          'PHONE_NUMBER_EXISTS',
-          'Nomor telepon ini sudah terdaftar pada sistem.',
+          'USERNAME_EXISTS',
+          'Username ini sudah dipakai akun lain.',
           409,
         );
       }
@@ -101,7 +105,8 @@ export const adminUserController = {
       const newUser = await userModel.createWithAudit(
         {
           fullName,
-          phoneNumber,
+          username,
+          phoneNumber: null,
           role: role as UserRole,
           passwordHash,
           isActive: true,
@@ -118,7 +123,12 @@ export const adminUserController = {
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { fullName, phoneNumber: rawPhone, role, password, isActive } = req.body;
+      const { fullName, role, password, isActive } = req.body as {
+        fullName?: string;
+        role?: 'ADMIN' | 'SUPER_ADMIN';
+        password?: string;
+        isActive?: boolean;
+      };
       const actorUser = req.user!;
 
       const existing = await userModel.findById(id);
@@ -127,7 +137,7 @@ export const adminUserController = {
       }
 
       // Akun yang sedang dipakai tidak boleh menurunkan perannya sendiri.
-      // Tanpa penjagaan ini, seorang admin bisa melepas hak aksesnya lalu terkunci
+      // Tanpa penjagaan ini, seorang super admin bisa melepas hak aksesnya lalu terkunci
       // di luar portal tanpa jalur pemulihan lewat antarmuka.
       if (existing.id === actorUser.userId && role && role !== existing.role) {
         throw new AppError(
@@ -146,19 +156,19 @@ export const adminUserController = {
         );
       }
 
-      // Portal harus selalu menyisakan minimal satu admin aktif. Pemeriksaan ini
-      // menutup celah dua admin yang saling menurunkan sampai tersisa nol admin.
-      const willStopBeingActiveAdmin =
-        existing.role === UserRole.ADMIN &&
+      // Portal harus selalu menyisakan minimal satu super admin aktif. Pemeriksaan ini
+      // menutup celah dua super admin yang saling menurunkan sampai tersisa nol super admin.
+      const willStopBeingActiveSuperAdmin =
+        existing.role === UserRole.SUPER_ADMIN &&
         existing.isActive &&
-        ((role && role !== UserRole.ADMIN) || isActive === false);
+        ((role && role !== UserRole.SUPER_ADMIN) || isActive === false);
 
-      if (willStopBeingActiveAdmin) {
-        const activeAdminCount = await userModel.countActiveAdmins();
-        if (activeAdminCount <= 1) {
+      if (willStopBeingActiveSuperAdmin) {
+        const activeSuperAdminCount = await userModel.countActiveSuperAdmins();
+        if (activeSuperAdminCount <= 1) {
           throw new AppError(
             'LAST_ADMIN_PROTECTED',
-            'Akun admin aktif terakhir tidak dapat diturunkan atau dinonaktifkan. Buat admin lain lebih dulu.',
+            'Akun super admin aktif terakhir tidak dapat diturunkan atau dinonaktifkan. Buat super admin lain lebih dulu.',
             409,
           );
         }
@@ -172,25 +182,9 @@ export const adminUserController = {
         updateData.passwordHash = await bcrypt.hash(password, 10);
       }
 
-      if (rawPhone) {
-        const phoneNumber = normalizePhoneNumber(rawPhone);
-        if (phoneNumber !== existing.phoneNumber) {
-          const phoneCheck = await userModel.findByPhoneNumber(phoneNumber);
-          if (phoneCheck) {
-            throw new AppError(
-              'PHONE_NUMBER_EXISTS',
-              'Nomor telepon ini sudah dipakai akun lain.',
-              409,
-            );
-          }
-          updateData.phoneNumber = phoneNumber;
-        }
-      }
-
       const perluCabutSesi =
         Boolean(password) ||
         (Boolean(role) && role !== existing.role) ||
-        Boolean(updateData.phoneNumber) ||
         isActive === false;
 
       if (perluCabutSesi) {
@@ -215,7 +209,7 @@ export const adminUserController = {
   },
 
   /**
-   * Menghapus akun staf/admin.
+   * Menghapus akun admin/super admin.
    *
    * Batasan database yang menentukan penjagaan di bawah:
    * - `audit_logs.actorId` memakai ON DELETE SET NULL, jadi riwayat audit tetap utuh.
@@ -243,13 +237,13 @@ export const adminUserController = {
         );
       }
 
-      // Portal harus selalu menyisakan minimal satu admin aktif.
-      if (existing.role === UserRole.ADMIN) {
-        const activeAdminCount = await userModel.countActiveAdmins();
-        if (activeAdminCount <= 1) {
+      // Portal harus selalu menyisakan minimal satu super admin aktif.
+      if (existing.role === UserRole.SUPER_ADMIN) {
+        const activeSuperAdminCount = await userModel.countActiveSuperAdmins();
+        if (activeSuperAdminCount <= 1) {
           throw new AppError(
             'LAST_ADMIN_PROTECTED',
-            'Akun admin aktif terakhir tidak dapat dihapus. Buat admin lain lebih dulu.',
+            'Akun super admin aktif terakhir tidak dapat dihapus. Buat super admin lain lebih dulu.',
             409,
           );
         }
@@ -273,7 +267,7 @@ export const adminUserController = {
         entityId: id,
         metadata: {
           fullName: existing.fullName,
-          phoneNumber: existing.phoneNumber,
+          username: existing.username,
           role: existing.role,
         },
       });

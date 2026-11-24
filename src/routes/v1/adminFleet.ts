@@ -10,9 +10,9 @@ import { UserRole } from '../../generated/prisma/client.js';
  */
 export const adminFleetRouter: Router = Router();
 
-// Endpoint khusus role STAFF dan ADMIN
+// Endpoint khusus role ADMIN dan SUPER_ADMIN
 adminFleetRouter.use(requireAuth);
-adminFleetRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminFleetRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 const fleetCalendarQuerySchema = z
   .object({
@@ -51,13 +51,13 @@ const tariffSettingsSchema = z.object({
    Tidak menerima parameter: yang ditanyakan selalu "sekarang". */
 adminFleetRouter.get('/rented', adminFleetController.rented);
 
-/* Tarif jasa supir global. Dibaca staf untuk perkiraan tarif, diubah hanya oleh
-   ADMIN karena angkanya berlaku untuk semua pesanan baru. */
+/* Tarif jasa supir global. Dibaca admin untuk perkiraan tarif, diubah hanya oleh
+   SUPER_ADMIN karena angkanya berlaku untuk semua pesanan baru. */
 adminFleetRouter.get('/tariff-settings', adminFleetController.getTariffSettings);
 
 adminFleetRouter.patch(
   '/tariff-settings',
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   validateBody(tariffSettingsSchema),
   adminFleetController.updateTariffSettings,
 );

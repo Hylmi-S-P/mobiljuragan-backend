@@ -86,22 +86,24 @@ async function assertManualStatusChange(
     );
   }
 
-  /* Armada yang masih terikat pesanan aktif tidak boleh ditandai tersedia. */
-  if (
-    vehicle.operationalStatus === OperationalStatus.BOOKED &&
-    nextStatus === OperationalStatus.AVAILABLE
-  ) {
-    const activeBookings = await tx.booking.count({
-      where: { vehicleId: vehicle.id, status: { in: ACTIVE_BOOKING_STATUSES } },
-    });
+  /* Armada yang masih terikat pesanan aktif/berjalan tidak boleh diubah status manualnya. */
+  const now = new Date();
+  const activeBookings = await tx.booking.count({
+    where: {
+      vehicleId: vehicle.id,
+      OR: [
+        { status: { in: ACTIVE_BOOKING_STATUSES } },
+        { status: { in: BLOCKING_BOOKING_STATUS }, endDateTime: { gte: now } },
+      ],
+    },
+  });
 
-    if (activeBookings > 0) {
-      throw new AppError(
-        'VEHICLE_IN_USE',
-        'Armada masih terikat pesanan aktif, status tidak bisa diubah menjadi tersedia.',
-        409,
-      );
-    }
+  if (activeBookings > 0) {
+    throw new AppError(
+      'VEHICLE_IN_USE',
+      'Armada masih terikat pesanan aktif, status tidak bisa diubah secara manual.',
+      409,
+    );
   }
 }
 

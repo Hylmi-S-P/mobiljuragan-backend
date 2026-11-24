@@ -1,5 +1,11 @@
 import { db } from '../db.js';
-import { UserRole, type Prisma } from '../generated/prisma/client.js';
+import {
+  BookingStatus,
+  DriverReadiness,
+  OperationalStatus,
+  UserRole,
+  type Prisma,
+} from '../generated/prisma/client.js';
 
 /**
  * Pengelolaan akun pelanggan dari dashboard.
@@ -184,9 +190,11 @@ export const adminCustomerModel = {
       data: { failedLoginAttempts: 0, lockedUntil: null },
       select: { id: true, phoneNumber: true, fullName: true },
     });
-    await db.phoneGuard
-      .deleteMany({ where: { phoneNumber: user.phoneNumber } })
-      .catch(() => null);
+    if (user.phoneNumber) {
+      await db.phoneGuard
+        .deleteMany({ where: { phoneNumber: user.phoneNumber } })
+        .catch(() => null);
+    }
     return user;
   },
 
@@ -255,5 +263,160 @@ export const adminCustomerModel = {
     ]);
 
     return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  },
+
+  /**
+   * Menghapus akun pelanggan secara atomik beserta data pesanannya, tiket,
+   * OTP, dan berkas media, sambil mengembalikan status armada/supir yang masih
+   * tertahan oleh pesanan akun ini ke tersedia/siaga.
+   */
+  async hapusAtomik(userId: string, actorId: string) {
+    const statusAktifBooking: BookingStatus[] = [
+      BookingStatus.CREATED,
+      BookingStatus.PENDING_CONFIRMATION,
+      BookingStatus.CONFIRMED,
+      BookingStatus.IN_PROGRESS,
+    ];
+
+    return db.$transaction(async (tx) => {
+      const target = await tx.user.findFirst({
+        where: { id: userId, role: UserRole.CUSTOMER },
+        select: { id: true, fullName: true, phoneNumber: true },
+      });
+
+      if (!target) return null;
+
+      const bookings = await tx.booking.findMany({
+        where: { customerId: userId },
+        select: { id: true, vehicleId: true, driverId: true, status: true },
+      });
+      const bookingIds = bookings.map((b) => b.id);
+      const vehicleIds = Array.from(new Set(bookings.map((b) => b.vehicleId)));
+      const driverIds = Array.from(
+        new Set(bookings.map((b) => b.driverId).filter((id): id is string => Boolean(id))),
+      );
+
+      const tickets = await tx.supportTicket.findMany({
+        where: {
+          OR: [
+            { customerId: userId },
+            ...(bookingIds.length > 0 ? [{ bookingId: { in: bookingIds } }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      const ticketIds = tickets.map((t) => t.id);
+
+      const mediaRows = await tx.mediaObject.findMany({
+        where: { ownerUserId: userId },
+        select: { id: true, objectKey: true },
+      });
+
+      await tx.supportTicket.updateMany({
+        where: { assignedAdminId: userId },
+        data: { assignedAdminId: null, assignedAt: null },
+      });
+
+      if (ticketIds.length > 0) {
+        await tx.ticketMessage.deleteMany({
+          where: {
+            OR: [{ ticketId: { in: ticketIds } }, { senderId: userId }],
+          },
+        });
+        await tx.supportTicket.deleteMany({
+          where: { id: { in: ticketIds } },
+        });
+      } else {
+        await tx.ticketMessage.deleteMany({
+          where: { senderId: userId },
+        });
+      }
+
+      if (bookingIds.length > 0) {
+        await tx.bookingStatusHistory.deleteMany({
+          where: { bookingId: { in: bookingIds } },
+        });
+        await tx.booking.deleteMany({
+          where: { customerId: userId },
+        });
+      }
+
+      await tx.otpVerification.deleteMany({ where: { userId } });
+
+      if (target.phoneNumber) {
+        await tx.phoneGuard.deleteMany({ where: { phoneNumber: target.phoneNumber } });
+      }
+
+      if (mediaRows.length > 0) {
+        await tx.mediaObject.deleteMany({ where: { ownerUserId: userId } });
+      }
+
+      let releasedVehicles = 0;
+      for (const vehicleId of vehicleIds) {
+        const remainingBlocking = await tx.booking.count({
+          where: { vehicleId, status: { in: statusAktifBooking } },
+        });
+        if (remainingBlocking === 0) {
+          const updatedVehicle = await tx.vehicle.updateMany({
+            where: {
+              id: vehicleId,
+              operationalStatus: { in: [OperationalStatus.BOOKED, OperationalStatus.IN_SERVICE] },
+            },
+            data: {
+              operationalStatus: OperationalStatus.AVAILABLE,
+              serviceStartedAt: null,
+              serviceExpectedDoneAt: null,
+            },
+          });
+          releasedVehicles += updatedVehicle.count;
+        }
+      }
+
+      let releasedDrivers = 0;
+      for (const driverId of driverIds) {
+        const remainingDriverBooking = await tx.booking.count({
+          where: { driverId, status: { in: statusAktifBooking } },
+        });
+        if (remainingDriverBooking === 0) {
+          const updatedDriver = await tx.driver.updateMany({
+            where: {
+              id: driverId,
+              readiness: DriverReadiness.SEDANG_TUGAS,
+            },
+            data: { readiness: DriverReadiness.SIAGA },
+          });
+          releasedDrivers += updatedDriver.count;
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'DELETE_CUSTOMER_ACCOUNT',
+          entityType: 'User',
+          entityId: userId,
+          metadata: {
+            fullName: target.fullName,
+            phoneNumber: target.phoneNumber,
+            deletedBookings: bookingIds.length,
+            deletedTickets: ticketIds.length,
+            deletedMedia: mediaRows.length,
+            releasedVehicles,
+            releasedDrivers,
+          },
+        },
+      });
+
+      await tx.user.delete({ where: { id: userId } });
+
+      return {
+        customer: target,
+        deletedBookings: bookingIds.length,
+        deletedTickets: ticketIds.length,
+        releasedVehicles,
+        releasedDrivers,
+        mediaKeys: mediaRows.map((m) => m.objectKey),
+      };
+    });
   },
 };

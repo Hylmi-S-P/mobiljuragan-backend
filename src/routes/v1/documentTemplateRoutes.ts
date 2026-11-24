@@ -30,39 +30,39 @@ documentTemplateRouter.get(
   documentTemplateController.unduhFormulirKosong,
 );
 
-// Pengelolaan template: khusus ADMIN.
+// Pengelolaan template: khusus SUPER_ADMIN.
 documentTemplateRouter.get(
   '/admin/document-templates',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   documentTemplateController.daftar,
 );
 
 documentTemplateRouter.get(
   '/admin/document-templates/aktif',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   documentTemplateController.ambilAktif,
 );
 
 documentTemplateRouter.get(
   '/admin/document-templates/:id/berkas',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   documentTemplateController.berkasVersi,
 );
 
 documentTemplateRouter.get(
   '/admin/document-templates/:id',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   documentTemplateController.ambilSatu,
 );
 
 documentTemplateRouter.post(
   '/admin/document-templates',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   unggahSatuDokumen('berkas'),
   documentTemplateController.unggah,
 );
@@ -70,6 +70,6 @@ documentTemplateRouter.post(
 documentTemplateRouter.post(
   '/admin/document-templates/:id/aktifkan',
   requireAuth,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   documentTemplateController.aktifkan,
 );

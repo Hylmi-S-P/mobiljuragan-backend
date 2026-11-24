@@ -64,7 +64,7 @@ function kirimToken(
   res: Response,
   user: {
     id: string;
-    phoneNumber: string;
+    phoneNumber: string | null;
     role: string;
     fullName: string;
     tokenVersion?: number;
@@ -75,7 +75,7 @@ function kirimToken(
 ): void {
   const token = signAuthToken({
     userId: user.id,
-    phoneNumber: user.phoneNumber,
+    phoneNumber: user.phoneNumber ?? undefined,
     role: user.role as never,
     /* `ver` membuat token ini gugur begitu tokenVersion akun dinaikkan. */
     ver: user.tokenVersion ?? 0,
@@ -197,7 +197,7 @@ export const authController = {
         if (!user.isActive) {
           throw new AppError(
             'ACCOUNT_INACTIVE',
-            'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+            'Akun Anda sedang dinonaktifkan oleh admin. Hubungi admin untuk bantuan.',
             403,
           );
         }
@@ -313,7 +313,7 @@ export const authController = {
       if (!user.isActive) {
         throw new AppError(
           'ACCOUNT_INACTIVE',
-          'Akun ini sedang tidak aktif. Hubungi admin untuk bantuan.',
+          'Akun Anda sedang dinonaktifkan oleh admin. Hubungi admin untuk bantuan.',
           403,
         );
       }

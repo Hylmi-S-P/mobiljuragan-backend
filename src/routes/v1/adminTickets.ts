@@ -10,7 +10,7 @@ import { UserRole } from '../../generated/prisma/client.js';
 export const adminTicketRouter: Router = Router();
 
 adminTicketRouter.use(requireAuth);
-adminTicketRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminTicketRouter.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 adminTicketRouter.get('/', ticketController.list);
 adminTicketRouter.post('/', ticketController.create);

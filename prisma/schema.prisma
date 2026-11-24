@@ -21,8 +21,8 @@ datasource db {
 
 enum UserRole {
   CUSTOMER
-  STAFF
   ADMIN
+  SUPER_ADMIN
 }
 
 enum BookingStatus {
@@ -37,8 +37,8 @@ enum BookingStatus {
 
 enum BookingStatusActor {
   CUSTOMER
-  STAFF
   ADMIN
+  SUPER_ADMIN
   SYSTEM
 }
 
@@ -136,7 +136,8 @@ enum DocumentDeadlineState {
 model User {
   id          String   @id @default(uuid())
   fullName    String
-  phoneNumber String   @unique
+  username    String?  @unique
+  phoneNumber String?  @unique
   role        UserRole @default(CUSTOMER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -149,12 +149,12 @@ async function kosongkanTabel(): Promise<void> {
 }
 
 async function jalankanSeed(): Promise<void> {
-  jalankanNpx(['prisma', 'db', 'seed'], 'Seed admin database uji', {
+  jalankanNpx(['prisma', 'db', 'seed'], 'Seed super admin database uji', {
     ...process.env,
     DATABASE_URL: TEST_DATABASE_URL,
-    SEED_ADMIN_PHONE: '081234567890',
+    SEED_ADMIN_USERNAME: 'superadmin',
     SEED_ADMIN_PASSWORD: 'Admin123!',
-    SEED_ADMIN_NAME: 'Admin Uji',
+    SEED_ADMIN_NAME: 'Super Admin Uji',
   });
 }
 

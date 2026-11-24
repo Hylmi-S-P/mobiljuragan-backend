@@ -11,20 +11,14 @@ import { UserRole } from '../../generated/prisma/client.js';
  */
 export const adminAuthRouter: Router = Router();
 
-const loginSchema = z
-  .object({
-    phoneNumber: z.string().optional(),
-    username: z.string().optional(),
-    password: z.string().min(1, 'Password wajib diisi.'),
-    rememberMe: z.boolean().optional(),
-  })
-  .refine((data) => Boolean(data.phoneNumber || data.username), {
-    message: 'Nomor telepon atau username wajib diisi.',
-    path: ['phoneNumber'],
-  });
+const loginSchema = z.object({
+  username: z.string().trim().min(1, 'Username wajib diisi.'),
+  password: z.string().min(1, 'Kata sandi wajib diisi.'),
+  rememberMe: z.boolean().optional(),
+});
 
 /*
- * Login untuk staf dan admin MobilJuragan.
+ * Login untuk admin dan super admin MobilJuragan.
  *
  * `loginRateLimiter` hanya menghitung permintaan yang gagal, sehingga pengguna
  * sah tidak pernah terkena batas walaupun sering login. Batas panjang password
@@ -38,10 +32,10 @@ adminAuthRouter.post(
   adminAuthController.login,
 );
 
-// Mengambil informasi user staf/admin yang sedang login.
+// Mengambil informasi user admin/super admin yang sedang login.
 adminAuthRouter.get(
   '/me',
   requireAuth,
-  requireRole(UserRole.ADMIN, UserRole.STAFF),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   adminAuthController.me,
 );

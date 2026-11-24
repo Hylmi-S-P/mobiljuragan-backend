@@ -80,13 +80,13 @@ export function nomorHpUnik(): string {
   return `0812${acak}`;
 }
 
-/** Login admin hasil seed; token dipakai bersama oleh seluruh kasus. */
+/** Login super admin hasil seed; token dipakai bersama oleh seluruh kasus. */
 export async function loginAdmin(): Promise<string> {
   const respons = await api('/admin/auth/login', {
     method: 'POST',
-    body: { phoneNumber: '081234567890', password: 'Admin123!' },
+    body: { username: 'superadmin', password: 'Admin123!' },
   });
-  harapan(respons, 200, 'login admin');
+  harapan(respons, 200, 'login super admin');
   return respons.body.data.token as string;
 }
 
@@ -489,23 +489,24 @@ export async function closeTicket(customerToken: string, ticketId: string): Prom
  */
 export async function buatAdminBaru(
   adminToken: string,
-  role: 'ADMIN' | 'STAFF' = 'ADMIN',
+  role: 'SUPER_ADMIN' | 'ADMIN' = 'SUPER_ADMIN',
   nama = 'Admin Uji Kedua',
-): Promise<{ token: string; phone: string }> {
-  const phone = nomorHpUnik();
+): Promise<{ token: string; username: string }> {
+  const suffix = Math.random().toString(36).slice(2, 8).toLowerCase();
+  const username = `uji_${suffix}`;
   const dibuat = await api('/admin/users', {
     method: 'POST',
     token: adminToken,
-    body: { fullName: nama, phoneNumber: phone, role, password: 'Admin123!' },
+    body: { fullName: nama, username, role, password: 'Admin123!' },
   });
   harapan(dibuat, 201, `buat akun ${role}`);
 
   const masuk = await api('/admin/auth/login', {
     method: 'POST',
-    body: { phoneNumber: phone, password: 'Admin123!' },
+    body: { username, password: 'Admin123!' },
   });
   harapan(masuk, 200, `login akun ${role} baru`);
-  return { token: masuk.body.data.token as string, phone };
+  return { token: masuk.body.data.token as string, username };
 }
 
 /** Menyerahkan tiket dari asisten AI ke staf supaya admin boleh membalas. */

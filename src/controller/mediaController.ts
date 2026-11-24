@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { UserRole } from '../generated/prisma/client.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { mediaStorage } from '../lib/mediaStorage.js';
 import {
@@ -94,7 +95,7 @@ export const mediaController = {
 
         if (!lewatTandaTangan) {
           const user = req.user;
-          const staf = user && (user.role === 'ADMIN' || user.role === 'STAFF');
+          const staf = user && (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN);
           const pemilik = user && media.ownerUserId === user.userId;
 
           if (!staf && !pemilik) {
