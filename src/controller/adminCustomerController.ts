@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { catatIdentitas, konteksDari } from '../lib/identityAudit.js';
 import { adminCustomerModel } from '../model/adminCustomerModel.js';
+import { mediaStorage } from '../lib/mediaStorage.js';
 import { logger } from '../logger.js';
 import { whatsappOtpService } from '../services/whatsappOtp.service.js';
 
@@ -117,16 +118,18 @@ export const adminCustomerController = {
 
       /* Pemilik nomor diberi tahu. Kalau koreksi ini justru tidak diharapkan,
          pesan inilah cara ia mengetahuinya. */
-      whatsappOtpService
-        .sendIdentityChanged({
-          phoneNumber: sesudah.phoneNumber,
-          nama: namaBaru,
-          perubahan: `Nama akun dikoreksi oleh admin menjadi "${namaBaru}". Alasan: ${alasan}`,
-          waktu: new Date(),
-        })
-        .catch((err) => {
-          logger.error({ err, userId: sebelum.user.id }, '[ADMIN] Gagal kirim notifikasi koreksi nama.');
-        });
+      if (sesudah.phoneNumber) {
+        whatsappOtpService
+          .sendIdentityChanged({
+            phoneNumber: sesudah.phoneNumber,
+            nama: namaBaru,
+            perubahan: `Nama akun dikoreksi oleh admin menjadi "${namaBaru}". Alasan: ${alasan}`,
+            waktu: new Date(),
+          })
+          .catch((err) => {
+            logger.error({ err, userId: sebelum.user.id }, '[ADMIN] Gagal kirim notifikasi koreksi nama.');
+          });
+      }
 
       logger.info(
         { adminId: admin.id, userId: sebelum.user.id, dari: sebelum.user.fullName, ke: namaBaru },
@@ -244,6 +247,53 @@ export const adminCustomerController = {
         limit: limit ? Number(limit) : undefined,
       });
       sendSuccess(res, hasil);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** DELETE /api/v1/admin/customers/:id — hapus akun pelanggan secara atomik. */
+  async hapus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const admin = aktor(req);
+
+      const hasil = await adminCustomerModel.hapusAtomik(id, admin.id);
+      if (!hasil) {
+        throw new AppError('CUSTOMER_NOT_FOUND', 'Akun pelanggan tidak ditemukan.', 404);
+      }
+
+      if (hasil.mediaKeys.length > 0) {
+        await Promise.all(
+          hasil.mediaKeys.map((key) =>
+            mediaStorage.hapus(key).catch((err) => {
+              logger.warn({ err, key, userId: id }, '[ADMIN] Gagal menghapus berkas media yatim.');
+              return false;
+            }),
+          ),
+        );
+      }
+
+      logger.info(
+        {
+          adminId: admin.id,
+          deletedUserId: id,
+          deletedBookings: hasil.deletedBookings,
+          deletedTickets: hasil.deletedTickets,
+          releasedVehicles: hasil.releasedVehicles,
+          releasedDrivers: hasil.releasedDrivers,
+        },
+        '[ADMIN] Akun pelanggan dihapus secara atomik.',
+      );
+
+      sendSuccess(res, {
+        id: hasil.customer.id,
+        fullName: hasil.customer.fullName,
+        deletedBookings: hasil.deletedBookings,
+        deletedTickets: hasil.deletedTickets,
+        releasedVehicles: hasil.releasedVehicles,
+        releasedDrivers: hasil.releasedDrivers,
+      });
     } catch (error) {
       next(error);
     }

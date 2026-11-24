@@ -9,34 +9,30 @@ import { UserRole } from '../../generated/prisma/client.js';
  * Akun pelanggan & jejak identitas: `/api/v1/admin/customers/*` dan
  * `/api/v1/admin/identity-audit`
  *
- * Terbuka untuk ADMIN dan STAFF: staf operasional perlu membuka akun yang
- * terkunci dan menelusuri identitas saat pelanggan menelepon. Yang **tidak**
- * diberikan kepada staf adalah mengganti nomor telepon atau kata sandi
- * pelanggan — keduanya tetap butuh kepemilikan nomor (OTP) atau tindakan
- * pemilik akun sendiri.
+ * Hanya terbuka untuk SUPER_ADMIN: data akun pelanggan, jejak identitas, dan
+ * penghapusan akun merupakan kewenangan pengelola penuh.
  */
 export const adminCustomerRouter: Router = Router();
 
 adminCustomerRouter.use(requireAuth);
-adminCustomerRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminCustomerRouter.use(requireRole(UserRole.SUPER_ADMIN));
 
 adminCustomerRouter.get('/', adminCustomerController.daftar);
 adminCustomerRouter.get('/:id', adminCustomerController.detail);
+adminCustomerRouter.delete('/:id', adminCustomerController.hapus);
 
 /**
  * Koreksi nama.
  *
- * Hanya ADMIN. Nama pelanggan adalah data identitas yang juga dipakai pada
- * dokumen sewa; mengubahnya butuh alasan tertulis dan kewenangan yang lebih
- * tinggi daripada sekadar membuka akun yang terkunci. Staf tetap dapat membuka
- * kunci, mencabut sesi, dan menonaktifkan akun lewat rute di bawah.
+ * Hanya SUPER_ADMIN. Nama pelanggan adalah data identitas yang juga dipakai pada
+ * dokumen sewa; mengubahnya butuh alasan tertulis.
  *
- * Alasan wajib minimal 10 karakter — bukan formalitas, melainkan satu-satunya
- * keterangan mengapa identitas seseorang diubah oleh orang lain.
+ * Alasan wajib minimal 10 karakter, sebagai keterangan mengapa identitas seseorang
+ * diubah oleh pengelola.
  */
 adminCustomerRouter.patch(
   '/:id/name',
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   validateBody(
     z.object({
       fullName: z
@@ -85,9 +81,9 @@ adminCustomerRouter.patch(
   adminCustomerController.ubahAktif,
 );
 
-/** Jejak identitas lintas akun untuk halaman audit. */
+/** Jejak identitas lintas akun untuk halaman audit (khusus SUPER_ADMIN). */
 export const adminIdentityAuditRouter: Router = Router();
 
 adminIdentityAuditRouter.use(requireAuth);
-adminIdentityAuditRouter.use(requireRole(UserRole.ADMIN, UserRole.STAFF));
+adminIdentityAuditRouter.use(requireRole(UserRole.SUPER_ADMIN));
 adminIdentityAuditRouter.get('/', adminCustomerController.audit);
