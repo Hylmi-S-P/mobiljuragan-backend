@@ -1,6 +1,8 @@
+import crypto from 'node:crypto';
 import express, { type Express, type Request, type Response } from 'express';
 import compression from 'compression';
 import cors from 'cors';
+import { db } from './db.js';
 import { logger } from './logger.js';
 import { v1Router } from './routes/v1/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -12,6 +14,53 @@ export const app: Express = express();
  * hanya mengurangi informasi yang dibagikan ke publik tanpa perlu.
  */
 app.disable('x-powered-by');
+
+// Header keamanan ringan untuk seluruh respons API
+app.use((_req: Request, res: Response, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+});
+
+const REQUEST_ID_REGEX = /^[A-Za-z0-9._-]{1,64}$/;
+
+// Korelasi request-id dan pencatatan durasi selesai permintaan
+app.use((req: Request, res: Response, next) => {
+  const incomingId = req.header('x-request-id');
+  const requestId =
+    incomingId && REQUEST_ID_REGEX.test(incomingId) ? incomingId : crypto.randomUUID();
+
+  req.requestId = requestId;
+  res.setHeader('X-Request-Id', requestId);
+
+  const startTime = process.hrtime.bigint();
+  res.on('finish', () => {
+    const durationMs = Number((Number(process.hrtime.bigint() - startTime) / 1_000_000).toFixed(2));
+    const logPayload = {
+      requestId: req.requestId,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      durationMs,
+    };
+
+    if (req.path === '/health' && res.statusCode < 400) {
+      logger.debug(logPayload, `${req.method} ${req.path} ${res.statusCode}`);
+      return;
+    }
+
+    const slowThresholdMs = Number(process.env.SLOW_REQUEST_MS ?? 1000);
+    if (res.statusCode >= 500 || durationMs >= slowThresholdMs) {
+      logger.warn(logPayload, `${req.method} ${req.path} ${res.statusCode}`);
+      return;
+    }
+
+    logger.info(logPayload, `${req.method} ${req.path} ${res.statusCode}`);
+  });
+
+  next();
+});
 
 /*
  * Daftar asal yang boleh memanggil API dari peramban.
@@ -82,12 +131,6 @@ app.use((req, res, next) => {
   jsonStandar(req, res, next);
 });
 
-// Logger request untuk memantau request masuk
-app.use((req: Request, _res: Response, next) => {
-  logger.info({ method: req.method, path: req.path }, `${req.method} ${req.path}`);
-  next();
-});
-
 /**
  * Pemeriksaan kesehatan server, bisa diakses tanpa menyentuh database.
  */
@@ -98,6 +141,40 @@ app.get('/health', (_req: Request, res: Response) => {
     version: process.env.APP_VERSION ?? 'dev',
     time: new Date().toISOString(),
   });
+});
+
+/**
+ * Pemeriksaan kesiapan server beserta koneksi database (timeout 2000ms).
+ */
+app.get('/health/ready', async (_req: Request, res: Response) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const dbCheck = Promise.resolve(db.$queryRaw`SELECT 1`);
+    dbCheck.catch(() => undefined);
+
+    await Promise.race([
+      dbCheck,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Database readiness timeout')), 2000);
+      }),
+    ]);
+
+    res.status(200).json({
+      status: 'ready',
+      db: 'ok',
+      uptimeSec: Math.round(process.uptime()),
+      memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    });
+  } catch {
+    res.status(503).json({
+      status: 'degraded',
+      db: 'error',
+    });
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 });
 
 // REST API v1
