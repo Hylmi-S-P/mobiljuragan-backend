@@ -21,7 +21,17 @@ export const fleetModel = {
     return db.vehicle.findMany({
       where: vehicleWhere,
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
-      include: {
+      select: {
+        id: true,
+        externalId: true,
+        name: true,
+        licensePlate: true,
+        brand: true,
+        model: true,
+        category: true,
+        seatingCapacity: true,
+        transmission: true,
+        operationalStatus: true,
         bookings: {
           where: {
             status: {
@@ -31,7 +41,15 @@ export const fleetModel = {
             endDateTime: { gt: input.start },
           },
           orderBy: { startDateTime: 'asc' },
-          include: {
+          select: {
+            id: true,
+            bookingCode: true,
+            rentalType: true,
+            status: true,
+            startDateTime: true,
+            endDateTime: true,
+            tariffStatus: true,
+            quotedAmount: true,
             customer: {
               select: {
                 id: true,

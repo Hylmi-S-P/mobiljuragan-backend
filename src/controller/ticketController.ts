@@ -518,10 +518,16 @@ export const ticketController = {
 
       const includeMessages =
         String(req.query.includeMessages ?? 'true').trim().toLowerCase() !== 'false';
+      const rawLimit = Number(req.query.limit);
+      const take =
+        Number.isFinite(rawLimit) && rawLimit >= 1
+          ? Math.min(Math.trunc(rawLimit), 100)
+          : 50;
 
       const tickets = await ticketModel.listForCustomer(actor.userId, {
         status: rawStatus as TicketStatus | undefined,
         includeMessages,
+        take,
       });
 
       sendSuccess(res, tickets);

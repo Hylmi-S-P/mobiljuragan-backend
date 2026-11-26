@@ -81,11 +81,27 @@ export interface AdminVerifyParams {
   cancelBooking?: boolean;
 }
 
+const paymentVehicleSummary = {
+  select: {
+    id: true,
+    externalId: true,
+    name: true,
+    licensePlate: true,
+    brand: true,
+    model: true,
+    category: true,
+    seatingCapacity: true,
+    transmission: true,
+    pricePerDay: true,
+    operationalStatus: true,
+  },
+} as const;
+
 export type PaymentWithRelations = Prisma.PaymentGetPayload<{
   include: {
     booking: {
       include: {
-        vehicle: true;
+        vehicle: typeof paymentVehicleSummary;
         customer: {
           select: { id: true; fullName: true; phoneNumber: true };
         };
@@ -184,7 +200,7 @@ export const paymentService = {
           },
           include: {
             payment: true,
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -314,7 +330,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 customer: {
                   select: { id: true, fullName: true, phoneNumber: true },
                 },
@@ -386,7 +402,7 @@ export const paymentService = {
       include: {
         booking: {
           include: {
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -417,7 +433,7 @@ export const paymentService = {
       include: {
         booking: {
           include: {
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -519,7 +535,7 @@ export const paymentService = {
         include: {
           booking: {
             include: {
-              vehicle: true,
+              vehicle: paymentVehicleSummary,
               customer: {
                 select: { id: true, fullName: true, phoneNumber: true },
               },
@@ -729,7 +745,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 driver: {
                   select: { fullName: true, phoneNumber: true },
                 },
@@ -781,7 +797,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 customer: {
                   select: { id: true, fullName: true, phoneNumber: true },
                 },

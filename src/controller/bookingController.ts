@@ -237,9 +237,22 @@ export const bookingController = {
       const actor = req.user!;
       const isStaffOrAdmin = actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
 
+      const rawLimit = Number(req.query.limit);
+      const take =
+        Number.isFinite(rawLimit) && rawLimit >= 1
+          ? Math.min(Math.trunc(rawLimit), 200)
+          : 100;
+      const rawPage = Number(req.query.page);
+      const skip =
+        Number.isFinite(rawPage) && rawPage > 1
+          ? (Math.trunc(rawPage) - 1) * take
+          : undefined;
+
       const bookings = await bookingModel.listForActor({
         customerId: actor.userId,
         isStaffOrAdmin,
+        skip,
+        take,
       });
 
       const formatted = await Promise.all(bookings.map((b) => formatCustomerBooking(b)));

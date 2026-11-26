@@ -71,6 +71,25 @@ const bookingVehicleSummary = {
   },
 } as const;
 
+/** Bentuk lengkap kendaraan tanpa `imageUrl` untuk detail pesanan admin. */
+const bookingVehicleDetailSummary = {
+  select: {
+    id: true,
+    externalId: true,
+    name: true,
+    licensePlate: true,
+    brand: true,
+    model: true,
+    seatingCapacity: true,
+    transmission: true,
+    category: true,
+    pricePerDay: true,
+    operationalStatus: true,
+    serviceStartedAt: true,
+    serviceExpectedDoneAt: true,
+  },
+} as const;
+
 /** Bentuk ringkas pelanggan yang aman dikirim ke klien. */
 const bookingCustomerSummary = {
   select: {
@@ -102,7 +121,7 @@ const adminBookingDetailInclude = {
       role: true,
     },
   },
-  vehicle: true,
+  vehicle: bookingVehicleDetailSummary,
   driver: bookingDriverSummary,
   statusHistory: {
     orderBy: { changedAt: 'asc' as const },
@@ -255,10 +274,17 @@ export const bookingModel = {
   },
 
   /** Daftar pesanan milik pelanggan; staf dan admin melihat seluruh antrean. */
-  listForActor(input: { customerId: string; isStaffOrAdmin: boolean }) {
+  listForActor(input: {
+    customerId: string;
+    isStaffOrAdmin: boolean;
+    skip?: number;
+    take?: number;
+  }) {
     return db.booking.findMany({
       where: input.isStaffOrAdmin ? {} : { customerId: input.customerId },
       orderBy: { createdAt: 'desc' },
+      ...(input.skip !== undefined ? { skip: input.skip } : {}),
+      take: input.take ?? 100,
       include: {
         vehicle: bookingVehicleSummary,
         driver: bookingDriverSummary,

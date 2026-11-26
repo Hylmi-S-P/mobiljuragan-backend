@@ -280,7 +280,16 @@ async function handleCheckVehicleAvailability(
       where: {
         operationalStatus: { not: OperationalStatus.UNAVAILABLE },
       },
-      include: {
+      select: {
+        name: true,
+        brand: true,
+        model: true,
+        category: true,
+        transmission: true,
+        seatingCapacity: true,
+        pricePerDay: true,
+        operationalStatus: true,
+        serviceExpectedDoneAt: true,
         bookings: {
           where: {
             status: { in: BOOKING_BLOCKING_STATUSES },

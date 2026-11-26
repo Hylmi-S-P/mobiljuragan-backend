@@ -96,7 +96,7 @@ export const ticketModel = {
   /** Daftar tiket milik pelanggan tertentu beserta riwayat pesan (opsional). */
   listForCustomer(
     customerId: string,
-    filter?: { status?: TicketStatus; includeMessages?: boolean },
+    filter?: { status?: TicketStatus; includeMessages?: boolean; take?: number },
   ) {
     const includeMessages = filter?.includeMessages ?? true;
     return db.supportTicket.findMany({
@@ -105,6 +105,7 @@ export const ticketModel = {
         ...(filter?.status ? { status: filter.status } : {}),
       },
       orderBy: { updatedAt: 'desc' },
+      take: filter?.take ?? 50,
       include: {
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         booking: { select: { id: true, bookingCode: true, status: true } },
