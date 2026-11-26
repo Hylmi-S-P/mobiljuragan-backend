@@ -107,7 +107,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
     let shouldTrackInitialLock = false;
 
     if (ticketId) {
-      const riwayatDb = await ticketModel.listMessages(ticketId);
+      const riwayatDb = tiket?.messages ?? [];
       if (isTicketInitWrapper) {
         const existingAiMsg = riwayatDb.find((m) => m.isAi);
         if (existingAiMsg) {
@@ -219,6 +219,12 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
       }
     }
 
+    const abortController = new AbortController();
+    const putuskanAliran = () => {
+      if (!res.writableEnded) abortController.abort();
+    };
+    res.on('close', putuskanAliran);
+
     try {
       const result = await runAssistantTurn({
         userMessage: prompt,
@@ -227,6 +233,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         ticketId: ticketId ?? null,
         bookingId: tiket?.bookingId ?? null,
         isSandbox: false,
+        signal: abortController.signal,
       });
 
       if (ticketId) {
@@ -247,6 +254,7 @@ export async function handleCustomerAiChat(req: Request, res: Response): Promise
         },
       });
     } finally {
+      res.off('close', putuskanAliran);
       if (shouldTrackInitialLock && ticketId) {
         inFlightInitialAiTickets.delete(ticketId);
       }

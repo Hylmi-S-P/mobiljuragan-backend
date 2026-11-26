@@ -1,6 +1,9 @@
-import { db } from '../../db.js';
 import { logger } from '../../logger.js';
-import { recordGatewayLog, resolve9RouterConfig } from '../ai/gatewayConfig.js';
+import {
+  getCachedAiSetting,
+  recordGatewayLog,
+  resolve9RouterConfig,
+} from '../ai/gatewayConfig.js';
 
 export interface EmbeddingRequestOptions {
   gatewayUrl?: string;
@@ -27,6 +30,8 @@ type QueryCacheEntry = {
 };
 
 const queryEmbeddingCache = new Map<string, QueryCacheEntry>();
+const EMBEDDING_CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
+let embeddingCircuitOpenUntil = 0;
 
 export function isEmbeddingsDisabled(): boolean {
   return process.env.RAG_EMBEDDINGS_DISABLED?.trim().toLowerCase() === 'true';
@@ -34,6 +39,7 @@ export function isEmbeddingsDisabled(): boolean {
 
 export function clearQueryEmbeddingCache(): void {
   queryEmbeddingCache.clear();
+  embeddingCircuitOpenUntil = 0;
 }
 
 export async function resolveEffectiveEmbeddingTarget(options?: EmbeddingRequestOptions): Promise<{
@@ -43,12 +49,10 @@ export async function resolveEffectiveEmbeddingTarget(options?: EmbeddingRequest
 }> {
   let dbConfig: { gatewayUrl: string; apiKey: string | null; activeModel: string } | null = null;
   if (!options?.gatewayUrl || !options?.apiKey) {
-    dbConfig = await db.aiSetting
-      .findUnique({
-        where: { id: 'default' },
-        select: { gatewayUrl: true, apiKey: true, activeModel: true },
-      })
-      .catch(() => null);
+    const setting = await getCachedAiSetting();
+    dbConfig = setting
+      ? { gatewayUrl: setting.gatewayUrl, apiKey: setting.apiKey, activeModel: setting.activeModel }
+      : null;
   }
 
   const resolved = resolve9RouterConfig(dbConfig);
@@ -69,7 +73,7 @@ export async function embedTexts(
   options?: EmbeddingRequestOptions,
 ): Promise<Array<number[] | null>> {
   if (texts.length === 0) return [];
-  if (isEmbeddingsDisabled()) {
+  if (isEmbeddingsDisabled() || Date.now() < embeddingCircuitOpenUntil) {
     return texts.map(() => null);
   }
 
@@ -105,6 +109,9 @@ export async function embedTexts(
 
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
+        if (res.status === 404 || res.status === 501 || res.status === 503) {
+          embeddingCircuitOpenUntil = Date.now() + EMBEDDING_CIRCUIT_COOLDOWN_MS;
+        }
         logger.warn(
           { status: res.status, model: target.model, latencyMs, errText: errText.slice(0, 200) },
           'Embedding gateway gagal merespons; beralih ke fallback lexical',
@@ -116,6 +123,7 @@ export async function embedTexts(
           latencyMs,
           details: `Embedding failed (${res.status}) for ${batch.length} text(s), using BM25 fallback`,
         });
+        if (embeddingCircuitOpenUntil > Date.now()) break;
         continue;
       }
 
@@ -149,6 +157,7 @@ export async function embedTexts(
         details: `Embedded ${batch.length} chunk(s) (${results[start]?.length ?? 0} dims)`,
       });
     } catch (error) {
+      embeddingCircuitOpenUntil = Date.now() + EMBEDDING_CIRCUIT_COOLDOWN_MS;
       const latencyMs = Date.now() - t0;
       const reason = error instanceof Error ? error.message : 'Unknown error';
       logger.warn({ reason, model: target.model, latencyMs }, 'Gagal menghubungi endpoint embedding');
@@ -159,6 +168,7 @@ export async function embedTexts(
         latencyMs,
         details: `Embedding network error (${reason}), using BM25 fallback`,
       });
+      break;
     } finally {
       clearTimeout(timer);
     }
@@ -175,7 +185,7 @@ export async function embedQuery(
   options?: EmbeddingRequestOptions,
 ): Promise<QueryEmbeddingResult | null> {
   const normalized = query.trim();
-  if (!normalized || isEmbeddingsDisabled()) return null;
+  if (!normalized || isEmbeddingsDisabled() || Date.now() < embeddingCircuitOpenUntil) return null;
 
   const target = await resolveEffectiveEmbeddingTarget(options);
   const cacheKey = `${target.model}::${normalized.toLowerCase()}`;

@@ -1,5 +1,6 @@
 import { bookingModel } from '../model/bookingModel.js';
 import { driverModel } from '../model/driverModel.js';
+import { logger } from '../logger.js';
 
 /**
  * Penjadwal siklus hidup pesanan.
@@ -20,89 +21,88 @@ import { driverModel } from '../model/driverModel.js';
  * membuat katalog dan laporan cepat pulih.
  */
 export function startBookingLifecycleJob(intervalMs = 5 * 60 * 1000) {
+  let isRunning = false;
+
   const runSweep = async () => {
+    if (isRunning) return;
+    isRunning = true;
     try {
-      const dibatalkan = await bookingModel.expireOverdueDocumentDeadlines();
-      if (dibatalkan > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[BookingLifecycleJob] Dibatalkan otomatis: ${dibatalkan} pesanan.`);
+      try {
+        const dibatalkan = await bookingModel.expireOverdueDocumentDeadlines();
+        if (dibatalkan > 0) {
+          logger.info({ dibatalkan }, '[BookingLifecycleJob] Dibatalkan otomatis');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal menyapu tenggat dokumen');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal menyapu tenggat dokumen:', error);
-    }
 
-    try {
-      const tagihanKedaluwarsa = await bookingModel.expireOverduePayments();
-      if (tagihanKedaluwarsa > 0) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[BookingLifecycleJob] Tagihan kedaluwarsa dibatalkan: ${tagihanKedaluwarsa}.`,
-        );
+      try {
+        const tagihanKedaluwarsa = await bookingModel.expireOverduePayments();
+        if (tagihanKedaluwarsa > 0) {
+          logger.info({ tagihanKedaluwarsa }, '[BookingLifecycleJob] Tagihan kedaluwarsa dibatalkan');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal menyapu tagihan kedaluwarsa');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal menyapu tagihan kedaluwarsa:', error);
-    }
 
-    try {
-      const tanpaTarif = await bookingModel.expireUnconfirmedBookings();
-      if (tanpaTarif > 0) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[BookingLifecycleJob] Permintaan tanpa tarif dibatalkan: ${tanpaTarif}.`,
-        );
+      try {
+        const tanpaTarif = await bookingModel.expireUnconfirmedBookings();
+        if (tanpaTarif > 0) {
+          logger.info({ tanpaTarif }, '[BookingLifecycleJob] Permintaan tanpa tarif dibatalkan');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal menyapu permintaan tanpa tarif');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal menyapu permintaan tanpa tarif:', error);
-    }
 
-    try {
-      const diselesaikan = await bookingModel.autoCompleteFinishedRentals();
-      if (diselesaikan > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[BookingLifecycleJob] Diselesaikan otomatis: ${diselesaikan} pesanan.`);
+      try {
+        const diselesaikan = await bookingModel.autoCompleteFinishedRentals();
+        if (diselesaikan > 0) {
+          logger.info({ diselesaikan }, '[BookingLifecycleJob] Diselesaikan otomatis');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal menyelesaikan sewa yang lewat');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal menyelesaikan sewa yang lewat:', error);
-    }
 
-    try {
-      const dilepas = await bookingModel.releaseOrphanedBookedVehicles();
-      if (dilepas > 0) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[BookingLifecycleJob] Armada tertahan BOOKED tanpa pesanan dilepas: ${dilepas} unit.`,
-        );
+      try {
+        const dilepas = await bookingModel.releaseOrphanedBookedVehicles();
+        if (dilepas > 0) {
+          logger.info({ dilepas }, '[BookingLifecycleJob] Armada tertahan BOOKED tanpa pesanan dilepas');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal melepas armada BOOKED yatim');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal melepas armada BOOKED yatim:', error);
-    }
 
-    try {
-      const supirDilepas = await driverModel.releaseOrphanedBusyDrivers();
-      if (supirDilepas > 0) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[BookingLifecycleJob] Supir tertahan SEDANG_TUGAS tanpa pesanan dilepas: ${supirDilepas} orang.`,
-        );
+      try {
+        const supirDilepas = await driverModel.releaseOrphanedBusyDrivers();
+        if (supirDilepas > 0) {
+          logger.info({ supirDilepas }, '[BookingLifecycleJob] Supir tertahan SEDANG_TUGAS tanpa pesanan dilepas');
+        }
+      } catch (error) {
+        logger.error({ error }, '[BookingLifecycleJob] Gagal melepas supir SEDANG_TUGAS yatim');
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[BookingLifecycleJob] Gagal melepas supir SEDANG_TUGAS yatim:', error);
+    } finally {
+      isRunning = false;
     }
   };
 
-  // Jalankan sekali saat startup supaya pesanan yang kedaluwarsa selama server mati ikut dibereskan.
-  runSweep();
+  // Tunda sapuan pertama 20 detik agar boot server & koneksi awal tidak langsung terbebani.
+  let initialTimer: NodeJS.Timeout | null = setTimeout(() => {
+    initialTimer = null;
+    void runSweep();
+  }, 20_000);
+  initialTimer.unref?.();
 
-  const timer = setInterval(runSweep, intervalMs);
+  const timer = setInterval(() => {
+    void runSweep();
+  }, intervalMs);
+  timer.unref?.();
 
   return {
     stop() {
+      if (initialTimer) {
+        clearTimeout(initialTimer);
+        initialTimer = null;
+      }
       clearInterval(timer);
     },
   };

@@ -138,6 +138,8 @@ export async function tutupTiketKedaluwarsa(
 }
 
 let penjadwal: NodeJS.Timeout | null = null;
+let tundaAwal: NodeJS.Timeout | null = null;
+let sedangBerjalan = false;
 
 /**
  * Menyalakan penjadwal tunggal penutupan tiket. Aman dipanggil berkali-kali:
@@ -146,6 +148,8 @@ let penjadwal: NodeJS.Timeout | null = null;
 export function mulaiPenjadwalTiket(intervalMs: number = JEDA_SIKLUS_MS): { stop: () => void } {
   if (!penjadwal) {
     const jalankan = async () => {
+      if (sedangBerjalan) return;
+      sedangBerjalan = true;
       try {
         const hasil = await tutupTiketKedaluwarsa();
         if (hasil.ditutup > 0) {
@@ -159,10 +163,17 @@ export function mulaiPenjadwalTiket(intervalMs: number = JEDA_SIKLUS_MS): { stop
         }
       } catch (error) {
         logger.error({ error }, 'Penutupan otomatis tiket gagal');
+      } finally {
+        sedangBerjalan = false;
       }
     };
 
-    void jalankan();
+    tundaAwal = setTimeout(() => {
+      tundaAwal = null;
+      void jalankan();
+    }, 15_000);
+    tundaAwal.unref?.();
+
     penjadwal = setInterval(jalankan, intervalMs);
     penjadwal.unref?.();
   }
@@ -174,6 +185,10 @@ export function mulaiPenjadwalTiket(intervalMs: number = JEDA_SIKLUS_MS): { stop
 
 /** Mematikan penjadwal. Dipakai pengujian supaya proses bisa berhenti bersih. */
 export function hentikanPenjadwalTiket(): void {
+  if (tundaAwal) {
+    clearTimeout(tundaAwal);
+    tundaAwal = null;
+  }
   if (!penjadwal) return;
   clearInterval(penjadwal);
   penjadwal = null;

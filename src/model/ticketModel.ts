@@ -93,8 +93,12 @@ export const ticketModel = {
     });
   },
 
-  /** Daftar tiket milik pelanggan tertentu beserta riwayat pesan. */
-  listForCustomer(customerId: string, filter?: { status?: TicketStatus }) {
+  /** Daftar tiket milik pelanggan tertentu beserta riwayat pesan (opsional). */
+  listForCustomer(
+    customerId: string,
+    filter?: { status?: TicketStatus; includeMessages?: boolean },
+  ) {
+    const includeMessages = filter?.includeMessages ?? true;
     return db.supportTicket.findMany({
       where: {
         customerId,
@@ -104,13 +108,29 @@ export const ticketModel = {
       include: {
         customer: { select: { id: true, fullName: true, phoneNumber: true } },
         booking: { select: { id: true, bookingCode: true, status: true } },
-        messages: {
-          orderBy: { sequence: 'asc' },
-          include: {
-            sender: { select: { id: true, fullName: true, role: true } },
-          },
-        },
+        ...(includeMessages
+          ? {
+              messages: {
+                orderBy: { sequence: 'asc' },
+                include: {
+                  sender: { select: { id: true, fullName: true, role: true } },
+                },
+              },
+            }
+          : {}),
         _count: { select: { messages: true } },
+      },
+    });
+  },
+
+  /** Metadata ringan untuk otorisasi stream SSE tanpa menarik isi percakapan. */
+  findAuthMetaById(id: string) {
+    return db.supportTicket.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        customerId: true,
+        assignedAdminId: true,
       },
     });
   },

@@ -516,12 +516,12 @@ export const ticketController = {
         );
       }
 
-      // Jalankan pembersihan auto-close tiket secara pasif di latar belakang
-      ticketModel.autoCloseResolvedTickets(24).catch(() => {});
-      ticketModel.autoCloseStaleAiSessions(24).catch(() => {});
+      const includeMessages =
+        String(req.query.includeMessages ?? 'true').trim().toLowerCase() !== 'false';
 
       const tickets = await ticketModel.listForCustomer(actor.userId, {
         status: rawStatus as TicketStatus | undefined,
+        includeMessages,
       });
 
       sendSuccess(res, tickets);

@@ -1,7 +1,12 @@
 import { db } from '../../db.js';
 import { KnowledgeSourceType } from '../../generated/prisma/client.js';
 import { recordGatewayLog } from '../ai/gatewayConfig.js';
-import { cosineSimilarity, embedQuery, type EmbeddingRequestOptions } from './embeddings.js';
+import {
+  cosineSimilarity,
+  embedQuery,
+  isEmbeddingsDisabled,
+  type EmbeddingRequestOptions,
+} from './embeddings.js';
 import { ensureIndexPopulated } from './indexer.js';
 
 export type RagRetrievalMode = 'HYBRID_VECTOR' | 'LEXICAL_FALLBACK' | 'NONE';
@@ -75,6 +80,40 @@ const INDONESIAN_STOPWORDS = new Set([
 
 const VECTOR_PARSE_CACHE_MAX = 2000;
 const parsedVectorCache = new Map<string, number[]>();
+const RAG_CORPUS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface CachedChunkRow {
+  id: string;
+  sourceType: KnowledgeSourceType;
+  documentId: string | null;
+  faqId: string | null;
+  chunkIndex: number;
+  title: string;
+  category: string;
+  content: string;
+  contentHash: string;
+  embeddingModel: string | null;
+  embeddingDims: number;
+  embeddingJson: string | null;
+}
+
+interface CachedRagCorpus {
+  chunks: CachedChunkRow[];
+  docsTokens: string[][];
+  termFreqMaps: Array<Map<string, number>>;
+  avgDocLength: number;
+  includeEmbeddings: boolean;
+  expiresAt: number;
+}
+
+let indexPopulatedOnce = false;
+let ragCorpusCache: CachedRagCorpus | null = null;
+
+/** Mengosongkan cache korpus RAG & token BM25 saat dokumen atau FAQ diperbarui. */
+export function invalidateRagCorpusCache(): void {
+  ragCorpusCache = null;
+  indexPopulatedOnce = false;
+}
 
 function tokenize(text: string): string[] {
   const rawTokens = text
@@ -105,24 +144,17 @@ function getParsedVector(cacheKey: string, jsonStr: string | null): number[] | n
   }
 }
 
-function computeBm25Scores(queryTokens: string[], docsTokens: string[][]): number[] {
+function computeBm25Scores(
+  queryTokens: string[],
+  corpus: Pick<CachedRagCorpus, 'docsTokens' | 'termFreqMaps' | 'avgDocLength'>,
+): number[] {
+  const { docsTokens, termFreqMaps, avgDocLength } = corpus;
   const docCount = docsTokens.length;
   if (docCount === 0 || queryTokens.length === 0) {
     return new Array(docCount).fill(0);
   }
 
   const uniqueQueryTerms = Array.from(new Set(queryTokens));
-  const avgDocLength =
-    docsTokens.reduce((acc, tokens) => acc + tokens.length, 0) / Math.max(docCount, 1);
-
-  const termFreqMaps = docsTokens.map((tokens) => {
-    const freq = new Map<string, number>();
-    for (const token of tokens) {
-      freq.set(token, (freq.get(token) ?? 0) + 1);
-    }
-    return freq;
-  });
-
   const k1 = 1.5;
   const b = 0.75;
   const scores = new Array(docCount).fill(0);
@@ -147,22 +179,23 @@ function computeBm25Scores(queryTokens: string[], docsTokens: string[][]): numbe
   return scores;
 }
 
-/**
- * Mengambil potongan Knowledge Base + FAQ paling relevan menggunakan Hybrid RAG (Cosine + BM25).
- * Secara otomatis jatuh ke `LEXICAL_FALLBACK` (BM25) jika embedding gateway mati atau belum tersedia.
- */
-export async function retrieveRelevantKnowledge(
-  query: string,
-  options?: EmbeddingRequestOptions & {
-    topK?: number;
-    minScore?: number;
-    maxContextChars?: number;
-  },
-): Promise<RagRetrievalResult> {
-  const t0 = Date.now();
-  await ensureIndexPopulated().catch(() => false);
+async function loadRagCorpus(): Promise<CachedRagCorpus> {
+  if (!indexPopulatedOnce) {
+    await ensureIndexPopulated().catch(() => false);
+    indexPopulatedOnce = true;
+  }
 
-  const activeChunks = await db.knowledgeChunk.findMany({
+  const includeEmbeddings = !isEmbeddingsDisabled();
+  const sekarang = Date.now();
+  if (
+    ragCorpusCache &&
+    sekarang < ragCorpusCache.expiresAt &&
+    ragCorpusCache.includeEmbeddings === includeEmbeddings
+  ) {
+    return ragCorpusCache;
+  }
+
+  const rawChunks = await db.knowledgeChunk.findMany({
     where: { isActive: true },
     select: {
       id: true,
@@ -176,9 +209,52 @@ export async function retrieveRelevantKnowledge(
       contentHash: true,
       embeddingModel: true,
       embeddingDims: true,
-      embeddingJson: true,
+      embeddingJson: includeEmbeddings,
     },
   });
+
+  const chunks: CachedChunkRow[] = rawChunks.map((row) => ({
+    ...row,
+    embeddingJson: 'embeddingJson' in row ? (row.embeddingJson ?? null) : null,
+  }));
+
+  const docsTokens = chunks.map((chunk) => tokenize(chunk.content));
+  const termFreqMaps = docsTokens.map((tokens) => {
+    const freq = new Map<string, number>();
+    for (const token of tokens) {
+      freq.set(token, (freq.get(token) ?? 0) + 1);
+    }
+    return freq;
+  });
+  const avgDocLength =
+    docsTokens.reduce((acc, tokens) => acc + tokens.length, 0) / Math.max(chunks.length, 1);
+
+  ragCorpusCache = {
+    chunks,
+    docsTokens,
+    termFreqMaps,
+    avgDocLength,
+    includeEmbeddings,
+    expiresAt: Date.now() + RAG_CORPUS_CACHE_TTL_MS,
+  };
+  return ragCorpusCache;
+}
+
+/**
+ * Mengambil potongan Knowledge Base + FAQ paling relevan menggunakan Hybrid RAG (Cosine + BM25).
+ * Secara otomatis jatuh ke `LEXICAL_FALLBACK` (BM25) jika embedding gateway mati atau belum tersedia.
+ */
+export async function retrieveRelevantKnowledge(
+  query: string,
+  options?: EmbeddingRequestOptions & {
+    topK?: number;
+    minScore?: number;
+    maxContextChars?: number;
+  },
+): Promise<RagRetrievalResult> {
+  const t0 = Date.now();
+  const corpus = await loadRagCorpus();
+  const activeChunks = corpus.chunks;
 
   if (activeChunks.length === 0) {
     return {
@@ -194,8 +270,7 @@ export async function retrieveRelevantKnowledge(
   const topK = options?.topK ?? 5;
   const maxContextChars = options?.maxContextChars ?? 4500;
   const queryTokens = tokenize(query);
-  const docsTokens = activeChunks.map((chunk) => tokenize(chunk.content));
-  const rawBm25Scores = computeBm25Scores(queryTokens, docsTokens);
+  const rawBm25Scores = computeBm25Scores(queryTokens, corpus);
   const maxBm25 = rawBm25Scores.reduce((max, s) => (s > max ? s : max), 0);
 
   const queryVecResult = await embedQuery(query, {

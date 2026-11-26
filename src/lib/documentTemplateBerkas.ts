@@ -51,8 +51,7 @@ export function kenaliDokumen(isi: Buffer): JenisDokumenTerdeteksi {
    * "word/" di dalam daftar isi arsip. Penanda itu selalu ada pada DOCX.
    */
   if (isi[0] === 0x50 && isi[1] === 0x4b && isi[2] === 0x03 && isi[3] === 0x04) {
-    const potongan = isi.toString('latin1');
-    if (potongan.includes('word/')) {
+    if (isi.includes('word/')) {
       return {
         jenis: 'docx',
         ekstensi: 'docx',

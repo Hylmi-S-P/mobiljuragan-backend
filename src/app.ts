@@ -1,4 +1,5 @@
 import express, { type Express, type Request, type Response } from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import { logger } from './logger.js';
 import { v1Router } from './routes/v1/index.js';
@@ -33,6 +34,23 @@ if (daftarOrigin.length === 0 && process.env.NODE_ENV === 'production') {
 
 // Middleware dasar
 app.use(cors(daftarOrigin.length > 0 ? { origin: daftarOrigin } : {}));
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers.accept?.includes('text/event-stream')) return false;
+      const contentType = String(res.getHeader('Content-Type') ?? '');
+      if (
+        contentType.includes('text/event-stream') ||
+        contentType.includes('image/webp') ||
+        contentType.includes('application/pdf')
+      ) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  }),
+);
 
 /*
  * Di balik Cloudflare Tunnel, alamat asli pengunjung ada di X-Forwarded-For.
@@ -44,10 +62,25 @@ if (trustProxy && trustProxy !== 'false') {
   app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 }
 
-/* Batas 10 MB karena foto armada dikirim sebagai data URL base64: berkas 5 MB
-   menjadi sekitar 6,7 MB teks. Batas bawaan 100 KB membuat foto sah ditolak
-   sebelum validasi sempat berjalan. */
-app.use(express.json({ limit: '10mb' }));
+/* Batasi parser JSON standar ke 256 KB agar permintaan normal tidak mengalokasikan
+   buffer V8 besar. Batas 10 MB hanya diizinkan pada rute legacy Base64 demi
+   kompatibilitas APK 1.0.2+3 yang masih aktif di lapangan. */
+const jsonStandar = express.json({ limit: '256kb' });
+const jsonBesarLegacy = express.json({ limit: '10mb' });
+const RUTE_JSON_BESAR = [
+  /^\/api\/v1\/payments\/[^/]+\/proof$/,
+  /^\/api\/v1\/bookings\/[^/]+\/documents$/,
+  /^\/api\/v1\/admin\/vehicles(\/[^/]+)?$/,
+  /^\/api\/v1\/admin\/drivers(\/[^/]+)?$/,
+  /^\/api\/v1\/admin\/ai\/documents\/parse-file$/,
+];
+app.use((req, res, next) => {
+  if (RUTE_JSON_BESAR.some((pola) => pola.test(req.path))) {
+    jsonBesarLegacy(req, res, next);
+    return;
+  }
+  jsonStandar(req, res, next);
+});
 
 // Logger request untuk memantau request masuk
 app.use((req: Request, _res: Response, next) => {

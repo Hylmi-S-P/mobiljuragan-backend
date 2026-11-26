@@ -1,7 +1,11 @@
 import type { NextFunction, Request, Response } from 'express';
 import { documentService } from '../services/document.service.js';
 import { fileStorage } from '../services/storage/local-storage.js';
-import { decodeLegacyDataUrl, processAndStoreImage } from '../services/upload/image-processing.js';
+import {
+  MAX_UPLOAD_BYTES,
+  decodeLegacyDataUrl,
+  processAndStoreImage,
+} from '../services/upload/image-processing.js';
 import { sendSuccess, AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
 import {
@@ -38,14 +42,23 @@ export const documentController = {
        */
       const { template, aliran } = await documentTemplateService.aliranBerkasAktif();
 
-      res.setHeader('Content-Type', template.berkasMime);
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
-      );
+      const etag = `"${template.berkasSha256}"`;
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'public, max-age=300');
       res.setHeader('X-Document-Title', encodeURIComponent(template.judul));
       res.setHeader('X-Document-Version', String(template.versi));
       res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      if (req.headers['if-none-match'] === etag) {
+        if (!aliran.destroyed) aliran.destroy();
+        res.status(304).end();
+        return;
+      }
+
+      res.setHeader('Content-Type', template.berkasMime);
+      res.setHeader('Content-Disposition',
+        `inline; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
+      );
       res.setHeader('Content-Length', String(template.berkasByte));
 
       aliran.on('error', () => {
@@ -113,7 +126,11 @@ export const documentController = {
         const uploaded = files[field]?.[0];
         if (uploaded?.buffer) return uploaded.buffer;
         const legacy = body[field];
-        return legacy ? decodeLegacyDataUrl(legacy) ?? Buffer.from(legacy, 'base64') : null;
+        if (!legacy) return null;
+        if (legacy.length > Math.ceil(MAX_UPLOAD_BYTES * 1.45)) {
+          throw new AppError('FILE_TOO_LARGE', 'Ukuran berkas melebihi batas 5 MB.', 413);
+        }
+        return decodeLegacyDataUrl(legacy) ?? Buffer.from(legacy, 'base64');
       };
 
       const statementLetter = pickFile('statementLetter');

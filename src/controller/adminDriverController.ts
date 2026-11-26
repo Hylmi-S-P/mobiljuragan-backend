@@ -10,7 +10,7 @@ import {
 } from '../validators/driverSchemas.js';
 import type { DriverWithAssignment } from '../model/driverModel.js';
 import {
-  segarkanTautanMedia,
+  segarkanTautanPrivat,
   simpanMediaDariBase64,
   tautanStabil,
 } from '../lib/mediaService.js';
@@ -121,7 +121,7 @@ async function toDriverResponse(driver: DriverWithAssignment) {
   const activeBooking = Array.isArray(driver.bookings) ? driver.bookings[0] : undefined;
   return {
     ...driver,
-    licensePhotoUrl: await segarkanTautanMedia(driver.licensePhotoUrl),
+    licensePhotoUrl: segarkanTautanPrivat(driver.licensePhotoUrl, 'DRIVER_LICENSE'),
     bookings: undefined,
     activeAssignment: activeBooking
       ? {

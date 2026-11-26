@@ -2,6 +2,34 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { AppError } from './response.js';
 
+/* Batasi cache & thread native libvips/sharp agar tidak memicu lonjakan RSS
+   di container dengan batas memori 512 MB. */
+sharp.cache({ memory: 16, files: 0, items: 20 });
+sharp.concurrency(1);
+
+const MAKS_PROSES_SHARP = Math.max(1, Number(process.env.SHARP_MAX_CONCURRENCY ?? 2));
+let sedangDiprosesSharp = 0;
+const antreanSharp: Array<() => void> = [];
+
+async function ambilSlotSharp(): Promise<void> {
+  if (sedangDiprosesSharp < MAKS_PROSES_SHARP) {
+    sedangDiprosesSharp++;
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    antreanSharp.push(() => {
+      sedangDiprosesSharp++;
+      resolve();
+    });
+  });
+}
+
+function lepasSlotSharp(): void {
+  sedangDiprosesSharp = Math.max(0, sedangDiprosesSharp - 1);
+  const berikut = antreanSharp.shift();
+  if (berikut) berikut();
+}
+
 /**
  * Normalisasi gambar unggahan: satu tempat untuk semua jalur.
  *
@@ -33,14 +61,14 @@ export interface AturanGambar {
 export const PRESET_GAMBAR: Record<PresetGambar, AturanGambar> = {
   dokumen: {
     batasByte: 5 * 1024 * 1024,
-    batasPiksel: 40_000_000,
+    batasPiksel: 20_000_000,
     sisiMaksimal: 2000,
     kualitas: 80,
     labelBatas: '5 MB',
   },
   media: {
     batasByte: 8 * 1024 * 1024,
-    batasPiksel: 40_000_000,
+    batasPiksel: 20_000_000,
     sisiMaksimal: 1600,
     kualitas: 82,
     labelBatas: '8 MB',
@@ -48,7 +76,7 @@ export const PRESET_GAMBAR: Record<PresetGambar, AturanGambar> = {
 };
 
 /** Batas piksel yang berlaku untuk semua preset; dipakai pesan galat & uji. */
-export const BATAS_PIKSEL = 40_000_000;
+export const BATAS_PIKSEL = 20_000_000;
 
 /**
  * Jenis berkas yang diterima, dikenali dari magic bytes dan bukan dari nama
@@ -143,6 +171,7 @@ export async function normalisasiGambar(
   let hasil: Buffer;
   let info: { width: number; height: number };
 
+  await ambilSlotSharp();
   try {
     const pipeline = sharp(buffer, {
       limitInputPixels: aturan.batasPiksel,
@@ -175,6 +204,8 @@ export async function normalisasiGambar(
     }
 
     throw new AppError('FILE_UNREADABLE', `Gambar tidak dapat dibaca: ${pesan}`, 400);
+  } finally {
+    lepasSlotSharp();
   }
 
   return {

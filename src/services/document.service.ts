@@ -6,7 +6,7 @@ import { AppError } from '../lib/response.js';
 import { documentTemplateService } from '../lib/documentTemplateService.js';
 import {
   simpanMediaDariBase64,
-  segarkanTautanMedia,
+  segarkanTautanPrivat,
   tautanStabil,
   type KategoriMedia,
 } from '../lib/mediaService.js';
@@ -156,9 +156,12 @@ export const documentService = {
     const dokumen = record.document
       ? toClientDocument({
           ...record.document,
-          statementLetterUrl: await segarkanTautanMedia(record.document.statementLetterUrl),
-          ktpUrl: await segarkanTautanMedia(record.document.ktpUrl),
-          simUrl: await segarkanTautanMedia(record.document.simUrl),
+          statementLetterUrl: segarkanTautanPrivat(
+            record.document.statementLetterUrl,
+            'STATEMENT_LETTER',
+          ),
+          ktpUrl: segarkanTautanPrivat(record.document.ktpUrl, 'KTP'),
+          simUrl: segarkanTautanPrivat(record.document.simUrl, 'SIM'),
         })
       : {
           status: DocumentStatus.PENDING_UPLOAD,
@@ -204,18 +207,16 @@ export const documentService = {
     pastikanBolehAkses(record.booking.customerId, actor);
 
     /*
-     * Ketiga berkas diselesaikan lebih dulu, sebelum menyentuh database.
-     *
-     * Isinya bisa berupa data URL Base64 dari aplikasi lama atau tautan media
-     * yang sudah jadi. Yang Base64 dinormalkan sharp lalu disimpan sebagai
-     * media, sehingga kolom `statementLetterUrl`, `ktpUrl`, dan `simUrl` tidak
-     * lagi menyimpan blok Base64 berukuran ratusan kilobita.
+     * Ketiga berkas diselesaikan satu per satu sebelum menyentuh database,
+     * agar puncak memori sharp/libvips hanya sebesar satu gambar di container 512 MB.
      */
-    const [statementLetterUrl, ktpUrl, simUrl] = await Promise.all([
-      selesaikanDokumen(data.statementLetterUrl, 'STATEMENT_LETTER', record.booking.customerId),
-      selesaikanDokumen(data.ktpUrl, 'KTP', record.booking.customerId),
-      selesaikanDokumen(data.simUrl, 'SIM', record.booking.customerId),
-    ]);
+    const statementLetterUrl = await selesaikanDokumen(
+      data.statementLetterUrl,
+      'STATEMENT_LETTER',
+      record.booking.customerId,
+    );
+    const ktpUrl = await selesaikanDokumen(data.ktpUrl, 'KTP', record.booking.customerId);
+    const simUrl = await selesaikanDokumen(data.simUrl, 'SIM', record.booking.customerId);
 
     const updated = await documentModel.upsertDocument(record.booking.id, {
       statementLetterUrl,
@@ -239,9 +240,9 @@ export const documentService = {
       bookingCode: record.booking.bookingCode,
       document: toClientDocument({
         ...updated,
-        statementLetterUrl: await segarkanTautanMedia(updated.statementLetterUrl),
-        ktpUrl: await segarkanTautanMedia(updated.ktpUrl),
-        simUrl: await segarkanTautanMedia(updated.simUrl),
+        statementLetterUrl: segarkanTautanPrivat(updated.statementLetterUrl, 'STATEMENT_LETTER'),
+        ktpUrl: segarkanTautanPrivat(updated.ktpUrl, 'KTP'),
+        simUrl: segarkanTautanPrivat(updated.simUrl, 'SIM'),
       }),
     };
   },
@@ -345,9 +346,9 @@ export const documentService = {
       bookingCode: record.booking.bookingCode,
       document: toClientDocument({
         ...updated,
-        statementLetterUrl: await segarkanTautanMedia(updated.statementLetterUrl),
-        ktpUrl: await segarkanTautanMedia(updated.ktpUrl),
-        simUrl: await segarkanTautanMedia(updated.simUrl),
+        statementLetterUrl: segarkanTautanPrivat(updated.statementLetterUrl, 'STATEMENT_LETTER'),
+        ktpUrl: segarkanTautanPrivat(updated.ktpUrl, 'KTP'),
+        simUrl: segarkanTautanPrivat(updated.simUrl, 'SIM'),
       }),
     };
   },

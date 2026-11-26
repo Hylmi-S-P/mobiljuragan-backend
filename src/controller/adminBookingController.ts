@@ -5,7 +5,7 @@ import { bookingModel, type AdminBookingDetail } from '../model/bookingModel.js'
 import { computeBookingBlockers, resolveBookingSubStage } from '../lib/bookingStage.js';
 import { AppError, sendSuccess } from '../lib/response.js';
 import { toInternationalPhone } from '../lib/phone.js';
-import { segarkanTautanMedia } from '../lib/mediaService.js';
+import { segarkanTautanPrivat } from '../lib/mediaService.js';
 import { normalkanRefund } from '../lib/refund.js';
 import { toClientDocument } from '../services/document.service.js';
 import type {
@@ -113,16 +113,19 @@ async function formatAdminBooking<
   const document = booking.document
     ? toClientDocument({
         ...booking.document,
-        statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
-        ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
-        simUrl: await segarkanTautanMedia(booking.document.simUrl),
+        statementLetterUrl: segarkanTautanPrivat(
+          booking.document.statementLetterUrl,
+          'STATEMENT_LETTER',
+        ),
+        ktpUrl: segarkanTautanPrivat(booking.document.ktpUrl, 'KTP'),
+        simUrl: segarkanTautanPrivat(booking.document.simUrl, 'SIM'),
       })
     : (booking.document ?? null);
 
   const payment = booking.payment
     ? {
         ...booking.payment,
-        proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
+        proofImageUrl: segarkanTautanPrivat(booking.payment.proofImageUrl, 'PAYMENT_PROOF'),
       }
     : (booking.payment ?? null);
 
