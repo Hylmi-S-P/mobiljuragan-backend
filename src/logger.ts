@@ -9,8 +9,11 @@ export const logger = pino({
   redact: [
     // Nilai sensitif yang tidak boleh ikut tercatat di log
     'req.headers.authorization',
+    'req.headers.cookie',
     'passwordHash',
     'otpHash',
+    '*.apiKey',
+    '*.token',
     // Kredensial mentah dari body permintaan autentikasi
     'req.body.password',
     'req.body.newPassword',

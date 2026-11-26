@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { sendError } from '../lib/response.js';
 import { db } from '../db.js';
 
@@ -55,7 +55,8 @@ export const bookingCreateRateLimiter = rateLimit({
   max: process.env.NODE_ENV === 'test' ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.phoneNumber || req.ip || 'tanpa-identitas',
+  keyGenerator: (req) =>
+    req.user?.phoneNumber || (req.ip ? ipKeyGenerator(req.ip) : 'tanpa-identitas'),
   handler: (req, res) => {
     sendError(
       res,
@@ -85,7 +86,8 @@ export const uploadRateLimiter = rateLimit({
   max: Number(process.env.UPLOAD_RATE_MAX ?? (process.env.NODE_ENV === 'test' ? 1000 : 20)),
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || req.ip || 'tanpa-identitas',
+  keyGenerator: (req) =>
+    req.user?.userId || (req.ip ? ipKeyGenerator(req.ip) : 'tanpa-identitas'),
   handler: (req, res) => {
     /* Dicatat supaya pemblokiran bisa ditelusuri: tanpa catatan, "terlalu banyak"
        tidak bisa dibedakan dari gangguan jaringan biasa. Penulisan audit sengaja

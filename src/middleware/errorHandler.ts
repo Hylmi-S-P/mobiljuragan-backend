@@ -22,23 +22,51 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
-  /* Kesalahan multer: ukuran/jumlah berkas. Tanpa pemetaan ini, unggahan yang
-     terlalu besar berakhir sebagai 500 dan pesannya tidak berguna bagi pengguna. */
-  if (
+  /*
+   * Kesalahan multer / unggahan berkas (ukuran, jumlah, atau field tidak sesuai).
+   * Disatukan agar pesan batas ukuran membedakan rute template dokumen (15 MB)
+   * dengan rute gambar/dokumen umum (5 MB), termasuk saat err.name === 'MulterError',
+   * sekaligus mempertahankan pesan jumlah berkas per rute (multi-berkas vs tunggal).
+   */
+  const isMulterError =
     typeof err === 'object' &&
     err !== null &&
     'name' in err &&
-    (err as { name?: string }).name === 'MulterError'
+    (err as { name?: string }).name === 'MulterError';
+  const uploadErrorCode =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? (err as { code?: string }).code
+      : undefined;
+
+  if (
+    isMulterError ||
+    uploadErrorCode === 'LIMIT_FILE_SIZE' ||
+    uploadErrorCode === 'LIMIT_FILE_COUNT' ||
+    uploadErrorCode === 'LIMIT_UNEXPECTED_FILE'
   ) {
-    const code = (err as { code?: string }).code;
-    if (code === 'LIMIT_FILE_SIZE') {
-      sendError(res, 'FILE_TOO_LARGE', 'Ukuran berkas maksimal 5 MB.', 413);
+    if (uploadErrorCode === 'LIMIT_FILE_SIZE') {
+      const batasDokumen = req.path.includes('/document-templates');
+      sendError(
+        res,
+        'FILE_TOO_LARGE',
+        batasDokumen
+          ? 'Ukuran dokumen melebihi batas 15 MB.'
+          : 'Ukuran berkas maksimal 5 MB.',
+        413,
+      );
       return;
     }
-    if (code === 'LIMIT_FILE_COUNT' || code === 'LIMIT_UNEXPECTED_FILE') {
-      sendError(res, 'TOO_MANY_FILES', 'Maksimal 3 berkas: surat pernyataan, KTP, dan SIM.', 400);
+
+    if (uploadErrorCode === 'LIMIT_FILE_COUNT' || uploadErrorCode === 'LIMIT_UNEXPECTED_FILE') {
+      const isBookingDocuments = /\/bookings\/[^/]+\/documents/.test(req.path);
+      if (isBookingDocuments) {
+        sendError(res, 'TOO_MANY_FILES', 'Maksimal 3 berkas: surat pernyataan, KTP, dan SIM.', 400);
+      } else {
+        sendError(res, 'FILE_NOT_ALLOWED', 'Hanya satu berkas yang boleh diunggah.', 400);
+      }
       return;
     }
+
     sendError(res, 'UPLOAD_FAILED', 'Berkas tidak dapat diproses. Coba lagi.', 400);
     return;
   }
@@ -66,39 +94,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
-  /*
-   * Batas ukuran dari multer. Tanpa penanganan ini, mengunggah berkas yang
-   * terlalu besar berakhir sebagai 500 "terjadi kesalahan pada server", padahal
-   * penyebabnya jelas dan bisa diperbaiki pengguna: berkasnya kebesaran.
-   *
-   * Pesannya menyebut batas yang berlaku untuk jalur yang sedang dipakai,
-   * karena foto dan dokumen punya batas berbeda.
-   */
-  if (typeof err === 'object' && err !== null && 'code' in err) {
-    const kode = (err as { code?: string }).code;
-
-    if (kode === 'LIMIT_FILE_SIZE') {
-      const batasDokumen = req.path.includes('/document-templates');
-      sendError(
-        res,
-        'FILE_TOO_LARGE',
-        batasDokumen
-          ? 'Ukuran dokumen melebihi batas 15 MB.'
-          : 'Ukuran berkas melebihi batas yang diizinkan.',
-        413,
-      );
-      return;
-    }
-
-    if (kode === 'LIMIT_FILE_COUNT' || kode === 'LIMIT_UNEXPECTED_FILE') {
-      sendError(res, 'FILE_NOT_ALLOWED', 'Hanya satu berkas yang boleh diunggah.', 400);
-      return;
-    }
-  }
-
   logger.error(
     {
       err,
+      requestId: req.requestId,
       method: req.method,
       url: req.originalUrl,
     },
