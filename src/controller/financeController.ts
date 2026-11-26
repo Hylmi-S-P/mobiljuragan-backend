@@ -32,7 +32,7 @@ function bacaJumlahBulan(raw: unknown): JumlahBulan | null | undefined {
 
 export async function getFinanceSummary(req: Request, res: Response): Promise<void> {
   try {
-    const range = (req.query.range as string) || 'all'; // 'month' | 'last_month' | 'all'
+    const range = (req.query.range as string) || 'all'; // '1m' | '3m' | '6m' | '12m' | 'year' | 'month' | 'last_month' | 'all'
 
     // Rentang grafik omzet: 1, 3, 6, atau 12 bulan.
     const bulanDiminta = bacaJumlahBulan(req.query.bulan);
@@ -48,9 +48,17 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     let dateFilter: { gte?: Date; lte?: Date } | undefined;
     const now = new Date();
 
-    if (range === 'month') {
+    if (range === 'month' || range === '1m') {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       dateFilter = { gte: startOfMonth };
+    } else if (range === '3m') {
+      dateFilter = { gte: new Date(now.getFullYear(), now.getMonth() - 2, 1) };
+    } else if (range === '6m') {
+      dateFilter = { gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) };
+    } else if (range === '12m') {
+      dateFilter = { gte: new Date(now.getFullYear(), now.getMonth() - 11, 1) };
+    } else if (range === 'year') {
+      dateFilter = { gte: new Date(now.getFullYear(), 0, 1) };
     } else if (range === 'last_month') {
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
@@ -369,6 +377,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     res.status(200).json({
       status: 'ok',
       data: {
+        range,
         bulan: jumlahBulan,
         summary: {
           totalRevenue,
