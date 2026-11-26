@@ -67,22 +67,65 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     const bookingWhere = dateFilter ? { createdAt: dateFilter } : {};
 
-    // 1. Ambil semua booking yang relevan dengan unit armada beserta status pembayaran & refund
-    const bookings = await db.booking.findMany({
-      where: bookingWhere,
-      include: {
-        vehicle: true,
-        payment: true,
-        refund: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // 2. Ambil semua armada untuk tabel kontribusi armada lengkap
-    const allVehicles = await db.vehicle.findMany({
-      where: { operationalStatus: { not: 'UNAVAILABLE' } },
-      orderBy: { name: 'asc' },
-    });
+    // Jalankan 3 kueri secara paralel dan hanya pilih kolom yang dipakai agregasi
+    // (menghindari penarikan kolom besar seperti payment.proofImageUrl / LONGTEXT).
+    const [bookings, allVehicles, transaksiLunas] = await Promise.all([
+      db.booking.findMany({
+        where: bookingWhere,
+        select: {
+          vehicleId: true,
+          status: true,
+          rentalType: true,
+          quotedAmount: true,
+          finalAmount: true,
+          payment: {
+            select: {
+              status: true,
+              totalAmount: true,
+            },
+          },
+          refund: {
+            select: {
+              status: true,
+              potongan: true,
+            },
+          },
+        },
+      }),
+      db.vehicle.findMany({
+        where: { operationalStatus: { not: 'UNAVAILABLE' } },
+        select: {
+          id: true,
+          externalId: true,
+          name: true,
+          licensePlate: true,
+          category: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+      db.booking.findMany({
+        where: {
+          OR: [
+            { payment: { is: { status: 'PAID' } } },
+            {
+              refund: {
+                is: {
+                  status: 'SELESAI',
+                  potongan: { gt: 0 },
+                },
+              },
+            },
+          ],
+        },
+        select: {
+          quotedAmount: true,
+          finalAmount: true,
+          createdAt: true,
+          payment: { select: { status: true, totalAmount: true, verifiedAt: true } },
+          refund: { select: { status: true, potongan: true, diselesaikanPada: true } },
+        },
+      }),
+    ]);
 
     // Agregasi metrik
     let totalRevenue = 0;
@@ -230,29 +273,6 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
     // Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
     const BULAN_GRAFIK = jumlahBulan;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-    const transaksiLunas = await db.booking.findMany({
-      where: {
-        OR: [
-          { payment: { is: { status: 'PAID' } } },
-          {
-            refund: {
-              is: {
-                status: 'SELESAI',
-                potongan: { gt: 0 },
-              },
-            },
-          },
-        ],
-      },
-      select: {
-        quotedAmount: true,
-        finalAmount: true,
-        createdAt: true,
-        payment: { select: { status: true, totalAmount: true, verifiedAt: true } },
-        refund: { select: { status: true, potongan: true, diselesaikanPada: true } },
-      },
-    });
 
     const tanggalMasuk = (b: (typeof transaksiLunas)[number]): Date => {
       if (b.payment?.status === 'PAID') {
