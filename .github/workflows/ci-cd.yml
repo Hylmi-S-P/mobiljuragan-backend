@@ -1,0 +1,70 @@
+name: CI/CD Backend MobilJuragan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Uji Build & Typecheck (Cloud)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Pasang dependensi
+        run: npm ci
+
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: mysql://placeholder:placeholder@127.0.0.1:3306/mobiljuragan
+        run: npx prisma generate
+
+      - name: Cek tipe TypeScript
+        run: npm run typecheck
+
+      - name: Build produksi
+        run: npm run build
+
+  deploy:
+    name: Deploy ke Laptop Server (Kiri)
+    needs: ci
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: [self-hosted, linux, x64, deathhangcomedy, mobiljuragan-backend]
+    concurrency:
+      group: deploy-mobiljuragan-backend
+      cancel-in-progress: false
+    steps:
+      - name: Ambil kode terbaru
+        uses: actions/checkout@v4
+
+      - name: Sinkronkan kode ke /srv/mobiljuragan/backend
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='/node_modules' \
+            --exclude='/dist' \
+            --exclude='/.env' \
+            --exclude='/.env.*' \
+            ./ /srv/mobiljuragan/backend/
+
+      - name: Deploy container API lewat Kiri
+        run: /srv/mobiljuragan/deploy-kiri.sh deploy api
+
+      - name: Verifikasi endpoint kesehatan publik
+        run: |
+          curl -fsS -m 10 https://mobiljuragan.tapakvia.com/health
+          echo ""
