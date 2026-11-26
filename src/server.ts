@@ -1,8 +1,10 @@
 import { app } from './app.js';
+import { db } from './db.js';
 import { mulaiPenjadwalTiket } from './lib/autoCloseTickets.js';
 import { startBookingLifecycleJob } from './jobs/bookingLifecycleJob.js';
 import { documentTemplateService } from './lib/documentTemplateService.js';
 import { ensureAiDefaults } from './services/aiKnowledgeSeed.js';
+import { tutupSemuaAliranSse } from './controller/ticketEventController.js';
 import { logger } from './logger.js';
 
 const port = Number(process.env.PORT ?? 4000);
@@ -17,15 +19,18 @@ const port = Number(process.env.PORT ?? 4000);
 const production = process.env.NODE_ENV === 'production';
 const host = process.env.HOST ?? (production ? '127.0.0.1' : '0.0.0.0');
 
+let penjadwalTiket: { stop: () => void } | null = null;
+let lifecycleJob: { stop: () => void } | null = null;
+let sedangBerhenti = false;
+
 const server = app.listen(port, host, () => {
-  // eslint-disable-next-line no-console
-  console.log(`mobiljuragan-api listening on http://${host}:${port}`);
+  logger.info({ host, port }, `mobiljuragan-api listening on http://${host}:${port}`);
 
   /* Penjadwal tunggal penutupan otomatis tiket manual 24 jam. */
-  mulaiPenjadwalTiket();
+  penjadwalTiket = mulaiPenjadwalTiket();
 
   /* Tenggat unggah dokumen: pesanan yang ditinggalkan dibatalkan otomatis. */
-  startBookingLifecycleJob(
+  lifecycleJob = startBookingLifecycleJob(
     Number(process.env.BOOKING_DEADLINE_INTERVAL_MS ?? 5 * 60 * 1000),
   );
 
@@ -44,39 +49,35 @@ const server = app.listen(port, host, () => {
 });
 
 /*
- * Saat PM2 atau systemd mengirim SIGTERM, tutup sambungan lebih dulu supaya
- * permintaan yang sedang berjalan tidak terputus di tengah jalan.
+ * Saat Kiri/Docker mengirim SIGTERM, hentikan penjadwal latar, tutup stream SSE
+ * yang masih terbuka, dan putus pool MariaDB secara bersih agar deploy ulang
+ * tidak perlu menunggu timeout paksa 10 detik.
  */
-function berhenti(sinyal: string): void {
-  // eslint-disable-next-line no-console
-  console.log(`Menerima ${sinyal}, menutup server...`);
-  server.close(() => process.exit(0));
-  const paksa = setTimeout(() => process.exit(1), 10_000);
+function berhenti(sinyal: string, kodeKeluar = 0): void {
+  if (sedangBerhenti) return;
+  sedangBerhenti = true;
+
+  logger.info({ sinyal, kodeKeluar }, 'Menutup server secara teratur...');
+  penjadwalTiket?.stop();
+  lifecycleJob?.stop();
+  tutupSemuaAliranSse();
+  server.closeIdleConnections?.();
+
+  const paksa = setTimeout(() => process.exit(1), 5_000);
   paksa.unref();
+
+  server.close(() => {
+    void db
+      .$disconnect()
+      .catch(() => {})
+      .finally(() => process.exit(kodeKeluar));
+  });
+  server.closeAllConnections?.();
 }
 
-process.on('SIGTERM', () => berhenti('SIGTERM'));
-process.on('SIGINT', () => berhenti('SIGINT'));
+process.on('SIGTERM', () => berhenti('SIGTERM', 0));
+process.on('SIGINT', () => berhenti('SIGINT', 0));
 
-/*
- * Jaring pengaman terakhir agar satu permintaan yang salah tidak mematikan
- * seluruh API.
- *
- * Semua galat seharusnya sudah diteruskan lewat `next(error)` ke errorHandler.
- * Kalau ada yang lolos — misalnya `throw` di dalam blok catch pada handler
- * async, yang tidak ditangkap Express 4 — Node akan menghentikan proses.
- * Selama `npm run dev` memakai `tsx watch`, proses yang mati TIDAK dijalankan
- * ulang otomatis, jadi API tetap mati sampai seseorang menyentuh berkas.
- *
- * Yang dicatat di sini sengaja dibedakan dari galat permintaan biasa, supaya
- * tetap kelihatan di log bahwa ada jalur yang belum benar. Ini jaring
- * pengaman, bukan pengganti perbaikan jalurnya.
- *
- * Catatan jujur: menahan proses tetap hidup setelah `uncaughtException`
- * berisiko karena keadaan internal bisa sudah tidak utuh. Untuk fase iterasi
- * seperti sekarang, API yang tetap melayani lebih berguna daripada API yang
- * mati total. Saat masuk tahap produksi, keputusan ini perlu ditinjau ulang.
- */
 process.on('unhandledRejection', (alasan: unknown) => {
   logger.error(
     { alasan },
@@ -87,7 +88,9 @@ process.on('unhandledRejection', (alasan: unknown) => {
 process.on('uncaughtException', (galat: Error) => {
   logger.error(
     { galat },
-    'Galat tidak tertangkap. Proses dilanjutkan agar API tetap melayani; ' +
-      'periksa jejak di atas karena keadaan proses mungkin tidak utuh.',
+    'Galat tidak tertangkap pada proses API.',
   );
+  if (production) {
+    berhenti('uncaughtException', 1);
+  }
 });

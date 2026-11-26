@@ -12,13 +12,34 @@ import { AppError } from './response.js';
  * mengurangi lewat baris penyesuaian biaya yang punya justifikasi.
  */
 
+const CACHE_TTL_MS = 60_000;
+let cachedDriverDailyRate: { value: number; expiresAt: number } | null = null;
+
 /** Tarif jasa supir per hari yang berlaku untuk semua armada. */
 export async function getDriverDailyRate(): Promise<number> {
-  const pengaturan = await db.tariffSetting.upsert({
+  const sekarang = Date.now();
+  if (cachedDriverDailyRate && sekarang < cachedDriverDailyRate.expiresAt) {
+    return cachedDriverDailyRate.value;
+  }
+
+  let pengaturan = await db.tariffSetting.findUnique({
     where: { id: 'default' },
-    update: {},
-    create: { id: 'default' },
+    select: { driverDailyRate: true },
   });
+
+  if (!pengaturan) {
+    pengaturan = await db.tariffSetting.upsert({
+      where: { id: 'default' },
+      update: {},
+      create: { id: 'default' },
+      select: { driverDailyRate: true },
+    });
+  }
+
+  cachedDriverDailyRate = {
+    value: pengaturan.driverDailyRate,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  };
 
   return pengaturan.driverDailyRate;
 }
@@ -44,6 +65,11 @@ export async function simpanDriverDailyRate(driverDailyRate: number): Promise<nu
     update: { driverDailyRate },
     create: { id: 'default', driverDailyRate },
   });
+
+  cachedDriverDailyRate = {
+    value: pengaturan.driverDailyRate,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  };
 
   return pengaturan.driverDailyRate;
 }

@@ -8,7 +8,7 @@ import { AppError, sendSuccess } from '../lib/response.js';
 import { generateBookingCode } from '../lib/bookingCode.js';
 import { deskripsikanTenggat } from '../lib/documentDeadline.js';
 import { computeBookingBlockers, MAKS_PESANAN_AKTIF_PER_NOMOR, resolveBookingSubStage } from '../lib/bookingStage.js';
-import { segarkanTautanMedia } from '../lib/mediaService.js';
+import { segarkanTautanPrivat } from '../lib/mediaService.js';
 import { normalkanRefund } from '../lib/refund.js';
 import { toClientDocument } from '../services/document.service.js';
 import type { createBookingSchema, customerCancelBookingSchema, updateRefundAccountSchema } from '../validators/bookingSchemas.js';
@@ -54,16 +54,19 @@ async function formatCustomerBooking<
   const document = booking.document
     ? toClientDocument({
         ...booking.document,
-        statementLetterUrl: await segarkanTautanMedia(booking.document.statementLetterUrl),
-        ktpUrl: await segarkanTautanMedia(booking.document.ktpUrl),
-        simUrl: await segarkanTautanMedia(booking.document.simUrl),
+        statementLetterUrl: segarkanTautanPrivat(
+          booking.document.statementLetterUrl,
+          'STATEMENT_LETTER',
+        ),
+        ktpUrl: segarkanTautanPrivat(booking.document.ktpUrl, 'KTP'),
+        simUrl: segarkanTautanPrivat(booking.document.simUrl, 'SIM'),
       })
     : (booking.document ?? null);
 
   const payment = booking.payment
     ? {
         ...booking.payment,
-        proofImageUrl: await segarkanTautanMedia(booking.payment.proofImageUrl),
+        proofImageUrl: segarkanTautanPrivat(booking.payment.proofImageUrl, 'PAYMENT_PROOF'),
       }
     : (booking.payment ?? null);
 
@@ -234,9 +237,22 @@ export const bookingController = {
       const actor = req.user!;
       const isStaffOrAdmin = actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
 
+      const rawLimit = Number(req.query.limit);
+      const take =
+        Number.isFinite(rawLimit) && rawLimit >= 1
+          ? Math.min(Math.trunc(rawLimit), 200)
+          : 100;
+      const rawPage = Number(req.query.page);
+      const skip =
+        Number.isFinite(rawPage) && rawPage > 1
+          ? (Math.trunc(rawPage) - 1) * take
+          : undefined;
+
       const bookings = await bookingModel.listForActor({
         customerId: actor.userId,
         isStaffOrAdmin,
+        skip,
+        take,
       });
 
       const formatted = await Promise.all(bookings.map((b) => formatCustomerBooking(b)));

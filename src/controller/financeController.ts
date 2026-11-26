@@ -1,7 +1,32 @@
 import type { Request, Response } from 'express';
+import { Prisma } from '../generated/prisma/client.js';
 import { db } from '../db.js';
 import { logger } from '../logger.js';
 import { sendError } from '../lib/response.js';
+
+type BookingAggregateRow = {
+  vehicleId: string;
+  rentalType: 'WITH_DRIVER' | 'WITHOUT_DRIVER';
+  totalBookings: bigint | number | string;
+  completedBookings: bigint | number | string | null;
+  activeBookings: bigint | number | string | null;
+  paidCount: bigint | number | string | null;
+  rentalRevenue: number | string | null;
+  refundWithFeeCount: bigint | number | string | null;
+  cancellationFeeRevenue: number | string | null;
+  refundFullCount: bigint | number | string | null;
+  pendingRefundCount: bigint | number | string | null;
+  unpaidCount: bigint | number | string | null;
+};
+
+type TrendAggregateRow = {
+  tahun: bigint | number | string;
+  bulan: bigint | number | string;
+  indeksMinggu: bigint | number | string;
+  isPaid: bigint | number | string;
+  totalNominal: number | string | null;
+  jumlah: bigint | number | string;
+};
 
 /* Rentang bulan yang boleh dipilih untuk grafik omzet. Dibatasi daftar putih,
    bukan bilangan bebas: grafik dengan 37 bulan tidak berguna dan hanya
@@ -65,29 +90,144 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       dateFilter = { gte: startOfLastMonth, lte: endOfLastMonth };
     }
 
-    const bookingWhere = dateFilter ? { createdAt: dateFilter } : {};
+    const whereClause =
+      dateFilter?.gte && dateFilter?.lte
+        ? Prisma.sql`WHERE b.createdAt >= ${dateFilter.gte} AND b.createdAt <= ${dateFilter.lte}`
+        : dateFilter?.gte
+          ? Prisma.sql`WHERE b.createdAt >= ${dateFilter.gte}`
+          : Prisma.empty;
 
-    // 1. Ambil semua booking yang relevan dengan unit armada beserta status pembayaran & refund
-    const bookings = await db.booking.findMany({
-      where: bookingWhere,
-      include: {
-        vehicle: true,
-        payment: true,
-        refund: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const batasBawahGrafik = new Date(now.getFullYear() - (TAHUN_YOY - 1), 0, 1);
+    const offsetMenit = Math.trunc(-now.getTimezoneOffset());
+    const offsetSql = Prisma.raw(String(offsetMenit));
 
-    // 2. Ambil semua armada untuk tabel kontribusi armada lengkap
-    const allVehicles = await db.vehicle.findMany({
-      where: { operationalStatus: { not: 'UNAVAILABLE' } },
-      orderBy: { name: 'asc' },
-    });
+    // Agregasi langsung di MariaDB agar RAM server konstan O(armada + 48 bulan)
+    // tanpa menarik seluruh riwayat booking sepanjang masa ke heap Node.js.
+    const [bookingAggs, allVehicles, trendAggs] = await Promise.all([
+      db.$queryRaw<BookingAggregateRow[]>`
+        SELECT
+          b.vehicleId AS vehicleId,
+          b.rentalType AS rentalType,
+          COUNT(*) AS totalBookings,
+          SUM(CASE WHEN b.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedBookings,
+          SUM(CASE WHEN b.status IN ('CONFIRMED', 'IN_PROGRESS') THEN 1 ELSE 0 END) AS activeBookings,
+          SUM(CASE WHEN p.status = 'PAID' THEN 1 ELSE 0 END) AS paidCount,
+          SUM(
+            CASE
+              WHEN p.status = 'PAID'
+              THEN COALESCE(b.finalAmount, p.totalAmount, b.quotedAmount, 0)
+              ELSE 0
+            END
+          ) AS rentalRevenue,
+          SUM(
+            CASE
+              WHEN (p.status IS NULL OR p.status <> 'PAID')
+                AND r.status = 'SELESAI'
+                AND COALESCE(r.potongan, 0) > 0
+              THEN 1
+              ELSE 0
+            END
+          ) AS refundWithFeeCount,
+          SUM(
+            CASE
+              WHEN (p.status IS NULL OR p.status <> 'PAID')
+                AND r.status = 'SELESAI'
+                AND COALESCE(r.potongan, 0) > 0
+              THEN COALESCE(r.potongan, 0)
+              ELSE 0
+            END
+          ) AS cancellationFeeRevenue,
+          SUM(
+            CASE
+              WHEN (p.status IS NULL OR p.status <> 'PAID')
+                AND r.status = 'SELESAI'
+                AND COALESCE(r.potongan, 0) <= 0
+              THEN 1
+              ELSE 0
+            END
+          ) AS refundFullCount,
+          SUM(
+            CASE
+              WHEN (p.status IS NULL OR p.status <> 'PAID')
+                AND r.status = 'MENUNGGU'
+              THEN 1
+              ELSE 0
+            END
+          ) AS pendingRefundCount,
+          SUM(
+            CASE
+              WHEN (p.status IS NULL OR p.status <> 'PAID')
+                AND (r.status IS NULL OR r.status NOT IN ('SELESAI', 'MENUNGGU'))
+              THEN 1
+              ELSE 0
+            END
+          ) AS unpaidCount
+        FROM bookings b
+        LEFT JOIN payments p ON p.bookingId = b.id
+        LEFT JOIN booking_refunds r ON r.bookingId = b.id
+        ${whereClause}
+        GROUP BY b.vehicleId, b.rentalType
+      `,
+      db.vehicle.findMany({
+        where: { operationalStatus: { not: 'UNAVAILABLE' } },
+        select: {
+          id: true,
+          externalId: true,
+          name: true,
+          licensePlate: true,
+          category: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+      db.$queryRaw<TrendAggregateRow[]>`
+        SELECT
+          YEAR(t.tglLokal) AS tahun,
+          MONTH(t.tglLokal) AS bulan,
+          LEAST(FLOOR((DAYOFMONTH(t.tglLokal) - 1) / 7), 4) AS indeksMinggu,
+          t.isPaid AS isPaid,
+          SUM(t.nominal) AS totalNominal,
+          COUNT(*) AS jumlah
+        FROM (
+          SELECT
+            CASE WHEN p.status = 'PAID' THEN 1 ELSE 0 END AS isPaid,
+            CASE
+              WHEN p.status = 'PAID'
+              THEN COALESCE(b.finalAmount, p.totalAmount, b.quotedAmount, 0)
+              ELSE COALESCE(r.potongan, 0)
+            END AS nominal,
+            TIMESTAMPADD(
+              MINUTE,
+              ${offsetSql},
+              CASE
+                WHEN p.status = 'PAID' THEN COALESCE(p.verifiedAt, b.createdAt)
+                ELSE COALESCE(r.diselesaikanPada, p.verifiedAt, b.createdAt)
+              END
+            ) AS tglLokal
+          FROM bookings b
+          LEFT JOIN payments p ON p.bookingId = b.id
+          LEFT JOIN booking_refunds r ON r.bookingId = b.id
+          WHERE
+            (p.status = 'PAID' AND COALESCE(p.verifiedAt, b.createdAt) >= ${batasBawahGrafik})
+            OR (
+              (p.status IS NULL OR p.status <> 'PAID')
+              AND r.status = 'SELESAI'
+              AND COALESCE(r.potongan, 0) > 0
+              AND COALESCE(r.diselesaikanPada, p.verifiedAt, b.createdAt) >= ${batasBawahGrafik}
+            )
+        ) t
+        GROUP BY
+          YEAR(t.tglLokal),
+          MONTH(t.tglLokal),
+          LEAST(FLOOR((DAYOFMONTH(t.tglLokal) - 1) / 7), 4),
+          t.isPaid
+      `,
+    ]);
 
     // Agregasi metrik
     let totalRevenue = 0;
     let rentalRevenue = 0;
     let cancellationFeeRevenue = 0;
+    let totalAllBookings = 0;
     let paidCount = 0;
     let refundWithFeeCount = 0;
     let refundFullCount = 0;
@@ -140,77 +280,48 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       });
     }
 
-    // Kalkulasi per booking
-    for (const b of bookings) {
-      const isPaid = b.payment?.status === 'PAID';
-      const refundFee =
-        !isPaid && b.refund?.status === 'SELESAI' ? Number(b.refund.potongan ?? 0) : 0;
+    // Akumulasi hasil agregasi SQL per unit & model sewa
+    for (const row of bookingAggs) {
+      const rowTotal = Number(row.totalBookings ?? 0);
+      const rowCompleted = Number(row.completedBookings ?? 0);
+      const rowActive = Number(row.activeBookings ?? 0);
+      const rowPaidCount = Number(row.paidCount ?? 0);
+      const rowRentalRevenue = Number(row.rentalRevenue ?? 0);
+      const rowRefundFeeCount = Number(row.refundWithFeeCount ?? 0);
+      const rowCancellationFeeRevenue = Number(row.cancellationFeeRevenue ?? 0);
+      const rowRefundFullCount = Number(row.refundFullCount ?? 0);
+      const rowPendingRefundCount = Number(row.pendingRefundCount ?? 0);
+      const rowUnpaidCount = Number(row.unpaidCount ?? 0);
 
-      if (isPaid) {
-        // Omzet kas masuk riil menggunakan finalAmount (atau payment.totalAmount / quotedAmount)
-        const amount = Number(b.finalAmount ?? b.payment?.totalAmount ?? b.quotedAmount ?? 0);
-        totalRevenue += amount;
-        rentalRevenue += amount;
-        paidCount += 1;
+      totalAllBookings += rowTotal;
+      rentalRevenue += rowRentalRevenue;
+      cancellationFeeRevenue += rowCancellationFeeRevenue;
+      totalRevenue += rowRentalRevenue + rowCancellationFeeRevenue;
+      paidCount += rowPaidCount;
+      refundWithFeeCount += rowRefundFeeCount;
+      refundFullCount += rowRefundFullCount;
+      pendingRefundCount += rowPendingRefundCount;
+      unpaidCount += rowUnpaidCount;
+      completedBookingsCount += rowCompleted;
+      confirmedOrActiveCount += rowActive;
 
-        if (b.rentalType === 'WITHOUT_DRIVER') {
-          tanpaSupirOmzet += amount;
-          tanpaSupirJumlah += 1;
-        } else {
-          denganSupirOmzet += amount;
-          denganSupirJumlah += 1;
-        }
-
-        const stat = vehicleStatsMap.get(b.vehicleId);
-        if (stat) {
-          stat.totalRevenue += amount;
-        }
-      } else if (refundFee > 0) {
-        // Pendapatan dari biaya potongan pembatalan atas refund yang telah diselesaikan
-        totalRevenue += refundFee;
-        cancellationFeeRevenue += refundFee;
-        refundWithFeeCount += 1;
-
-        if (b.rentalType === 'WITHOUT_DRIVER') {
-          tanpaSupirOmzet += refundFee;
-          tanpaSupirFeeJumlah += 1;
-          tanpaSupirFeeOmzet += refundFee;
-        } else {
-          denganSupirOmzet += refundFee;
-          denganSupirFeeJumlah += 1;
-          denganSupirFeeOmzet += refundFee;
-        }
-
-        const stat = vehicleStatsMap.get(b.vehicleId);
-        if (stat) {
-          stat.totalRevenue += refundFee;
-        }
-      } else if (b.refund?.status === 'SELESAI') {
-        refundFullCount += 1;
-      } else if (b.refund?.status === 'MENUNGGU') {
-        pendingRefundCount += 1;
+      if (row.rentalType === 'WITHOUT_DRIVER') {
+        tanpaSupirOmzet += rowRentalRevenue + rowCancellationFeeRevenue;
+        tanpaSupirJumlah += rowPaidCount;
+        tanpaSupirFeeJumlah += rowRefundFeeCount;
+        tanpaSupirFeeOmzet += rowCancellationFeeRevenue;
       } else {
-        unpaidCount += 1;
+        denganSupirOmzet += rowRentalRevenue + rowCancellationFeeRevenue;
+        denganSupirJumlah += rowPaidCount;
+        denganSupirFeeJumlah += rowRefundFeeCount;
+        denganSupirFeeOmzet += rowCancellationFeeRevenue;
       }
-      /* Piutang berjalan tidak lagi dihitung. Kartunya sudah dihapus dari laporan
-         keuangan sesuai keputusan pemilik proyek, jadi angkanya tidak dipakai
-         siapa pun. Menghitung nilai yang tidak dipakai hanya menambah beban. */
 
-      // Hitung metrik operasional armada
-      if (b.status === 'COMPLETED') {
-        completedBookingsCount += 1;
-
-        const stat = vehicleStatsMap.get(b.vehicleId);
-        if (stat) {
-          stat.completedBookings += 1;
-        }
-      } else if (b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS') {
-        confirmedOrActiveCount += 1;
-
-        const stat = vehicleStatsMap.get(b.vehicleId);
-        if (stat) {
-          stat.activeBookings += 1;
-        }
+      const stat = vehicleStatsMap.get(row.vehicleId);
+      if (stat) {
+        stat.totalRevenue += rowRentalRevenue + rowCancellationFeeRevenue;
+        stat.completedBookings += rowCompleted;
+        stat.activeBookings += rowActive;
       }
     }
 
@@ -221,58 +332,11 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
 
     // Data untuk grafik
     //
-    // Query terpisah dari `bookings` di atas. `bookings` sudah disaring oleh
+    // Query terpisah dari `bookingAggs` di atas. `bookingAggs` sudah disaring oleh
     // parameter `range` yang dipakai tabel dan kartu, sedangkan grafik butuh
     // rentang tetap 12 bulan dan 4 tahun.
-    //
-    // Yang dihitung hanya transaksi yang benar-benar lunas (PAID). Tanggal yang
-    // dipakai adalah waktu verifikasi pembayaran, karena di situlah uang masuk.
-    // Kalau belum ada waktu verifikasi, dipakai waktu pesanan dibuat.
     const BULAN_GRAFIK = jumlahBulan;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-    const transaksiLunas = await db.booking.findMany({
-      where: {
-        OR: [
-          { payment: { is: { status: 'PAID' } } },
-          {
-            refund: {
-              is: {
-                status: 'SELESAI',
-                potongan: { gt: 0 },
-              },
-            },
-          },
-        ],
-      },
-      select: {
-        quotedAmount: true,
-        finalAmount: true,
-        createdAt: true,
-        payment: { select: { status: true, totalAmount: true, verifiedAt: true } },
-        refund: { select: { status: true, potongan: true, diselesaikanPada: true } },
-      },
-    });
-
-    const tanggalMasuk = (b: (typeof transaksiLunas)[number]): Date => {
-      if (b.payment?.status === 'PAID') {
-        return b.payment.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
-      }
-      if (b.refund?.diselesaikanPada) {
-        return new Date(b.refund.diselesaikanPada);
-      }
-      return b.payment?.verifiedAt ? new Date(b.payment.verifiedAt) : new Date(b.createdAt);
-    };
-
-    const nominal = (b: (typeof transaksiLunas)[number]): number => {
-      if (b.payment?.status === 'PAID') {
-        return Number(b.finalAmount ?? b.payment.totalAmount ?? b.quotedAmount ?? 0);
-      }
-      if (b.refund?.status === 'SELESAI') {
-        return Number(b.refund.potongan ?? 0);
-      }
-      return 0;
-    };
 
     // Grafik 1: 12 bulan terakhir per minggu
     type BulanGrafik = {
@@ -322,32 +386,33 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
       tahunMap.set(th, { tahun: th, revenue: 0, bookings: 0, refundFeeCount: 0 });
     }
 
-    for (const b of transaksiLunas) {
-      const d = tanggalMasuk(b);
-      const nilai = nominal(b);
-      const isPaid = b.payment?.status === 'PAID';
+    for (const row of trendAggs) {
+      const tahunAngka = Number(row.tahun);
+      const bulanAngka = Number(row.bulan);
+      const indeksMinggu = Math.min(Math.max(Number(row.indeksMinggu), 0), 4);
+      const isPaid = Number(row.isPaid) === 1;
+      const nilai = Number(row.totalNominal ?? 0);
+      const jumlah = Number(row.jumlah ?? 0);
 
-      const keyBulan = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const keyBulan = `${tahunAngka}-${String(bulanAngka).padStart(2, '0')}`;
       const bulan = bulanMap.get(keyBulan);
       if (bulan) {
         bulan.revenue += nilai;
         if (isPaid) {
-          bulan.bookings += 1;
+          bulan.bookings += jumlah;
         } else {
-          bulan.refundFeeCount += 1;
+          bulan.refundFeeCount += jumlah;
         }
-        // Minggu ke-1 = tanggal 1-7, ke-2 = 8-14, dan seterusnya.
-        const indeksMinggu = Math.min(Math.floor((d.getDate() - 1) / 7), 4);
         bulan.weekly[indeksMinggu] += nilai;
       }
 
-      const tahun = tahunMap.get(d.getFullYear());
+      const tahun = tahunMap.get(tahunAngka);
       if (tahun) {
         tahun.revenue += nilai;
         if (isPaid) {
-          tahun.bookings += 1;
+          tahun.bookings += jumlah;
         } else {
-          tahun.refundFeeCount += 1;
+          tahun.refundFeeCount += jumlah;
         }
       }
     }
@@ -385,7 +450,7 @@ export async function getFinanceSummary(req: Request, res: Response): Promise<vo
           cancellationFeeRevenue,
           completedBookingsCount,
           confirmedOrActiveCount,
-          totalAllBookings: bookings.length,
+          totalAllBookings,
           bookingBreakdown: {
             paidCount,
             refundWithFeeCount,

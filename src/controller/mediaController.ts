@@ -85,8 +85,9 @@ export const mediaController = {
     try {
       const { id } = req.params;
       const media = await ambilMedia(id);
+      const publik = mediaPublik(media.kategori);
 
-      if (!mediaPublik(media.kategori)) {
+      if (!publik) {
         const lewatTandaTangan = tautanSah({
           mediaId: media.id,
           exp: req.query.exp ? Number(req.query.exp) : undefined,
@@ -106,18 +107,25 @@ export const mediaController = {
             );
           }
         }
+      } else {
+        const etag = `"${media.sha256}"`;
+        res.setHeader('ETag', etag);
+        res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        if (req.headers['if-none-match'] === etag) {
+          res.status(304).end();
+          return;
+        }
       }
 
       const aliran = await mediaStorage.aliran(media.objectKey);
 
       res.setHeader('Content-Type', media.mimeType);
       res.setHeader('Content-Length', media.byteSize);
-      /* Berkas diberi nama dari hash, jadi isinya tidak akan berubah. */
-      res.setHeader(
-        'Cache-Control',
-        mediaPublik(media.kategori) ? 'public, max-age=86400' : 'private, no-store',
-      );
-      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (!publik) {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+      }
 
       aliran.on('error', () => {
         if (!res.headersSent) {
@@ -127,6 +135,10 @@ export const mediaController = {
         } else {
           res.end();
         }
+      });
+
+      res.on('close', () => {
+        if (!aliran.destroyed) aliran.destroy();
       });
 
       aliran.pipe(res);

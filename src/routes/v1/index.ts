@@ -15,6 +15,7 @@ import {
   adminIdentityAuditRouter,
 } from './adminCustomers.js';
 import { adminTicketRouter } from './adminTickets.js';
+import { adminNavCountsRouter } from './adminNavCounts.js';
 import { adminFinanceRouter } from './financeRoutes.js';
 import { adminAiRouter } from './adminAiRoutes.js';
 import { faqRouter } from './faqs.js';
@@ -85,6 +86,9 @@ v1Router.use('/admin/drivers', adminDriverRouter);
 
 // Tiket bantuan pelanggan: /api/v1/admin/tickets/*
 v1Router.use('/admin/tickets', adminTicketRouter);
+
+// Jumlah lencana navigasi sidebar dashboard: /api/v1/admin/nav-counts
+v1Router.use('/admin/nav-counts', adminNavCountsRouter);
 
 // Katalog armada & ketersediaannya: /api/v1/vehicles/*
 v1Router.use('/vehicles', vehicleRouter);

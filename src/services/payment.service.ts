@@ -18,7 +18,7 @@ import { BOOKING_BLOCKING_STATUSES, isFinalBookingStatus } from '../lib/bookingS
 import { hitungNominalRefund, jenisRefund } from '../lib/refund.js';
 import { ticketModel } from '../model/ticketModel.js';
 import { generateDynamicQris } from '../utils/qris.js';
-import { simpanMediaDariBase64, segarkanTautanMedia, tautanStabil } from '../lib/mediaService.js';
+import { simpanMediaDariBase64, segarkanTautanPrivat, tautanStabil } from '../lib/mediaService.js';
 
 /** Identitas pemanggil yang sudah lolos `requireAuth`. */
 export type PaymentActor = { userId: string; role: UserRole };
@@ -81,11 +81,27 @@ export interface AdminVerifyParams {
   cancelBooking?: boolean;
 }
 
+const paymentVehicleSummary = {
+  select: {
+    id: true,
+    externalId: true,
+    name: true,
+    licensePlate: true,
+    brand: true,
+    model: true,
+    category: true,
+    seatingCapacity: true,
+    transmission: true,
+    pricePerDay: true,
+    operationalStatus: true,
+  },
+} as const;
+
 export type PaymentWithRelations = Prisma.PaymentGetPayload<{
   include: {
     booking: {
       include: {
-        vehicle: true;
+        vehicle: typeof paymentVehicleSummary;
         customer: {
           select: { id: true; fullName: true; phoneNumber: true };
         };
@@ -93,8 +109,6 @@ export type PaymentWithRelations = Prisma.PaymentGetPayload<{
     };
   };
 }>;
-
-let paymentAllocationLock: Promise<unknown> = Promise.resolve();
 
 /**
  * Membuat ulang tautan bukti transfer sebelum data dikirim ke pemanggil.
@@ -108,14 +122,24 @@ async function denganBuktiSegar<T extends { proofImageUrl?: string | null }>(
   payment: T,
 ): Promise<T> {
   if (!payment.proofImageUrl) return payment;
-  return { ...payment, proofImageUrl: await segarkanTautanMedia(payment.proofImageUrl) };
+  return {
+    ...payment,
+    proofImageUrl: segarkanTautanPrivat(payment.proofImageUrl, 'PAYMENT_PROOF'),
+  };
 }
 
 /** Versi daftar dari `denganBuktiSegar`. */
 async function daftarDenganBuktiSegar<T extends { proofImageUrl?: string | null }>(
   payments: T[],
 ): Promise<T[]> {
-  return Promise.all(payments.map((item) => denganBuktiSegar(item)));
+  return payments.map((item) =>
+    item.proofImageUrl
+      ? {
+          ...item,
+          proofImageUrl: segarkanTautanPrivat(item.proofImageUrl, 'PAYMENT_PROOF'),
+        }
+      : item,
+  );
 }
 
 /**
@@ -161,23 +185,14 @@ async function selesaikanBuktiTransfer(
   );
 }
 
-function withPaymentLock<T>(fn: () => Promise<T>): Promise<T> {
-  const next = paymentAllocationLock.then(fn, fn);
-  paymentAllocationLock = next.then(
-    () => {},
-    () => {},
-  );
-  return next;
-}
-
 export const paymentService = {
   /**
-   * Pembuatan tagihan pembayaran baru dengan alokasi kode unik (1-100) bebas bentrok
-   * dan injeksi QRIS dinamis mandiri (EMVCo Tag 54).
+   * Pembuatan tagihan pembayaran baru dan injeksi QRIS dinamis mandiri (EMVCo Tag 54).
+   * Idempotensi 1:1 per pesanan dijaga langsung oleh constraint `@unique` `bookingId`.
    */
   async createPayment(params: CreatePaymentParams, actor: PaymentActor) {
-    return withPaymentLock(() =>
-      db.$transaction(async (tx) => {
+    try {
+      return await db.$transaction(async (tx) => {
         // 1. Cari booking berdasarkan ID atau bookingCode
         const booking = await tx.booking.findFirst({
           where: {
@@ -185,7 +200,7 @@ export const paymentService = {
           },
           include: {
             payment: true,
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -315,7 +330,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 customer: {
                   select: { id: true, fullName: true, phoneNumber: true },
                 },
@@ -353,8 +368,27 @@ export const paymentService = {
         });
 
         return denganBuktiSegar(payment);
-      }),
-    );
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const existing = await db.payment.findFirst({
+          where: {
+            OR: [{ bookingId: params.bookingId }, { booking: { bookingCode: params.bookingId } }],
+          },
+          select: { id: true, status: true },
+        });
+        if (existing?.status === PaymentStatus.PAID) {
+          throw new AppError('PAYMENT_ALREADY_SETTLED', 'Pesanan ini sudah lunas.', 400);
+        }
+        throw new AppError(
+          'PAYMENT_ALREADY_EXISTS',
+          'Tagihan pembayaran untuk pesanan ini sudah ada.',
+          409,
+          existing ? { paymentId: existing.id, status: existing.status } : undefined,
+        );
+      }
+      throw error;
+    }
   },
 
   /**
@@ -368,7 +402,7 @@ export const paymentService = {
       include: {
         booking: {
           include: {
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -399,7 +433,7 @@ export const paymentService = {
       include: {
         booking: {
           include: {
-            vehicle: true,
+            vehicle: paymentVehicleSummary,
             customer: {
               select: { id: true, fullName: true, phoneNumber: true },
             },
@@ -501,7 +535,7 @@ export const paymentService = {
         include: {
           booking: {
             include: {
-              vehicle: true,
+              vehicle: paymentVehicleSummary,
               customer: {
                 select: { id: true, fullName: true, phoneNumber: true },
               },
@@ -711,7 +745,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 driver: {
                   select: { fullName: true, phoneNumber: true },
                 },
@@ -763,7 +797,7 @@ export const paymentService = {
           include: {
             booking: {
               include: {
-                vehicle: true,
+                vehicle: paymentVehicleSummary,
                 customer: {
                   select: { id: true, fullName: true, phoneNumber: true },
                 },

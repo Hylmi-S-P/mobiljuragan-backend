@@ -13,10 +13,22 @@ import { ticketModel } from '../model/ticketModel.js';
 
 const UMUR_MAKSIMAL_MS = 10 * 60 * 1000;
 const INTERVAL_DETAK_MS = 25_000;
+const MAKS_SSE_PER_PENGGUNA = 5;
+
+const activeSseClosers = new Set<() => void>();
+const activeSseByUser = new Map<string, Set<() => void>>();
+
+/** Menutup seluruh koneksi SSE aktif dengan rapi saat proses server dimatikan. */
+export function tutupSemuaAliranSse(): void {
+  for (const tutup of Array.from(activeSseClosers)) {
+    tutup();
+  }
+}
 
 type PeristiwaSse = { jenis: 'siap'; ticketId: string } | TicketEvent;
 
 function tulis(res: Response, peristiwa: PeristiwaSse): void {
+  if (res.destroyed || res.writableEnded) return;
   res.write(`event: ${peristiwa.jenis}\n`);
   res.write(`data: ${JSON.stringify(peristiwa)}\n\n`);
 }
@@ -28,7 +40,7 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
   const { id } = req.params;
   const actor = req.user!;
 
-  const tiket = await ticketModel.findById(id);
+  const tiket = await ticketModel.findAuthMetaById(id);
   if (!tiket) {
     res.status(404).json({
       status: 'error',
@@ -57,6 +69,12 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
     return;
   }
 
+  let userSet = activeSseByUser.get(actor.userId);
+  if (userSet && userSet.size >= MAKS_SSE_PER_PENGGUNA) {
+    const palingLama = userSet.values().next().value;
+    if (palingLama) palingLama();
+  }
+
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -73,14 +91,31 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
   const berhenti = () => {
     if (selesai) return;
     selesai = true;
+    activeSseClosers.delete(berhenti);
+    const setPengguna = activeSseByUser.get(actor.userId);
+    if (setPengguna) {
+      setPengguna.delete(berhenti);
+      if (setPengguna.size === 0) {
+        activeSseByUser.delete(actor.userId);
+      }
+    }
     batalLangganan();
     clearInterval(detak);
     clearTimeout(batasUmur);
-    res.end();
+    if (!res.writableEnded) {
+      res.end();
+    }
   };
 
+  activeSseClosers.add(berhenti);
+  if (!userSet) {
+    userSet = new Set();
+    activeSseByUser.set(actor.userId, userSet);
+  }
+  userSet.add(berhenti);
+
   batalLangganan = subscribeTicketEvents(id, (peristiwa: TicketEvent) => {
-    if (selesai) return;
+    if (selesai || res.destroyed || res.writableEnded) return;
     tulis(res, peristiwa);
 
     if (
@@ -92,11 +127,15 @@ export async function streamTicketEvents(req: Request, res: Response): Promise<v
   });
 
   const detak = setInterval(() => {
-    if (selesai) return;
+    if (selesai || res.destroyed || res.writableEnded) return;
     res.write(': detak\n\n');
   }, INTERVAL_DETAK_MS);
+  detak.unref?.();
 
   const batasUmur = setTimeout(berhenti, UMUR_MAKSIMAL_MS);
+  batasUmur.unref?.();
 
   req.on('close', berhenti);
+  res.on('close', berhenti);
+  res.on('error', berhenti);
 }

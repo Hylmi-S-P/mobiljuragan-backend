@@ -188,6 +188,7 @@ model User {
   /// Berkas media yang diunggah pengguna ini.
   mediaObjects MediaObject[]
 
+  @@index([role, createdAt])
   @@map("users")
 }
 
@@ -367,9 +368,15 @@ model Booking {
   tickets  SupportTicket[]
 
   @@index([customerId])
+  @@index([customerId, createdAt])
   @@index([vehicleId])
+  @@index([vehicleId, status, startDateTime, endDateTime])
   @@index([driverId])
+  @@index([driverId, status, startDateTime, endDateTime])
   @@index([status])
+  @@index([status, createdAt])
+  @@index([status, endDateTime])
+  @@index([createdAt])
   @@index([startDateTime, endDateTime])
   @@index([documentDeadlineState, documentDeadlineAt])
   @@index([status, adminDeadlineAt])
@@ -556,11 +563,17 @@ model SupportTicket {
   updatedAt DateTime        @updatedAt
 
   @@index([customerId])
+  @@index([customerId, status, updatedAt])
+  @@index([customerId, handledBy, status, updatedAt])
   @@index([status])
+  @@index([status, updatedAt])
   @@index([handledBy])
   @@index([lastActivityAt])
   @@index([assignedAdminId])
+  @@index([assignedAdminId, updatedAt])
   @@index([bookingId])
+  @@index([bookingId, status, lastActivityAt])
+  @@index([updatedAt])
   @@map("support_tickets")
 }
 
@@ -760,6 +773,10 @@ model Payment {
 
   @@index([bookingId])
   @@index([status])
+  @@index([status, createdAt])
+  @@index([status, expiresAt])
+  @@index([status, verifiedAt])
+  @@index([createdAt])
   @@index([totalAmount])
   @@index([method])
   @@map("payments")
@@ -813,6 +830,8 @@ model BookingRefund {
   diselesaikanPada DateTime?
 
   @@index([status])
+  @@index([status, dicatatPada])
+  @@index([status, diselesaikanPada])
   @@map("booking_refunds")
 }
 
@@ -964,6 +983,7 @@ model KnowledgeChunk {
   @@unique([documentId, chunkIndex])
   @@unique([faqId, chunkIndex])
   @@index([sourceType, isActive])
+  @@index([isActive])
   @@index([documentId])
   @@index([faqId])
   @@index([contentHash])

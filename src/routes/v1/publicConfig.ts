@@ -16,6 +16,7 @@ publicConfigRouter.get('/', async (_req, res, next) => {
   try {
     const driverDailyRate = await getDriverDailyRate();
 
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     sendSuccess(res, {
       driverDailyRate,
       serviceHours: {

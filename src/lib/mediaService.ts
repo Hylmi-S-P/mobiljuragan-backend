@@ -32,6 +32,10 @@ export function mediaPublik(kategori: string): boolean {
 
 /** Masa berlaku tautan bertanda tangan, dalam detik. */
 const TTL_DETIK = Number(process.env.MEDIA_URL_TTL_SECONDS ?? 900);
+/** Kuantisasi waktu kedaluwarsa ke kelipatan 5 menit agar URL stabil untuk cache klien. */
+const BUCKET_KEDALUWARSA_DETIK = 300;
+const MAKS_CACHE_KATEGORI = 2000;
+const cacheKategoriMedia = new Map<string, string>();
 
 function ambilKunciTandaTangan(): string {
   const kunci = process.env.MEDIA_SIGNING_SECRET;
@@ -68,7 +72,9 @@ export function tautanMedia(mediaId: string, kategori: string): string {
     return `/api/v1/media/${mediaId}`;
   }
 
-  const kedaluwarsa = Math.floor(Date.now() / 1000) + TTL_DETIK;
+  const sekarang = Math.floor(Date.now() / 1000);
+  const kedaluwarsa =
+    Math.ceil(sekarang / BUCKET_KEDALUWARSA_DETIK) * BUCKET_KEDALUWARSA_DETIK + TTL_DETIK;
   const sig = tandaTangan(mediaId, kedaluwarsa);
   return `/api/v1/media/${mediaId}?exp=${kedaluwarsa}&sig=${sig}`;
 }
@@ -90,6 +96,23 @@ export function tautanStabil(mediaId: string): string {
 const POLA_TAUTAN_MEDIA = /^\/api\/v1\/media\/([0-9a-fA-F-]{36})(?:\?.*)?$/;
 
 /**
+ * Menyegarkan tautan bertanda tangan secara sinkron untuk field yang kategorinya
+ * sudah pasti diketahui (KTP, SIM, surat pernyataan, bukti bayar, SIM supir),
+ * tanpa memicu kueri `mediaObject.findUnique` per tautan.
+ */
+export function segarkanTautanPrivat(
+  nilai: string | null | undefined,
+  kategori: KategoriMedia,
+): string | null {
+  if (!nilai) return null;
+
+  const cocok = POLA_TAUTAN_MEDIA.exec(nilai.trim());
+  if (!cocok) return nilai;
+
+  return tautanMedia(cocok[1], kategori);
+}
+
+/**
  * Membuat ulang tautan bertanda tangan dari tautan yang tersimpan.
  *
  * Dipakai saat menyusun respons, supaya setiap pembacaan menghasilkan tautan
@@ -105,12 +128,23 @@ export async function segarkanTautanMedia(
   if (!cocok) return nilai;
 
   const mediaId = cocok[1];
+  const cachedKategori = cacheKategoriMedia.get(mediaId);
+  if (cachedKategori) {
+    return tautanMedia(mediaId, cachedKategori);
+  }
+
   const media = await db.mediaObject.findUnique({
     where: { id: mediaId },
     select: { kategori: true },
   });
 
   if (!media) return nilai;
+
+  if (cacheKategoriMedia.size >= MAKS_CACHE_KATEGORI) {
+    const oldestKey = cacheKategoriMedia.keys().next().value;
+    if (oldestKey !== undefined) cacheKategoriMedia.delete(oldestKey);
+  }
+  cacheKategoriMedia.set(mediaId, media.kategori);
 
   return tautanMedia(mediaId, media.kategori);
 }

@@ -6,12 +6,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { runAssistantTurn } from '../lib/ai/chatOrchestrator.js';
 import { indexKnowledgeDocument, syncAllKnowledgeChunks } from '../lib/rag/indexer.js';
+import { invalidateRagCorpusCache } from '../lib/rag/retriever.js';
 import {
   clearAiGatewayHttpLogs,
   fetch9RouterRawLogs,
   generateConversationTraceId,
   get9RouterCliToken,
   getAiGatewayHttpLogs,
+  invalidateAiSettingCache,
   recordGatewayLog,
   resolve9RouterConfig,
   resolve9RouterOrigin,
@@ -219,6 +221,8 @@ export async function updateAiConfig(req: Request, res: Response): Promise<void>
       },
     });
 
+    invalidateAiSettingCache();
+
     res.status(200).json({
       status: 'ok',
       data: sanitizeAiConfigForClient(updated),
@@ -285,6 +289,7 @@ export async function checkAiGatewayHealth(req: Request, res: Response): Promise
         lastHealthCheckedAt: new Date(),
       },
     });
+    invalidateAiSettingCache();
 
     recordGatewayLog({
       event: 'HEALTH_CHECK',
@@ -479,6 +484,7 @@ export async function deleteKnowledgeDocument(req: Request, res: Response): Prom
     }
 
     await db.knowledgeDocument.delete({ where: { id } });
+    invalidateRagCorpusCache();
 
     res.status(200).json({
       status: 'ok',

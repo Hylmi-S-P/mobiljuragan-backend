@@ -43,9 +43,22 @@ export const documentTemplateController = {
    * Unduhan publik untuk pelanggan. Nama berkas mengikuti berkas asli dari
    * admin, supaya pelanggan menerima dokumen dengan nama yang dikenali.
    */
-  async unduhFormulirKosong(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async unduhFormulirKosong(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { template, aliran } = await documentTemplateService.aliranBerkasAktif();
+
+      const etag = `"${template.berkasSha256}"`;
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      /* Versi dokumen ikut dikirim supaya bisa ditelusuri dari sisi klien. */
+      res.setHeader('X-Document-Version', String(template.versi));
+
+      if (req.headers['if-none-match'] === etag) {
+        if (!aliran.destroyed) aliran.destroy();
+        res.status(304).end();
+        return;
+      }
 
       res.setHeader('Content-Type', template.berkasMime);
       res.setHeader('Content-Length', String(template.berkasByte));
@@ -53,10 +66,6 @@ export const documentTemplateController = {
         'Content-Disposition',
         `attachment; filename="${template.berkasNama}"; filename*=UTF-8''${encodeURIComponent(template.berkasNama)}`,
       );
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      /* Versi dokumen ikut dikirim supaya bisa ditelusuri dari sisi klien. */
-      res.setHeader('X-Document-Version', String(template.versi));
 
       salurkanBerkas(aliran, res, next);
     } catch (error) {

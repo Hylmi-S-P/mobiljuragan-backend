@@ -11,6 +11,7 @@ import { sendSuccess } from '../../lib/response.js';
 export const pickupPointRouter: Router = Router();
 
 pickupPointRouter.get('/', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   sendSuccess(res, {
     defaultId: DEFAULT_PICKUP_POINT_ID,
     items: PICKUP_POINTS,

@@ -14,6 +14,7 @@ export const vehicleController = {
   async listCategories(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const categories = await vehicleModel.listCategories();
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       sendSuccess(res, categories);
     } catch (error) {
       next(error);
@@ -41,6 +42,11 @@ export const vehicleController = {
         endDate,
       });
 
+      const bisaCachePublik = operationalStatus !== 'ALL' && !startDate && !endDate;
+      res.setHeader(
+        'Cache-Control',
+        bisaCachePublik ? 'public, max-age=15, stale-while-revalidate=30' : 'no-cache',
+      );
       sendSuccess(res, vehicles);
     } catch (error) {
       next(error);
@@ -61,6 +67,7 @@ export const vehicleController = {
         );
       }
 
+      res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
       sendSuccess(res, vehicle);
     } catch (error) {
       next(error);

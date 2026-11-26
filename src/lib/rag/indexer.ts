@@ -4,6 +4,7 @@ import { KnowledgeSourceType } from '../../generated/prisma/client.js';
 import { recordGatewayLog } from '../ai/gatewayConfig.js';
 import { chunkDocument, chunkFaq, type KnowledgeChunkDraft } from './chunker.js';
 import { embedTexts, isEmbeddingsDisabled, resolveEffectiveEmbeddingTarget } from './embeddings.js';
+import { invalidateRagCorpusCache } from './retriever.js';
 
 export interface IndexSourceResult {
   chunksWritten: number;
@@ -36,6 +37,7 @@ async function syncSourceChunks(input: {
 
   if (drafts.length === 0) {
     await db.knowledgeChunk.deleteMany({ where: whereOwner });
+    invalidateRagCorpusCache();
     return { chunksWritten: 0, embeddedCount: 0, reusedCount: 0 };
   }
 
@@ -144,6 +146,8 @@ async function syncSourceChunks(input: {
     });
   });
 
+  invalidateRagCorpusCache();
+
   return {
     chunksWritten: drafts.length,
     embeddedCount,
@@ -164,6 +168,7 @@ export async function indexKnowledgeDocument(
 
   if (!doc) {
     await db.knowledgeChunk.deleteMany({ where: { documentId } });
+    invalidateRagCorpusCache();
     return { chunksWritten: 0, embeddedCount: 0, reusedCount: 0 };
   }
 
@@ -195,6 +200,7 @@ export async function indexFaq(
 
   if (!faq) {
     await db.knowledgeChunk.deleteMany({ where: { faqId } });
+    invalidateRagCorpusCache();
     return { chunksWritten: 0, embeddedCount: 0, reusedCount: 0 };
   }
 
@@ -278,6 +284,8 @@ export async function syncAllKnowledgeChunks(options?: {
       },
       'Sinkronisasi indeks RAG selesai',
     );
+
+    invalidateRagCorpusCache();
 
     return {
       documentsProcessed: docs.length,

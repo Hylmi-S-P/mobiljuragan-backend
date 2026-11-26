@@ -31,6 +31,7 @@ export const faqController = {
     try {
       const { category, search } = req.query as { category?: string; search?: string };
       const faqs = await faqModel.findActive({ category, search });
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       sendSuccess(res, faqs);
     } catch (error) {
       next(error);

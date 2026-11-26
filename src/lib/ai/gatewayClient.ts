@@ -2,7 +2,6 @@ import { logger } from '../../logger.js';
 import {
   generateConversationTraceId,
   recordGatewayLog,
-  resolveClientNetworkAffinity,
 } from './gatewayConfig.js';
 
 export interface OpenAiToolDefinition {
@@ -207,9 +206,18 @@ export async function callGatewayCompletion(input: {
   toolChoice?: 'auto' | 'none';
   timeoutMs?: number;
   traceId?: string;
+  signal?: AbortSignal;
 }): Promise<GatewayCompletionResult> {
   const t0 = Date.now();
   const controller = new AbortController();
+  const handleParentAbort = () => controller.abort();
+  if (input.signal) {
+    if (input.signal.aborted) {
+      controller.abort();
+    } else {
+      input.signal.addEventListener('abort', handleParentAbort, { once: true });
+    }
+  }
   const timer = setTimeout(() => controller.abort(), input.timeoutMs ?? 25000);
   const traceId = input.traceId ?? generateConversationTraceId();
 
@@ -218,7 +226,6 @@ export async function callGatewayCompletion(input: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       'X-Correlation-Id': traceId,
-      'X-Forwarded-For': resolveClientNetworkAffinity(),
     };
     if (input.apiKey) {
       headers['Authorization'] = `Bearer ${input.apiKey}`;
@@ -315,5 +322,6 @@ export async function callGatewayCompletion(input: {
     };
   } finally {
     clearTimeout(timer);
+    input.signal?.removeEventListener('abort', handleParentAbort);
   }
 }

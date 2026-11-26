@@ -21,20 +21,25 @@ COPY assets ./assets
 RUN DATABASE_URL="mysql://placeholder:placeholder@127.0.0.1:3306/mobiljuragan" npx prisma generate
 RUN npm run build
 
+FROM node:22-bookworm-slim AS prod-deps
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates openssl \
+  && apt-get install -y --no-install-recommends ca-certificates openssl curl \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json /app/prisma.config.ts ./
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/package.json ./
 COPY --from=builder --chown=node:node /app/dist ./dist
-COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/assets ./assets
-COPY --from=builder --chown=node:node /app/src ./src
 
 RUN mkdir -p /var/lib/mobiljuragan/media && chown -R node:node /var/lib/mobiljuragan
 
@@ -43,6 +48,8 @@ USER node
 ENV NODE_ENV=production
 ENV HOST=127.0.0.1
 ENV PORT=4000
+ENV NODE_OPTIONS="--max-old-space-size=256"
+ENV MALLOC_ARENA_MAX=2
 
 EXPOSE 4000
 

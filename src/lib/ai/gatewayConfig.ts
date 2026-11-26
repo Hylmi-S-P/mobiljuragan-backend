@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as crypto from 'node:crypto';
+import { db } from '../../db.js';
 
 export type AiGatewayLogEvent =
   | 'CHAT_COMPLETION'
@@ -120,10 +121,16 @@ export function get9RouterCliToken(): string | null {
   }
 }
 
+let cachedLocal9RouterKey: string | null | undefined = undefined;
+
 /**
  * Membaca API key cadangan dari db.json 9Router lokal bila tersedia (lingkungan dev).
+ * Hasil pembacaan pertama di-cache agar tidak memicu `readFileSync` berulang per request.
  */
 export function readLocal9RouterApiKey(): string | null {
+  if (cachedLocal9RouterKey !== undefined) {
+    return cachedLocal9RouterKey;
+  }
   try {
     const candidates = [
       path.join(os.homedir(), '.9router', 'db.json'),
@@ -141,20 +148,51 @@ export function readLocal9RouterApiKey(): string | null {
         apiKey?: string;
       };
       if (typeof parsed.apiKey === 'string' && parsed.apiKey.trim()) {
-        return parsed.apiKey.trim();
+        cachedLocal9RouterKey = parsed.apiKey.trim();
+        return cachedLocal9RouterKey;
       }
       if (Array.isArray(parsed.apiKeys) && parsed.apiKeys.length > 0) {
         const first = parsed.apiKeys[0];
         const candidate = first?.key || first?.token || first?.value;
         if (typeof candidate === 'string' && candidate.trim()) {
-          return candidate.trim();
+          cachedLocal9RouterKey = candidate.trim();
+          return cachedLocal9RouterKey;
         }
       }
     }
+    cachedLocal9RouterKey = null;
     return null;
   } catch {
+    cachedLocal9RouterKey = null;
     return null;
   }
+}
+
+const AI_SETTING_CACHE_TTL_MS = 60_000;
+type AiSettingRecord = Awaited<ReturnType<typeof db.aiSetting.findUnique>>;
+let cachedAiSetting: { value: AiSettingRecord; expiresAt: number } | null = null;
+
+/** Membaca konfigurasi `aiSetting` dengan cache memori 60 detik. */
+export async function getCachedAiSetting(): Promise<AiSettingRecord> {
+  const sekarang = Date.now();
+  if (cachedAiSetting && sekarang < cachedAiSetting.expiresAt) {
+    return cachedAiSetting.value;
+  }
+
+  const setting = await db.aiSetting
+    .findUnique({ where: { id: 'default' } })
+    .catch(() => null);
+
+  cachedAiSetting = {
+    value: setting,
+    expiresAt: Date.now() + AI_SETTING_CACHE_TTL_MS,
+  };
+  return setting;
+}
+
+/** Menghapus cache `aiSetting` setelah pembaruan dari dashboard admin. */
+export function invalidateAiSettingCache(): void {
+  cachedAiSetting = null;
 }
 
 /**

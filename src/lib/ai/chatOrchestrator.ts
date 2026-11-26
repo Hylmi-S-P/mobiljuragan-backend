@@ -1,9 +1,9 @@
-import { db } from '../../db.js';
 import { ticketModel } from '../../model/ticketModel.js';
 import { NOMOR_WHATSAPP_KANTOR } from '../kontak.js';
 import { retrieveRelevantKnowledge, type RagRetrievalMode } from '../rag/retriever.js';
 import {
   generateConversationTraceId,
+  getCachedAiSetting,
   recordGatewayLog,
   resolve9RouterConfig,
 } from './gatewayConfig.js';
@@ -22,6 +22,7 @@ export interface RunAssistantTurnInput {
   bookingId?: string | null;
   isSandbox?: boolean;
   ragOverride?: boolean;
+  signal?: AbortSignal;
   configOverride?: Partial<{
     gatewayUrl: string;
     apiKey: string;
@@ -60,6 +61,62 @@ export interface RunAssistantTurnResult {
 }
 
 const MAX_AGENTIC_TURNS = 3;
+const MAX_ORCHESTRATOR_BUDGET_MS = 45_000;
+const MAX_CONCURRENT_AI_TURNS = Math.max(
+  1,
+  Number(process.env.AI_MAX_CONCURRENCY ?? 6),
+);
+
+let activeAiTurns = 0;
+const aiTurnWaiters: Array<() => void> = [];
+
+async function acquireAiSlot(deadlineMs: number, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return false;
+  if (activeAiTurns < MAX_CONCURRENT_AI_TURNS) {
+    activeAiTurns++;
+    return true;
+  }
+
+  const waitMs = Math.max(0, deadlineMs - Date.now() - 3_000);
+  if (waitMs <= 0) return false;
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      const idx = aiTurnWaiters.indexOf(onReady);
+      if (idx !== -1) aiTurnWaiters.splice(idx, 1);
+    };
+
+    const onReady = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      activeAiTurns++;
+      resolve(true);
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(false);
+    };
+
+    const timer = setTimeout(onAbort, waitMs);
+    timer.unref?.();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    aiTurnWaiters.push(onReady);
+  });
+}
+
+function releaseAiSlot(): void {
+  activeAiTurns = Math.max(0, activeAiTurns - 1);
+  const next = aiTurnWaiters.shift();
+  if (next) next();
+}
 
 function buildGroundedSystemPrompt(input: {
   customPrompt?: string | null;
@@ -240,9 +297,7 @@ export async function runAssistantTurn(
     };
   }
 
-  const dbSetting = await db.aiSetting
-    .findUnique({ where: { id: 'default' } })
-    .catch(() => null);
+  const dbSetting = await getCachedAiSetting();
 
   const resolved = resolve9RouterConfig({
     gatewayUrl: input.configOverride?.gatewayUrl ?? dbSetting?.gatewayUrl,
@@ -296,57 +351,24 @@ export async function runAssistantTurn(
   let activeModel = resolved.activeModel;
   let finalReply = '';
 
-  for (let turn = 0; turn < MAX_AGENTIC_TURNS; turn++) {
-    const isFinalSynthesisTurn = turn === MAX_AGENTIC_TURNS - 1;
-    let completion = await callGatewayCompletion({
-      gatewayUrl: activeGatewayUrl,
-      apiKey: activeApiKey,
-      model: activeModel,
-      messages,
-      temperature,
-      maxTokens,
-      tools: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : AI_TOOL_DEFINITIONS,
-      toolChoice: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : 'auto',
-      traceId,
-    });
+  const deadlineMs = t0 + MAX_ORCHESTRATOR_BUDGET_MS;
+  const slotAcquired = await acquireAiSlot(deadlineMs, input.signal);
 
-    // Degradasi halus bila model/gateway menolak parameter `tools` (HTTP 400/422)
-    if (
-      !completion.ok &&
-      (completion.status === 400 || completion.status === 422) &&
-      !toolsDisabledForRun
-    ) {
-      toolsDisabledForRun = true;
-      fallbackUsed = true;
-      completion = await callGatewayCompletion({
-        gatewayUrl: activeGatewayUrl,
-        apiKey: activeApiKey,
-        model: activeModel,
-        messages,
-        temperature,
-        maxTokens,
-        traceId,
-      });
-    }
+  if (!slotAcquired) {
+    fallbackUsed = true;
+    finalReply = buildOfflineGracefulFallback(ragResult.chunks[0]?.content);
+  } else {
+    try {
+      for (let turn = 0; turn < MAX_AGENTIC_TURNS; turn++) {
+        const remainingMs = deadlineMs - Date.now();
+        if (remainingMs < 3_000 || input.signal?.aborted) {
+          fallbackUsed = true;
+          finalReply = buildOfflineGracefulFallback(ragResult.chunks[0]?.content);
+          break;
+        }
 
-    // Coba gateway/model cadangan bila gateway utama gagal 5xx/jaringan dan fallback aktif
-    if (
-      !completion.ok &&
-      !fallbackUsed &&
-      dbSetting?.autoFallbackEnabled &&
-      (dbSetting.fallbackGatewayUrl || dbSetting.fallbackModel)
-    ) {
-      const altUrl = dbSetting.fallbackGatewayUrl?.trim() || activeGatewayUrl;
-      const altModel = dbSetting.fallbackModel?.trim() || activeModel;
-      const altKey = dbSetting.fallbackApiKey?.trim() || activeApiKey;
-
-      if (altUrl !== activeGatewayUrl || altModel !== activeModel) {
-        fallbackUsed = true;
-        activeGatewayUrl = altUrl;
-        activeModel = altModel;
-        activeApiKey = altKey;
-
-        completion = await callGatewayCompletion({
+        const isFinalSynthesisTurn = turn === MAX_AGENTIC_TURNS - 1;
+        let completion = await callGatewayCompletion({
           gatewayUrl: activeGatewayUrl,
           apiKey: activeApiKey,
           model: activeModel,
@@ -355,67 +377,133 @@ export async function runAssistantTurn(
           maxTokens,
           tools: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : AI_TOOL_DEFINITIONS,
           toolChoice: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : 'auto',
+          timeoutMs: Math.min(25_000, remainingMs),
           traceId,
-        });
-      }
-    }
-
-    if (completion.totalTokens) {
-      totalTokens += completion.totalTokens;
-    }
-
-    if (!completion.ok) {
-      fallbackUsed = true;
-      finalReply = buildOfflineGracefulFallback(ragResult.chunks[0]?.content);
-      break;
-    }
-
-    if (completion.toolCalls.length > 0 && !isFinalSynthesisTurn) {
-      messages.push({
-        role: 'assistant',
-        content: completion.content || null,
-        tool_calls: completion.toolCalls,
-      });
-
-      for (const tc of completion.toolCalls) {
-        const toolResult = await executeAiTool(tc.function.name, tc.function.arguments, {
-          user: input.user,
-          ticketId: input.ticketId,
-          bookingId: input.bookingId,
-          isSandbox: input.isSandbox,
+          signal: input.signal,
         });
 
-        if (tc.function.name === 'createSupportTicket' && toolResult.ok && !input.isSandbox) {
-          ticketHandedOver = true;
+        // Degradasi halus bila model/gateway menolak parameter `tools` (HTTP 400/422)
+        if (
+          !completion.ok &&
+          (completion.status === 400 || completion.status === 422) &&
+          !toolsDisabledForRun
+        ) {
+          const retryMs = deadlineMs - Date.now();
+          if (retryMs >= 3_000 && !input.signal?.aborted) {
+            toolsDisabledForRun = true;
+            fallbackUsed = true;
+            completion = await callGatewayCompletion({
+              gatewayUrl: activeGatewayUrl,
+              apiKey: activeApiKey,
+              model: activeModel,
+              messages,
+              temperature,
+              maxTokens,
+              timeoutMs: Math.min(25_000, retryMs),
+              traceId,
+              signal: input.signal,
+            });
+          }
         }
 
-        toolsUsed.push({
-          name: toolResult.name,
-          ok: toolResult.ok,
-          durationMs: toolResult.durationMs,
-          summary: toolResult.summary,
-        });
+        // Coba gateway/model cadangan bila gateway utama gagal 5xx/jaringan dan fallback aktif
+        if (
+          !completion.ok &&
+          !fallbackUsed &&
+          dbSetting?.autoFallbackEnabled &&
+          (dbSetting.fallbackGatewayUrl || dbSetting.fallbackModel)
+        ) {
+          const altUrl = dbSetting.fallbackGatewayUrl?.trim() || activeGatewayUrl;
+          const altModel = dbSetting.fallbackModel?.trim() || activeModel;
+          const altKey = dbSetting.fallbackApiKey?.trim() || activeApiKey;
+          const fallbackMs = deadlineMs - Date.now();
 
-        recordGatewayLog({
-          event: 'TOOL_CALL',
-          model: activeModel,
-          status: toolResult.ok ? 200 : 400,
-          latencyMs: toolResult.durationMs,
-          details: `Tool ${toolResult.name}: ${toolResult.summary}`,
-        });
+          if (
+            (altUrl !== activeGatewayUrl || altModel !== activeModel) &&
+            fallbackMs >= 3_000 &&
+            !input.signal?.aborted
+          ) {
+            fallbackUsed = true;
+            activeGatewayUrl = altUrl;
+            activeModel = altModel;
+            activeApiKey = altKey;
 
-        messages.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          content: JSON.stringify(toolResult.data),
-        });
+            completion = await callGatewayCompletion({
+              gatewayUrl: activeGatewayUrl,
+              apiKey: activeApiKey,
+              model: activeModel,
+              messages,
+              temperature,
+              maxTokens,
+              tools: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : AI_TOOL_DEFINITIONS,
+              toolChoice: toolsDisabledForRun || isFinalSynthesisTurn ? undefined : 'auto',
+              timeoutMs: Math.min(25_000, fallbackMs),
+              traceId,
+              signal: input.signal,
+            });
+          }
+        }
+
+        if (completion.totalTokens) {
+          totalTokens += completion.totalTokens;
+        }
+
+        if (!completion.ok) {
+          fallbackUsed = true;
+          finalReply = buildOfflineGracefulFallback(ragResult.chunks[0]?.content);
+          break;
+        }
+
+        if (completion.toolCalls.length > 0 && !isFinalSynthesisTurn) {
+          messages.push({
+            role: 'assistant',
+            content: completion.content || null,
+            tool_calls: completion.toolCalls,
+          });
+
+          for (const tc of completion.toolCalls) {
+            const toolResult = await executeAiTool(tc.function.name, tc.function.arguments, {
+              user: input.user,
+              ticketId: input.ticketId,
+              bookingId: input.bookingId,
+              isSandbox: input.isSandbox,
+            });
+
+            if (tc.function.name === 'createSupportTicket' && toolResult.ok && !input.isSandbox) {
+              ticketHandedOver = true;
+            }
+
+            toolsUsed.push({
+              name: toolResult.name,
+              ok: toolResult.ok,
+              durationMs: toolResult.durationMs,
+              summary: toolResult.summary,
+            });
+
+            recordGatewayLog({
+              event: 'TOOL_CALL',
+              model: activeModel,
+              status: toolResult.ok ? 200 : 400,
+              latencyMs: toolResult.durationMs,
+              details: `Tool ${toolResult.name}: ${toolResult.summary}`,
+            });
+
+            messages.push({
+              role: 'tool',
+              tool_call_id: tc.id,
+              content: JSON.stringify(toolResult.data),
+            });
+          }
+
+          continue;
+        }
+
+        finalReply = completion.content;
+        break;
       }
-
-      continue;
+    } finally {
+      releaseAiSlot();
     }
-
-    finalReply = completion.content;
-    break;
   }
 
   if (!finalReply.trim()) {
