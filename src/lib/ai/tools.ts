@@ -190,7 +190,7 @@ export const AI_TOOL_DEFINITIONS: OpenAiToolDefinition[] = [
     function: {
       name: 'createSupportTicket',
       description:
-        'Menyerahkan percakapan ke admin manusia atau membuat tiket bantuan resmi terhubung ke akun pelanggan saat butuh penanganan staf.',
+        'HANYA digunakan apabila pelanggan secara eksplisit meminta di chat untuk dihubungkan atau berbicara dengan admin manusia, CS manusia, staf, atau operator. DILARANG memanggil tool ini untuk keluhan biasa, pertanyaan umum, atau tanpa permintaan eksplisit pelanggan.',
       parameters: {
         type: 'object',
         properties: {
