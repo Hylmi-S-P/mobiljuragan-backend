@@ -1,6 +1,10 @@
 import { NOMOR_WHATSAPP_KANTOR } from '../kontak.js';
 
-export type IntentGuardStatus = 'PASSED' | 'PROMPT_INJECTION' | 'ROADSIDE_EMERGENCY';
+export type IntentGuardStatus =
+  | 'PASSED'
+  | 'PROMPT_INJECTION'
+  | 'ROADSIDE_EMERGENCY'
+  | 'HUMAN_HANDOVER_REQUEST';
 
 export interface IntentGuardResult {
   status: IntentGuardStatus;
@@ -20,6 +24,45 @@ const PROMPT_INJECTION_PATTERNS: RegExp[] = [
 const ROADSIDE_EMERGENCY_PATTERNS: RegExp[] = [
   /\b(mogok|kecelakaan|tabrakan|ban\s+pecah|pecah\s+ban|rem\s+blong|mati\s+total|terjebak\s+banjir|mesin\s+terbakar|keluar\s+asap|darurat\s+jalan)\b/i,
 ];
+
+const HUMAN_HANDOVER_NEGATION_PATTERNS: RegExp[] = [
+  /\b(tidak|tak|gak|ga|nggak|engga|enggak|jangan|belum)\s+(perlu|butuh|usah|mau|ingin|alihkan|sambungkan|hubungkan|panggil|oper|teruskan|pindahkan)\b[^,.;!?\n]{0,35}\b(admin|cs|customer\s*service|staf|staff|operator|petugas|manusia)\b/i,
+  /\b(gak|ga|nggak|tidak)\s+usah\b[^,.;!?\n]{0,25}\b(admin|cs|staf|staff|operator|petugas|manusia)\b/i,
+];
+
+const HUMAN_HANDOVER_POSITIVE_PATTERNS: RegExp[] = [
+  /\b(hubungkan|dihubungkan|sambungkan|disambungkan|alihkan|dialihkan|pindahkan|dipindahkan|teruskan|diteruskan|oper|dioper|eskalasi|handover|handoff|panggil|panggilkan|bicara|berbicara|ngobrol|chat|berkomunikasi|berhubungan|talk|speak|connect|transfer)\b.{0,40}\b(admin|cs|customer\s*service|staf|staff|operator|petugas|manusia|orang\s*asli|human|real\s*person|live\s*agent)\b/i,
+  /\b(minta|mau|ingin|pengen|pengin|tolong|mohon|butuh|perlu|cari|harus)\b.{0,30}\b(admin\s*(manusia|asli|langsung)|cs\s*(manusia|asli|langsung)|customer\s*service\s*(manusia|asli|langsung)|staf\s*(manusia|asli|langsung|operasional)|staff\s*(manusia|asli|langsung|operasional)|operator\s*(manusia|asli|langsung)|orang\s*asli|human\s*agent|live\s*agent|real\s*person)\b/i,
+  /\b(tidak\s*mau|tak\s*mau|gak\s*mau|ga\s*mau|nggak\s*mau|gamau|bukan|jangan)\s+(sama\s+|dengan\s+|dijawab\s+|dilayani\s+|dibalas\s+)?(ai|bot|robot|asisten\s*virtual)\b/i,
+  /\b(minta|tolong|mohon|panggil|panggilkan)\s+(di)?(balas|jawab|tangani|layan[in]?)\s+(oleh\s+|sama\s+)?(admin|cs|staf|staff|operator|petugas|manusia)\b/i,
+  /\b(minta|tolong|mohon|panggil|panggilkan)\s+(admin|staf|staff|operator|cs)\b(?!\s+(jam|buka|tutup|nomor|no\.?|wa|whatsapp|berapa|dimana|di\s+mana|kapan|bagaimana|gimana))/i,
+  /\b(ke|sama|dengan|biar)\s+(admin|cs|staf|staff|operator|manusia)\s+(manusia|asli|langsung|aja|saja)\b/i,
+  /\b(admin|cs|staf|staff|operator)\s+(manusia|asli|aja|saja)(?:\s+(?:aja|saja))?\s+(dong|ya|please|pls|yang\s+(balas|jawab|tangani))\b/i,
+];
+
+/**
+ * Memeriksa apakah pesan pelanggan secara eksplisit meminta dihubungkan/berbicara dengan admin manusia.
+ */
+export function isExplicitHumanHandoverRequest(rawMessage: string): boolean {
+  const normalized = rawMessage.trim().replace(/\s+/g, ' ');
+  if (!normalized) {
+    return false;
+  }
+
+  for (const negation of HUMAN_HANDOVER_NEGATION_PATTERNS) {
+    if (negation.test(normalized)) {
+      return false;
+    }
+  }
+
+  for (const positive of HUMAN_HANDOVER_POSITIVE_PATTERNS) {
+    if (positive.test(normalized)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Memeriksa pesan pelanggan untuk mencegah prompt injection serta memicu jalur cepat darurat di jalan.
@@ -57,7 +100,7 @@ export function inspectPromptSafety(rawMessage: string): IntentGuardResult {
           '2. Pastikan seluruh penumpang turun ke area aman menjauh dari arus lalu lintas (pasang segitiga pengaman jika tersedia).',
           `3. Hubungi tim siaga MobilJuragan Merauke lewat WhatsApp/Telepon resmi ${NOMOR_WHATSAPP_KANTOR} serta kirimkan titik lokasi GPS (share location) dan foto kondisi kendaraan/pelat nomor.`,
           '',
-          'Percakapan ini kami tandai prioritas agar tim admin dapat langsung menindaklanjuti bantuan teknis maupun unit pengganti jika diperlukan.',
+          'Jika Anda membutuhkan bantuan langsung dari admin manusia di ruang chat ini, silakan balas dengan meminta dihubungkan ke admin manusia.',
         ].join('\n'),
       };
     }
